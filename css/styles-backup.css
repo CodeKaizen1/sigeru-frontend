@@ -1,0 +1,153 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f7f5;
+    color: #222;
+}
+
+.encabezado {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 60px;
+    background-color: #0f5132;
+    color: white;
+}
+
+.logo h1 {
+    font-size: 28px;
+}
+
+.menu {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.menu a {
+    color: white;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.btn-login {
+    background-color: white;
+    color: #0f5132 !important;
+    padding: 10px 16px;
+    border-radius: 6px;
+}
+
+.hero {
+    display: flex;
+    justify-content: space-between;
+    gap: 40px;
+    padding: 80px 60px;
+}
+
+.hero-texto {
+    max-width: 600px;
+}
+
+.hero-texto h2 {
+    font-size: 42px;
+    margin-bottom: 20px;
+    color: #0f5132;
+}
+
+.hero-texto p {
+    font-size: 18px;
+    margin-bottom: 16px;
+    line-height: 1.5;
+}
+
+.botones {
+    margin-top: 30px;
+    display: flex;
+    gap: 16px;
+}
+
+.btn-principal,
+.btn-secundario {
+    padding: 12px 20px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.btn-principal {
+    background-color: #0f5132;
+    color: white;
+}
+
+.btn-secundario {
+    border: 2px solid #0f5132;
+    color: #0f5132;
+}
+
+.hero-info {
+    background-color: white;
+    padding: 30px;
+    border-radius: 12px;
+    width: 350px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.hero-info h3 {
+    margin-bottom: 16px;
+    color: #0f5132;
+}
+
+.hero-info ul {
+    padding-left: 20px;
+}
+
+.hero-info li {
+    margin-bottom: 10px;
+}
+
+.footer {
+    text-align: center;
+    padding: 20px;
+    background-color: #ddd;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logo a {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+}
+
+.logo-img {
+    width: 52px;
+    height: 52px;
+    object-fit: contain;
+    border-radius: 12px;
+}
+
+.texto-logo {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.1;
+}
+
+.nombre-empresa {
+    font-size: 20px;
+    font-weight: bold;
+    color: white;
+}
+
+.nombre-sistema {
+    font-size: 13px;
+    color: #d1fae5;
+}

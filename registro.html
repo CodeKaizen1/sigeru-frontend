@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solicitud de cuenta - SiGeRU</title>
+
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/pages/auth.css">
+</head>
+<body>
+
+    <header class="auth-header">
+        <a href="index.html" class="auth-brand">
+            <div class="auth-brand-mark">
+                <span>SR</span>
+            </div>
+
+            <div class="auth-brand-text">
+                <strong>SiGeRU</strong>
+                <span>Gestión de Residuos Urbanos</span>
+            </div>
+        </a>
+
+        <nav class="auth-nav">
+            <a href="index.html">Inicio</a>
+            <a href="login.html">Iniciar sesión</a>
+        </nav>
+    </header>
+
+    <main class="contenedor-formulario">
+        <section class="tarjeta-formulario tarjeta-formulario-grande">
+            <h2>Solicitud de cuenta</h2>
+
+            <p class="texto-formulario">
+                Complete los datos para solicitar acceso al sistema.
+            </p>
+
+            <form action="login.html" method="get">
+                <div class="form-grid">
+                    <div class="grupo-formulario">
+                        <label for="nombres">Nombres</label>
+                        <input type="text" id="nombres" name="nombres" placeholder="Ingrese sus nombres" required>
+                    </div>
+
+                    <div class="grupo-formulario">
+                        <label for="apellidos">Apellidos</label>
+                        <input type="text" id="apellidos" name="apellidos" placeholder="Ingrese sus apellidos" required>
+                    </div>
+
+                    <div class="grupo-formulario">
+                        <label for="cedula">Cédula</label>
+                        <input type="text" id="cedula" name="cedula" placeholder="Ej: 12345678" required>
+                    </div>
+
+                    <div class="grupo-formulario">
+                        <label for="email">Correo electrónico</label>
+                        <input type="email" id="email" name="email" placeholder="ejemplo@correo.com" required>
+                    </div>
+
+                    <div class="grupo-formulario">
+                        <label for="fecha-nacimiento">Fecha de nacimiento</label>
+                        <input type="date" id="fecha-nacimiento" name="fecha-nacimiento" required>
+                    </div>
+
+                    <div class="grupo-formulario">
+                        <label for="telefono">Número de teléfono</label>
+                        <input type="tel" id="telefono" name="telefono" placeholder="Ej: 099 123 456" required>
+                    </div>
+
+                    <div class="grupo-formulario grupo-formulario-completo">
+                        <label for="direccion">Dirección</label>
+                        <input type="text" id="direccion" name="direccion" placeholder="Ingrese su dirección" required>
+                    </div>
+
+                    <div class="grupo-formulario">
+                        <label for="password">Contraseña</label>
+                        <input type="password" id="password" name="password" placeholder="Ingrese una contraseña" required>
+                    </div>
+
+                    <div class="grupo-formulario">
+                        <label for="confirmar-password">Confirmar contraseña</label>
+                        <input type="password" id="confirmar-password" name="confirmar-password" placeholder="Repita la contraseña" required>
+                    </div>
+                </div>
+
+                <p class="aviso-formulario">
+                    La solicitud será revisada antes de habilitar el acceso al sistema.
+                </p>
+
+                <button type="submit" class="btn-principal btn-ancho">Enviar solicitud</button>
+            </form>
+
+            <p class="enlace-formulario">
+                ¿Ya tiene una cuenta?
+                <a href="login.html">Iniciar sesión</a>
+            </p>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>Proyecto de Pasaje de Grado 2026 - SiGeRU</p>
+    </footer>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
