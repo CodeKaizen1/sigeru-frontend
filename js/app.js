@@ -1,8 +1,4 @@
-//
-// LANDING - FORMULARIO DE INCIDENCIAS
-// Simulación de envío (todavía no hay backend conectado)
-//
-
+// Aviso de "gracias" al enviar el formulario de incidencia, si existe en la página.
 document.addEventListener("DOMContentLoaded", () => {
     const formulario = document.getElementById("formIncidencia");
 

@@ -112,6 +112,21 @@
 }
 
 /* =========================
+   AVISOS DE LOGIN / REGISTRO
+   (aviso-formulario y aviso-formulario-exito ya vienen de components.css;
+   acá solo se agrega lo que falta para el login/registro real)
+========================= */
+
+.oculto {
+    display: none !important;
+}
+
+.aviso-formulario-error {
+    background: #ffe8e8;
+    color: #b42318;
+}
+
+/* =========================
    RESPONSIVE
 ========================= */
 

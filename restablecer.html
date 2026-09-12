@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+    <title>Restablecer contraseña - SiGeRU</title>
+
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/pages/auth.css">
+</head>
+<body>
+
+    <header class="auth-header">
+        <a href="../sigeru-landing/index.html" class="auth-brand">
+            <div class="auth-brand-mark">
+                <span>SR</span>
+            </div>
+
+            <div class="auth-brand-text">
+                <strong>SiGeRU</strong>
+                <span>Gestión de Residuos Urbanos</span>
+            </div>
+        </a>
+
+        <nav class="auth-nav">
+            <a href="../sigeru-landing/index.html">Inicio</a>
+            <a href="login.html">Iniciar sesión</a>
+        </nav>
+    </header>
+
+    <main class="contenedor-formulario">
+        <section class="tarjeta-formulario">
+            <h2>Restablecer contraseña</h2>
+
+            <p class="texto-formulario">
+                Elegí una contraseña nueva para tu cuenta.
+            </p>
+
+            <p id="avisoRestablecer" class="aviso-formulario oculto"></p>
+
+            <form id="formRestablecer">
+                <div class="grupo-formulario">
+                    <label for="password">Contraseña nueva</label>
+                    <input type="password" id="password" name="password" placeholder="Ingresá una contraseña nueva" required>
+                </div>
+
+                <div class="grupo-formulario">
+                    <label for="confirmar-password">Confirmar contraseña</label>
+                    <input type="password" id="confirmar-password" name="confirmar-password" placeholder="Repetí la contraseña" required>
+                </div>
+
+                <button type="submit" class="btn-principal btn-ancho">Guardar contraseña</button>
+            </form>
+
+            <p class="enlace-formulario">
+                <a href="login.html">Volver a iniciar sesión</a>
+            </p>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>Proyecto de Pasaje de Grado 2026 - SiGeRU</p>
+    </footer>
+
+    <script src="js/almacenamiento-simulado.js?v=11"></script>
+    <script src="js/auth.js?v=3"></script>
+    <script src="js/app.js"></script>
+    <script src="js/mostrar-password.js"></script>
+</body>
+</html>
