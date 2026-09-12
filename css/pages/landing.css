@@ -470,6 +470,113 @@
     max-width: 780px;
 }
 
+/*
+   CAPTCHA (verificación anti-spam del formulario de reporte)
+   Checkbox estilo "No soy un robot": el vecino tilda la casilla, se
+   simula una breve verificación (spinner) y queda confirmado. Es más
+   simple y robusto que un captcha de letras/imagen, y sigue sin
+   depender de ningún servicio externo (todo el sistema sigue siendo
+   una simulación sin backend conectado - ver app.js).
+*/
+
+.captcha-robot-caja {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 20px;
+    margin: 8px 0 4px;
+    background: var(--white);
+    border: 1.5px solid var(--border-soft);
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(7, 31, 61, 0.08);
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    max-width: 320px;
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.captcha-robot-caja:hover {
+    border-color: var(--primary);
+}
+
+.captcha-robot-check {
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    border-radius: 4px;
+    border: 2px solid var(--border-soft);
+    background: var(--white);
+    position: relative;
+    transition: 0.2s ease;
+}
+
+.captcha-robot-texto {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--primary-dark);
+}
+
+.captcha-robot-spinner {
+    display: none;
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 3px solid var(--light-bg);
+    border-top-color: var(--primary);
+}
+
+.captcha-robot-caja.verificando .captcha-robot-spinner {
+    display: block;
+    animation: captcha-girar 0.7s linear infinite;
+}
+
+.captcha-robot-caja.verificando .captcha-robot-check {
+    border-color: var(--primary);
+}
+
+@keyframes captcha-girar {
+    to { transform: rotate(360deg); }
+}
+
+.captcha-robot-caja.verificado {
+    border-color: #1e8e3e;
+    background: #f3faf5;
+}
+
+.captcha-robot-caja.verificado .captcha-robot-check {
+    border-color: #1e8e3e;
+    background: #1e8e3e;
+}
+
+.captcha-robot-caja.verificado .captcha-robot-check::after {
+    content: "";
+    position: absolute;
+    left: 8px;
+    top: 3px;
+    width: 6px;
+    height: 12px;
+    border: solid var(--white);
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.captcha-robot-caja.error {
+    border-color: #b3261e;
+}
+
+.captcha-error {
+    display: none;
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: #b3261e;
+}
+
+.captcha-error.visible {
+    display: block;
+}
+
 /* =========================
    MAPA (PRÓXIMAMENTE)
 ========================= */
@@ -531,6 +638,103 @@
 }
 
 /* =========================
+   SEGUIMIENTO DE INCIDENCIAS (buscador público)
+========================= */
+
+.buscador-incidencias-campo {
+    max-width: 480px;
+    margin-bottom: 22px;
+}
+
+.resultados-incidencias {
+    display: grid;
+    gap: 12px;
+}
+
+/* Incidencias "en curso" y "resueltas" una al lado de la otra (pedido de
+   Matías) - se apilan en una sola columna en pantallas angostas, ver
+   RESPONSIVE más abajo. */
+.incidencias-columnas {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    align-items: start;
+}
+
+.incidencias-columna h3 {
+    color: var(--primary-dark);
+    font-size: 1.05rem;
+    margin-bottom: 12px;
+}
+
+.incidencia-publica-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    background: #f7faff;
+    border: 1px solid rgba(7, 31, 61, 0.06);
+    padding: 16px 18px;
+    border-radius: 14px;
+}
+
+.incidencia-publica-id {
+    display: block;
+    color: var(--primary-dark);
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.incidencia-publica-detalle {
+    display: block;
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+/* Fecha (y hora, si se puede) en que se resolvió - ver
+   buscador-incidencias.js, que arma este texto a partir de
+   incidencia.fechaResolucion. */
+.incidencia-publica-fecha-resolucion {
+    display: block;
+    color: #137a3a;
+    font-size: 13px;
+    font-weight: 600;
+    margin-top: 4px;
+}
+
+.empty-state {
+    padding: 22px;
+    color: var(--text-muted);
+    line-height: 1.6;
+    background: #f7faff;
+    border-radius: 14px;
+}
+
+.estado {
+    justify-self: start;
+    padding: 7px 12px;
+    border-radius: 999px;
+    font-weight: bold;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+.estado-abierta {
+    background: #ffe8e8;
+    color: #b42318;
+}
+
+.estado-en-curso {
+    background: #fff4d6;
+    color: #946200;
+}
+
+.estado-resuelta {
+    background: #ddf7e7;
+    color: #137a3a;
+}
+
+/* =========================
    RESPONSIVE
 ========================= */
 
@@ -544,6 +748,10 @@
     }
 
     .hero-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .incidencias-columnas {
         grid-template-columns: 1fr;
     }
 }

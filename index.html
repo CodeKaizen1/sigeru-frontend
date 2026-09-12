@@ -3,12 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- CSP: sin scripts/estilos inline, todo del propio origen. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
     <title>SiGeRU - Portal de acceso</title>
 
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/layout.css">
     <link rel="stylesheet" href="css/components.css">
-    <link rel="stylesheet" href="css/pages/landing.css">
+    <link rel="stylesheet" href="css/pages/landing.css?v=3">
 </head>
 <body>
 
@@ -48,6 +50,11 @@
                         <span>Reportar incidencia</span>
                     </a>
 
+                    <a href="#seguimiento" class="sidebar-link">
+                        <span class="sidebar-icon">🔎</span>
+                        <span>Seguimiento</span>
+                    </a>
+
                     <a href="#mapa" class="sidebar-link">
                         <span class="sidebar-icon">🗺️</span>
                         <span>Mapa</span>
@@ -75,9 +82,9 @@
 
             <div class="hero-top">
                 <div class="auth-discreto">
-                    <a href="login.html">Iniciar sesión</a>
+                    <a href="../sigeru-frontend-usuarios/login.html">Iniciar sesión</a>
                     <span class="auth-discreto-sep">·</span>
-                    <a href="registro.html">Registrarse</a>
+                    <a href="../sigeru-frontend-usuarios/registro.html">Registrarse</a>
                 </div>
 
                 <a href="#como-funciona" class="help-pill">Ayuda</a>
@@ -227,8 +234,11 @@
                 <form class="report-form" id="formIncidencia">
                     <div class="form-grid">
                         <div class="grupo-formulario grupo-formulario-completo">
-                            <label for="direccion-incidencia">Dirección o ubicación del contenedor</label>
-                            <input type="text" id="direccion-incidencia" name="direccion" placeholder="Ej: Av. Brasil y Bulevar España" required>
+                            <label for="direccion-incidencia">Dirección del contenedor</label>
+                            <select id="direccion-incidencia" name="contenedorId" required>
+                                <option value="" disabled selected>Seleccione la dirección del contenedor</option>
+                            </select>
+                            <span class="ayuda-campo">Solo se pueden informar incidencias en direcciones donde ya hay un contenedor registrado.</span>
                         </div>
 
                         <div class="grupo-formulario">
@@ -244,8 +254,9 @@
                         </div>
 
                         <div class="grupo-formulario">
-                            <label for="contacto-incidencia">Correo electrónico</label>
-                            <input type="email" id="contacto-incidencia" name="contacto" placeholder="ejemplo@correo.com" required>
+                            <label for="zona-incidencia">Barrio / zona</label>
+                            <input type="text" id="zona-incidencia" name="zona" placeholder="Se completa solo al elegir la dirección" readonly>
+                            <span class="ayuda-campo">Se completa solo según el contenedor elegido - corroborá que sea el barrio correcto.</span>
                         </div>
 
                         <div class="grupo-formulario grupo-formulario-completo">
@@ -254,12 +265,51 @@
                         </div>
                     </div>
 
+                    <div class="grupo-formulario captcha-grupo">
+                        <div class="captcha-robot-caja" id="captchaRobotCaja" role="checkbox" aria-checked="false" tabindex="0">
+                            <span class="captcha-robot-check" id="captchaRobotCheck"></span>
+                            <span class="captcha-robot-texto">No soy un robot</span>
+                            <span class="captcha-robot-spinner" id="captchaRobotSpinner" aria-hidden="true"></span>
+                        </div>
+
+                        <span class="captcha-error" id="captchaError">Confirmá que no sos un robot antes de enviar el aviso.</span>
+                    </div>
+
                     <p class="aviso-formulario" id="avisoIncidencia">
-                        El aviso quedará registrado para que el área correspondiente pueda revisarlo.
+                        El aviso quedará registrado para que el área correspondiente pueda revisarlo. Vas a poder buscarlo después en la sección "Seguimiento" con la dirección que ingreses acá.
                     </p>
 
                     <button type="submit" class="btn-principal">Enviar aviso</button>
                 </form>
+            </section>
+
+            <section class="report-section" id="seguimiento">
+                <div class="section-heading">
+                    <p class="hero-label">Seguimiento de incidencias</p>
+                    <h2>Buscá el estado de tu aviso</h2>
+                    <p>
+                        Acá aparecen todas las incidencias: las que todavía están en proceso
+                        y las que ya se resolvieron. Buscá por dirección, barrio o el número
+                        de aviso que te mostramos al enviarlo.
+                    </p>
+                </div>
+
+                <div class="grupo-formulario grupo-formulario-completo buscador-incidencias-campo">
+                    <label for="buscarIncidencia">Buscar por dirección, barrio o número de aviso</label>
+                    <input type="search" id="buscarIncidencia" placeholder="Ej: Pocitos, o INC-004">
+                </div>
+
+                <div class="incidencias-columnas">
+                    <div class="incidencias-columna">
+                        <h3>Incidencias en curso</h3>
+                        <div id="resultadosIncidenciasEnCurso" class="resultados-incidencias"></div>
+                    </div>
+
+                    <div class="incidencias-columna">
+                        <h3>Incidencias resueltas</h3>
+                        <div id="resultadosIncidenciasResueltas" class="resultados-incidencias"></div>
+                    </div>
+                </div>
             </section>
 
             <section class="map-section" id="mapa">
@@ -292,6 +342,7 @@
         </main>
     </div>
 
-    <script src="js/app.js"></script>
+    <script src="js/app.js?v=5"></script>
+    <script src="js/buscador-incidencias.js?v=2"></script>
 </body>
 </html>
