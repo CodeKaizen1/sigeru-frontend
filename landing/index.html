@@ -4,13 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- CSP: sin scripts/estilos inline, todo del propio origen. -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' https://tile.openstreetmap.org; object-src 'none'; base-uri 'self'; form-action 'self'">
     <title>SiGeRU - Portal de acceso</title>
 
+    <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/layout.css">
     <link rel="stylesheet" href="css/components.css">
-    <link rel="stylesheet" href="css/pages/landing.css?v=3">
+    <link rel="stylesheet" href="css/pages/landing.css?v=4">
 </head>
 <body>
 
@@ -315,17 +316,19 @@
             <section class="map-section" id="mapa">
                 <div class="section-heading">
                     <p class="hero-label">Mapa de contenedores</p>
-                    <h2>Ubicación de contenedores y camiones</h2>
+                    <h2>Ubicación de contenedores e incidencias</h2>
                     <p>
-                        Próximamente vas a poder ver en un mapa interactivo la ubicación de
-                        los contenedores y, más adelante, el recorrido de los camiones de
-                        recolección en tiempo real.
+                        Contenedores con su estado actual e incidencias abiertas
+                        reportadas por los vecinos, geolocalizados sobre un mapa
+                        interactivo (no incluye el recorrido de los camiones todavía).
                     </p>
                 </div>
 
-                <div class="map-placeholder">
-                    <span class="map-placeholder-icon">🗺️</span>
-                    <p>Mapa interactivo — próximamente</p>
+                <div id="mapaIncidencias" class="map-leaflet" role="img" aria-label="Mapa interactivo con la ubicación de los contenedores e incidencias"></div>
+
+                <div class="map-leyenda">
+                    <span class="map-leyenda-item"><span class="map-leyenda-punto map-leyenda-punto-contenedor"></span> Contenedor</span>
+                    <span class="map-leyenda-item"><span class="map-leyenda-punto map-leyenda-punto-incidencia"></span> Incidencia abierta</span>
                 </div>
             </section>
 
@@ -342,7 +345,9 @@
         </main>
     </div>
 
+    <script src="vendor/leaflet/leaflet.js"></script>
     <script src="js/app.js?v=5"></script>
     <script src="js/buscador-incidencias.js?v=3"></script>
+    <script src="js/mapa.js?v=1"></script>
 </body>
 </html>

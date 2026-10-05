@@ -216,6 +216,11 @@ async function cargarContenedores() {
             ubicacion: fila.ubicacionContenedor || "",
             capacidad: fila.capacidadContenedor || "",
             tipoResiduo: fila.tipoResiduoContenedor || "",
+            // Coordenadas para el mapa interactivo -- opcionales, string vacio
+            // si no estan cargadas (coincide con como el <input type="number">
+            // del formulario espera el valor inicial).
+            latitud: fila.latitudContenedor ?? "",
+            longitud: fila.longitudContenedor ?? "",
             incidencias: calcularResumenIncidenciasContenedor(fila.idContenedor)
         };
         _cacheContenedoresPorId.set(item.id, item);
@@ -1197,7 +1202,11 @@ export const formulariosAlta = {
             { nombre: "ubicacion", etiqueta: "Ubicación", tipo: "text", requerido: false, ancho: "completo", placeholder: "Ej: Av. Brasil y Bulevar España (dejalo vacío si es repuesto en depósito)" },
             { nombre: "capacidad", etiqueta: "Capacidad", tipo: "text", requerido: true, placeholder: "Ej: 1100 litros" },
             { nombre: "tipoResiduo", etiqueta: "Tipo de residuo", tipo: "select", requerido: true, opciones: ["Residuos mezclados", "Residuos reciclables", "Residuos orgánicos"] },
-            { nombre: "estado", etiqueta: "Estado inicial", tipo: "select", requerido: true, opciones: ["funcional", "roto", "desbordado"] }
+            { nombre: "estado", etiqueta: "Estado inicial", tipo: "select", requerido: true, opciones: ["funcional", "roto", "desbordado"] },
+            // Opcionales: sin esto el contenedor no aparece en el mapa interactivo,
+            // pero el resto del CRUD sigue funcionando igual.
+            { nombre: "latitud", etiqueta: "Latitud (para el mapa)", tipo: "number", requerido: false, placeholder: "Ej: -34.9058" },
+            { nombre: "longitud", etiqueta: "Longitud (para el mapa)", tipo: "number", requerido: false, placeholder: "Ej: -56.1913" }
         ]
     },
     camiones: {
@@ -1455,7 +1464,9 @@ export async function crearRegistro(modulo, valoresCampos) {
             ubicacionContenedor: valoresCampos.ubicacion || null,
             estadoContenedor: valoresCampos.estado,
             capacidadContenedor: aNumeroONull(valoresCampos.capacidad),
-            tipoResiduoContenedor: valoresCampos.tipoResiduo
+            tipoResiduoContenedor: valoresCampos.tipoResiduo,
+            latitudContenedor: aNumeroONull(valoresCampos.latitud),
+            longitudContenedor: aNumeroONull(valoresCampos.longitud)
         });
         if (!ok) return null;
         await cargarContenedores();
@@ -1583,7 +1594,9 @@ export async function editarRegistro(modulo, id, valoresCampos) {
             ubicacionContenedor: valoresCampos.ubicacion || null,
             estadoContenedor: valoresCampos.estado,
             capacidadContenedor: aNumeroONull(valoresCampos.capacidad),
-            tipoResiduoContenedor: valoresCampos.tipoResiduo
+            tipoResiduoContenedor: valoresCampos.tipoResiduo,
+            latitudContenedor: aNumeroONull(valoresCampos.latitud),
+            longitudContenedor: aNumeroONull(valoresCampos.longitud)
         }, id));
     } else if (modulo === "camiones") {
         const choferIdCedula = valoresCampos.choferId || null;
@@ -1671,7 +1684,9 @@ export async function alternarBaja(modulo, id) {
             ubicacionContenedor: registro.ubicacion || null,
             estadoContenedor: nuevoEstado,
             capacidadContenedor: aNumeroONull(registro.capacidad),
-            tipoResiduoContenedor: registro.tipoResiduo
+            tipoResiduoContenedor: registro.tipoResiduo,
+            latitudContenedor: aNumeroONull(registro.latitud),
+            longitudContenedor: aNumeroONull(registro.longitud)
         }, id));
     } else if (modulo === "camiones") {
         ok = await guardarCamion({ ...registro, estado: nuevoEstado });
