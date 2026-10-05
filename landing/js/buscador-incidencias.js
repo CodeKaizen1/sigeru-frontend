@@ -3,6 +3,20 @@
 
 const API_GESTION_BUSCADOR = "../../api-gestion/index.php";
 
+// El endpoint de incidencia acepta POST sin sesión (lo necesita el formulario
+// público), así que lo que vuelve en la respuesta no se puede asumir seguro:
+// alguien puede mandar HTML directo con curl/Postman sin pasar por el
+// formulario. Se escapa todo lo que viene del servidor antes de pintarlo
+// (mismo patrón que escapeHtml() en backoffice/js/admin/view.js).
+function escapeHtml(valor) {
+    return String(valor ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+}
+
 function normalizarBusquedaIncidencia(texto) {
     return texto.toString().toLowerCase();
 }
@@ -20,20 +34,24 @@ function formatearFechaReporte(fechaMysql) {
 }
 
 function claseEstadoIncidencia(estado) {
-    return (estado || "").toLowerCase().replaceAll(" ", "-");
+    return escapeHtml((estado || "").toLowerCase().replaceAll(" ", "-"));
 }
 
 function crearTarjetaIncidencia(incidencia) {
     const fechaTexto = formatearFechaReporte(incidencia.fechaReporte);
+    const idTexto = escapeHtml(incidencia.idIncidencia);
+    const tipoTexto = escapeHtml(incidencia.tipoIncidencia || "Otra situación");
+    const zonaTexto = escapeHtml(incidencia.zonaIncidencia || "");
+    const estadoTexto = escapeHtml(incidencia.estadoIncidencia || "");
 
     return `
         <div class="incidencia-publica-card">
             <div>
-                <span class="incidencia-publica-id">#${incidencia.idIncidencia} — ${incidencia.tipoIncidencia || "Otra situación"}</span>
-                <span class="incidencia-publica-detalle">${incidencia.zonaIncidencia || ""}</span>
-                ${fechaTexto ? `<span class="incidencia-publica-fecha-resolucion">${fechaTexto}</span>` : ""}
+                <span class="incidencia-publica-id">#${idTexto} — ${tipoTexto}</span>
+                <span class="incidencia-publica-detalle">${zonaTexto}</span>
+                ${fechaTexto ? `<span class="incidencia-publica-fecha-resolucion">${escapeHtml(fechaTexto)}</span>` : ""}
             </div>
-            <span class="estado estado-${claseEstadoIncidencia(incidencia.estadoIncidencia)}">${incidencia.estadoIncidencia || ""}</span>
+            <span class="estado estado-${claseEstadoIncidencia(incidencia.estadoIncidencia)}">${estadoTexto}</span>
         </div>
     `;
 }
