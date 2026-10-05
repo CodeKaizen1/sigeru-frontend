@@ -23,7 +23,7 @@ function accesoNoAutorizado() {
             <section class="module-header">
                 <h2>Acceso no autorizado</h2>
                 <p>Tenés que iniciar sesión como Operario de Cuadrilla para ver esta pantalla.</p>
-                <a href="../sigeru-frontend-usuarios/login.html" class="btn-principal">Ir a iniciar sesión</a>
+                <a href="../frontend-usuarios/login.html" class="btn-principal">Ir a iniciar sesión</a>
             </section>
         </main>
     `;
@@ -132,7 +132,7 @@ document.getElementById("btnSalir").addEventListener("click", async (evento) => 
     if (!confirmado) return;
 
     sessionStorage.removeItem("sigeru_sesion_v1");
-    window.location.href = "../sigeru-frontend-usuarios/login.html";
+    window.location.href = "../frontend-usuarios/login.html";
 });
 
 // Notificaciones
@@ -170,7 +170,7 @@ async function alGuardarCuenta(cambios) {
     if (resultado && resultado !== "CONTRASENA_INCORRECTA" && resultado !== "EMAIL_DUPLICADO" && resultado.cambioSesion) {
         alert("Tu correo o tu contraseña cambiaron: iniciá sesión de nuevo.");
         sessionStorage.removeItem("sigeru_sesion_v1");
-        window.location.href = "../sigeru-frontend-usuarios/login.html";
+        window.location.href = "../frontend-usuarios/login.html";
     }
 
     return resultado;

@@ -2,13 +2,13 @@
 // mantiene el servidor (cookie PHPSESSID); lo guardado en sessionStorage
 // es solo una copia de conveniencia para mostrar el nombre en los paneles.
 
-const API_USUARIOS = "../api-usuarios/index.php";
+const API_USUARIOS = "../../api-usuarios/index.php";
 
 const RUTAS_POR_ROL = {
-    administrador: "../sigeru-backoffice/admin.html",
-    jefeDeCuadrilla: "../sigeru-backoffice/panel-jefe.html",
-    chofer: "../sigeru-backoffice/panel-chofer.html",
-    operarioDeCuadrilla: "../sigeru-backoffice/panel-operario.html"
+    administrador: "../backoffice/admin.html",
+    jefeDeCuadrilla: "../backoffice/panel-jefe.html",
+    chofer: "../backoffice/panel-chofer.html",
+    operarioDeCuadrilla: "../backoffice/panel-operario.html"
 };
 
 function mostrarAviso(elemento, mensaje, tipo = "error") {

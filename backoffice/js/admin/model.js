@@ -5,9 +5,9 @@
 // la cédula (no idOperarioDeCuadrilla); notificaciones y el texto de
 // resolución de incidencias no tienen backend real todavía y quedan stub.
 
-const API_USUARIOS = "../api-usuarios/index.php";
-const API_GESTION = "../api-gestion/index.php";
-const API_RECOLECCION = "../api-recoleccion/index.php";
+const API_USUARIOS = "../../api-usuarios/index.php";
+const API_GESTION = "../../api-gestion/index.php";
+const API_RECOLECCION = "../../api-recoleccion/index.php";
 
 async function llamarApi(base, recurso, metodo = "GET", cuerpo, id) {
     let url = `${base}?recurso=${recurso}`;

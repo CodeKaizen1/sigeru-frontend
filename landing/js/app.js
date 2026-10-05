@@ -2,7 +2,7 @@
 // sin sesión. El servidor fuerza estado "abierta" y cuadrilla null aunque
 // este archivo no los mande.
 
-const API_GESTION = "../api-gestion/index.php";
+const API_GESTION = "../../api-gestion/index.php";
 
 // Convierte el código corto del <select> en el texto que se guarda en incidencia.tipoIncidencia.
 const TIPOS_INCIDENCIA = {

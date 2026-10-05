@@ -9,5 +9,5 @@ document.getElementById("btnSalir").addEventListener("click", async (evento) => 
     if (!confirmado) return;
 
     sessionStorage.removeItem("sigeru_sesion_v1");
-    window.location.href = "../sigeru-frontend-usuarios/login.html";
+    window.location.href = "../frontend-usuarios/login.html";
 });

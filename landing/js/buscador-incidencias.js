@@ -1,7 +1,7 @@
 // Buscador público de incidencias: pide la lista a api-gestion una sola
 // vez al cargar y filtra en memoria mientras el vecino escribe.
 
-const API_GESTION_BUSCADOR = "../api-gestion/index.php";
+const API_GESTION_BUSCADOR = "../../api-gestion/index.php";
 
 function normalizarBusquedaIncidencia(texto) {
     return texto.toString().toLowerCase();

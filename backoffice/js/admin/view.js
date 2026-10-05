@@ -963,7 +963,7 @@ export function mostrarAccesoNoAutorizado() {
             <section class="module-header">
                 <h2>Acceso no autorizado</h2>
                 <p>Tenés que iniciar sesión para entrar al panel administrador.</p>
-                <a href="../sigeru-frontend-usuarios/login.html" class="btn-principal">Ir a iniciar sesión</a>
+                <a href="../frontend-usuarios/login.html" class="btn-principal">Ir a iniciar sesión</a>
             </section>
         </main>
     `;
