@@ -17,3 +17,9 @@ El historial de commits de los 3 repos viejos se preservo completo con `git subt
 ## Rutas relativas
 
 Las 3 apps se enlazan entre si con rutas relativas (`../landing/`, `../frontend-usuarios/`, `../backoffice/`) y llaman a las APIs con `../../api-gestion/index.php` (etc.) — esto asume que este repo se sirve con `api-usuarios/`, `api-gestion/` y `api-recoleccion/` como hermanos de la carpeta `sigeru-frontend/` (la misma disposicion que ya usa XAMPP hoy). Si cambia esa disposicion, hay que revisar estas rutas.
+
+## Docker
+
+`docker compose up` levanta un solo contenedor nginx (`docker/Dockerfile`) que sirve `landing/`, `frontend-usuarios/` y `backoffice/` como archivos estaticos en `http://localhost:8081` — mismo patron de "un contenedor para varias apps" que ya usa `sigeru-backend` para sus 3 APIs.
+
+Este contenedor no corre PHP ni habla con ninguna base: solo sirve HTML/CSS/JS. Para que las llamadas a las APIs (rutas relativas de arriba) funcionen de verdad, hace falta correrlo junto con el Docker de `sigeru-backend` compartiendo origen, o seguir usando XAMPP como hasta ahora para la demo en vivo de la defensa (ahi ya funciona tal cual). Este Docker existe principalmente para cumplir el requisito de la letra de que cada aplicacion corra en su propio contenedor.
