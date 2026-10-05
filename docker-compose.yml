@@ -1,0 +1,17 @@
+# Levanta los 3 frontends de SiGeRU con "docker compose up":
+#   - frontend: nginx sirviendo landing/, frontend-usuarios/ y backoffice/
+#               como carpetas estaticas en http://localhost:8081.
+#
+# Es un contenedor independiente del de sigeru-backend (las 3 APIs, puerto
+# 8080). Para la demo en vivo de la defensa se puede seguir usando XAMPP
+# como hasta ahora -- ahi las rutas relativas hacia las APIs ya funcionan
+# tal cual estan. Este Docker existe para cumplir el requisito de la letra
+# de que cada aplicacion corra en su propio contenedor Docker.
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8081:80"
