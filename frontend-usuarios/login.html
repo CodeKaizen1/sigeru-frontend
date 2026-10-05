@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+    <title>Iniciar sesión - SiGeRU</title>
+
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/pages/auth.css">
+</head>
+<body>
+
+    <header class="auth-header">
+        <a href="../sigeru-landing/index.html" class="auth-brand">
+            <div class="auth-brand-mark">
+                <span>SR</span>
+            </div>
+
+            <div class="auth-brand-text">
+                <strong>SiGeRU</strong>
+                <span>Gestión de Residuos Urbanos</span>
+            </div>
+        </a>
+
+        <nav class="auth-nav">
+            <a href="../sigeru-landing/index.html">Inicio</a>
+            <a href="registro.html">Solicitar cuenta</a>
+        </nav>
+    </header>
+
+    <main class="contenedor-formulario">
+        <section class="tarjeta-formulario">
+            <h2>Iniciar sesión</h2>
+
+            <p class="texto-formulario">
+                Ingrese sus datos para acceder al sistema.
+            </p>
+
+            <p id="avisoLogin" class="aviso-formulario oculto"></p>
+
+            <form id="formLogin">
+                <div class="grupo-formulario">
+                    <label for="email">Correo electrónico</label>
+                    <input type="email" id="email" name="email" placeholder="ejemplo@correo.com" required>
+                </div>
+
+                <div class="grupo-formulario">
+                    <label for="password">Contraseña</label>
+                    <input type="password" id="password" name="password" placeholder="Ingrese su contraseña" required>
+                </div>
+
+                <button type="submit" class="btn-principal btn-ancho">Ingresar</button>
+            </form>
+
+            <p class="enlace-formulario">
+                ¿Olvidaste tu contraseña?
+                <a href="recuperar.html">Recuperarla</a>
+            </p>
+
+            <p class="enlace-formulario">
+                ¿No tiene una cuenta?
+                <a href="registro.html">Solicitar cuenta</a>
+            </p>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>Proyecto de Pasaje de Grado 2026 - SiGeRU</p>
+    </footer>
+
+    <script src="js/almacenamiento-simulado.js?v=11"></script>
+    <script src="js/auth.js?v=3"></script>
+    <script src="js/app.js"></script>
+    <script src="js/mostrar-password.js"></script>
+</body>
+</html>
