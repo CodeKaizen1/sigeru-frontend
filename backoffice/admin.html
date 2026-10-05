@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- CSP: incluye cdnjs (SheetJS); sin scripts/estilos inline. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+    <title>Panel administrador - SiGeRU</title>
+
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/pages/admin.css?v=24">
+</head>
+<body>
+
+    <div class="admin-layout">
+
+        <aside class="admin-sidebar">
+            <div>
+                <div class="admin-brand">
+                    <div class="admin-logo">SR</div>
+
+                    <div>
+                        <h1>SiGeRU</h1>
+                        <p>Panel administrador</p>
+                    </div>
+                </div>
+
+                <nav class="admin-menu">
+                    <button class="admin-menu-link active" data-module="resumen">Resumen</button>
+                    <button class="admin-menu-link" data-module="incidencias">Incidencias</button>
+                    <button class="admin-menu-link" data-module="contenedores">Contenedores</button>
+                    <button class="admin-menu-link" data-module="camiones">Camiones</button>
+                    <button class="admin-menu-link" data-module="cuadrillas">Cuadrillas</button>
+                    <button class="admin-menu-link" data-module="rutas">Rutas</button>
+                    <button class="admin-menu-link" data-module="centrosDeAcopio">Centros de acopio</button>
+                    <button class="admin-menu-link" data-module="vertederos">Vertederos</button>
+                    <button class="admin-menu-link" data-module="funcionarios">Funcionarios</button>
+                    <button class="admin-menu-link" data-module="solicitudes">Solicitudes</button>
+                </nav>
+            </div>
+        </aside>
+
+        <main class="admin-main">
+
+            <section class="module-header">
+                <div>
+                    <p class="admin-etiqueta">Administrador</p>
+                    <h2 id="moduleTitle">Resumen general</h2>
+                    <p id="moduleDescription">
+                        Vista inicial del estado general del sistema.
+                    </p>
+                </div>
+
+                <div class="header-acciones">
+                    <div id="notificacionesContenedor" class="notificaciones-campanita-caja"></div>
+                    <div id="cuentaContenedor" class="cuenta-menu-caja"></div>
+                    <a href="#" id="btnSalir" class="admin-salir">Cerrar sesión</a>
+                </div>
+            </section>
+
+            <section id="summaryCards" class="admin-resumen"></section>
+
+            <section id="moduleTools" class="module-tools">
+                <input
+                    type="search"
+                    id="searchInput"
+                    placeholder="Buscar por ID, zona, ubicación o estado..."
+                >
+
+                <select id="stateFilter">
+                    <option value="todos">Todos los estados</option>
+                </select>
+
+                <button type="button" id="exportBtn" class="btn-secundario">Exportar</button>
+
+                <button type="button" id="newRecordBtn" class="btn-principal">Nuevo</button>
+            </section>
+
+            <section id="filtrosExtra" class="filtros-extra oculto"></section>
+
+            <section class="module-content" id="moduleContent">
+                <div id="moduleList" class="data-list"></div>
+
+                <aside id="detailPanel" class="detail-panel">
+                    <p class="detail-empty">
+                        Seleccione un registro para ver más información.
+                    </p>
+                </aside>
+            </section>
+        </main>
+    </div>
+
+    <!-- Contenido armado por renderDetalle() en view.js. -->
+    <div id="detailModal" class="modal-overlay oculto">
+        <div class="modal-card">
+            <div class="modal-header modal-header-detalle">
+                <button type="button" id="detailModalCerrar" class="modal-cerrar" aria-label="Cerrar">✕</button>
+            </div>
+
+            <div id="detailModalBody"></div>
+        </div>
+    </div>
+
+    <div id="formModal" class="modal-overlay oculto">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="modalTitulo">Nuevo registro</h3>
+                <button type="button" id="modalCerrar" class="modal-cerrar" aria-label="Cerrar">✕</button>
+            </div>
+
+            <form id="formAlta">
+                <div class="form-grid" id="modalFormFields"></div>
+
+                <div class="modal-actions">
+                    <button type="button" id="modalCancelar" class="btn-secundario">Cancelar</button>
+                    <button type="submit" class="btn-principal">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Debe cargarse antes que main.js: model.js usa sus funciones globales. -->
+    <script src="js/almacenamiento-simulado.js?v=11"></script>
+    <!-- SheetJS (cdnjs), para el botón Exportar. -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script type="module" src="js/admin/main.js?v=31"></script>
+    <script type="module" src="js/salir.js?v=4"></script>
+</body>
+</html>

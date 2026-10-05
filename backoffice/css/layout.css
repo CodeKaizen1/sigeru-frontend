@@ -1,0 +1,67 @@
+/*
+LAYOUT GENERAL
+Header, logo, menú y footer
+*/
+
+.encabezado {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 60px;
+    background-color: var(--verde-principal);
+    color: var(--blanco);
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logo a {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+}
+
+.logo-img {
+    width: 52px;
+    height: 52px;
+    object-fit: contain;
+    border-radius: 12px;
+}
+
+.texto-logo {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.1;
+}
+
+.nombre-empresa {
+    font-size: 20px;
+    font-weight: bold;
+    color: var(--blanco);
+}
+
+.nombre-sistema {
+    font-size: 13px;
+    color: var(--verde-claro);
+}
+
+.menu {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.menu a {
+    color: var(--blanco);
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.footer {
+    text-align: center;
+    padding: 20px;
+    background-color: var(--gris-medio);
+}

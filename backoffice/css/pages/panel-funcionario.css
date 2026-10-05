@@ -1,0 +1,130 @@
+/*
+   PANELES POR ROL (Chofer, Jefe de Cuadrilla, Operario de Cuadrilla)
+   Reutilizan clases de admin.css (resumen-card, detail-panel, detail-grid,
+   detail-item, lista-simple, btn-principal, btn-secundario) y agregan solo
+   lo que es propio de esta pantalla más simple (sin sidebar de módulos).
+*/
+
+/* Franja de marca: mismo estilo que .auth-header en sigeru-frontend-usuarios
+   (borde a borde, sin redondeo, ocupa todo el ancho de la página) para que
+   estos paneles no queden "en blanco" visualmente. Va FUERA de
+   .panel-funcionario-layout a propósito, para no heredar su padding. */
+.panel-funcionario-marca {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 24px 56px;
+    background: #071f3d;
+    color: white;
+}
+
+.panel-funcionario-marca .marca-logo {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #2f7fca, #0d3d86);
+    display: grid;
+    place-items: center;
+    font-weight: 800;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.panel-funcionario-marca strong {
+    display: block;
+    font-size: 1.2rem;
+}
+
+.panel-funcionario-marca span {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.76);
+}
+
+.panel-funcionario-layout {
+    min-height: 100vh;
+    background: #eef3f8;
+    padding: 36px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.panel-funcionario-header {
+    background: white;
+    padding: 30px;
+    border-radius: 22px;
+    box-shadow: 0 18px 40px rgba(8, 43, 79, 0.08);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.panel-funcionario-header h2 {
+    font-size: 28px;
+    color: #082b4f;
+}
+
+.panel-funcionario-header .admin-salir {
+    color: #082b4f;
+    background: #eef3f8;
+}
+
+/* Envuelve la campanita de notificaciones (ítem 13 del backlog) y el link
+   "Salir" para que los dos queden agrupados a la derecha del encabezado,
+   sin romper el "título a la izquierda / resto a la derecha" que ya daba
+   el space-between de .panel-funcionario-header. */
+.panel-funcionario-header-acciones {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.panel-funcionario-contenido {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.panel-funcionario-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    align-items: start;
+}
+
+.panel-funcionario-grid .detail-panel {
+    position: static;
+}
+
+.con-margen {
+    margin-top: 22px;
+}
+
+.btn-chico {
+    padding: 6px 12px;
+    font-size: 13px;
+    margin-left: 10px;
+}
+
+.lista-con-acciones li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+@media (max-width: 900px) {
+    .panel-funcionario-marca {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 20px 22px;
+    }
+
+    .panel-funcionario-layout {
+        padding: 20px;
+    }
+
+    .panel-funcionario-grid {
+        grid-template-columns: 1fr;
+    }
+}

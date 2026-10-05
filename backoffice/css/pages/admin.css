@@ -1,0 +1,1249 @@
+/*
+   PANEL ADMINISTRADOR
+ */
+
+.admin-layout {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    background: #eef3f8;
+}
+
+/*
+   SIDEBAR
+ */
+
+.admin-sidebar {
+    background: #082b4f;
+    color: white;
+    padding: 28px 22px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.admin-brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 36px;
+}
+
+.admin-logo {
+    width: 54px;
+    height: 54px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #0d5ea6, #1a8bd6);
+    display: grid;
+    place-items: center;
+    font-weight: bold;
+    font-size: 20px;
+}
+
+.admin-brand h1 {
+    font-size: 24px;
+    margin-bottom: 4px;
+}
+
+.admin-brand p {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.admin-menu {
+    display: grid;
+    gap: 12px;
+}
+
+.admin-menu-link {
+    width: 100%;
+    border: none;
+    text-align: left;
+    color: rgba(255, 255, 255, 0.85);
+    background: transparent;
+    padding: 14px 16px;
+    border-radius: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.admin-menu-link:hover,
+.admin-menu-link.active {
+    background: rgba(255, 255, 255, 0.13);
+    color: white;
+}
+
+.admin-salir {
+    color: white;
+    text-decoration: none;
+    font-weight: bold;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    text-align: center;
+}
+
+/*
+   CONTENIDO PRINCIPAL
+*/
+
+.admin-main {
+    padding: 36px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.module-header {
+    background: white;
+    padding: 30px;
+    border-radius: 22px;
+    box-shadow: 0 18px 40px rgba(8, 43, 79, 0.08);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+}
+
+/* Agrupa la campanita de notificaciones, el botón "Mi cuenta" y "Cerrar
+   sesión" adentro de .module-header, para que los tres queden pegados a la
+   derecha sin que justify-content: space-between los empuje cada uno a un
+   extremo. Mismo gap que .panel-funcionario-header-acciones (panel-
+   funcionario.css), que agrupa lo mismo en los 3 paneles de rol - para que
+   quede igual en las 4 pantallas. */
+.header-acciones {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+/* .admin-salir nace pensado para el fondo oscuro de la barra lateral (ver
+   más arriba), pero acá vive sobre el fondo blanco de .module-header -
+   mismo ajuste de color que ya usaba panel-funcionario.css para su propio
+   header blanco, para que el botón se vea igual en las 4 pantallas. */
+.module-header .admin-salir {
+    color: #082b4f;
+    background: #eef3f8;
+}
+
+.admin-etiqueta {
+    color: #0d5ea6;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 13px;
+    margin-bottom: 8px;
+}
+
+.module-header h2 {
+    font-size: 32px;
+    color: #082b4f;
+    margin-bottom: 10px;
+}
+
+.module-header p {
+    color: #5d6b7a;
+    line-height: 1.6;
+}
+
+/*
+   RESUMEN
+*/
+
+.admin-resumen {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 18px;
+}
+
+.resumen-card {
+    background: white;
+    padding: 24px;
+    border-radius: 18px;
+    box-shadow: 0 14px 32px rgba(8, 43, 79, 0.08);
+}
+
+.resumen-card span {
+    display: block;
+    color: #5d6b7a;
+    margin-bottom: 10px;
+}
+
+.resumen-card strong {
+    font-size: 36px;
+    color: #082b4f;
+}
+
+/*
+   ÚLTIMAS INCIDENCIAS (panel de detalle en Resumen)
+*/
+
+.resumen-incidencias-lista {
+    display: grid;
+    gap: 10px;
+}
+
+.resumen-incidencia {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    background: #f6f9fc;
+    padding: 12px;
+    border-radius: 12px;
+}
+
+.resumen-incidencia-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.resumen-incidencia-id {
+    color: #082b4f;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+/*
+   HERRAMIENTAS
+ */
+
+.module-tools {
+    display: grid;
+    grid-template-columns: 1fr 220px auto auto;
+    gap: 14px;
+}
+
+.module-tools input,
+.module-tools select {
+    width: 100%;
+    padding: 14px 16px;
+    border: 1px solid #d5e1ec;
+    border-radius: 14px;
+    background: white;
+    color: #082b4f;
+    font-size: 15px;
+}
+
+.module-tools .btn-principal,
+.module-tools .btn-secundario {
+    white-space: nowrap;
+}
+
+/*
+   FILTROS ADICIONALES (ítem 14 del backlog)
+   Fila aparte debajo de .module-tools, con un <select> por cada campo
+   relevante del módulo (y un selector de fecha nativo en Incidencias) -
+   ver View.renderFiltrosExtra(). Queda oculta del todo (clase .oculto,
+   reglas ya definidas más abajo) en los módulos que no tienen filtros
+   adicionales. A pedido de Matías, el mismo estilo exacto que
+   .module-tools input/select (sin <label> aparte, sin caja propia) para
+   que la fila quede visualmente igual al resto de la barra de herramientas.
+*/
+
+.filtros-extra {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+}
+
+.filtros-extra select,
+.filtros-extra input[type="date"] {
+    min-width: 200px;
+    padding: 14px 16px;
+    border: 1px solid #d5e1ec;
+    border-radius: 14px;
+    background: white;
+    color: #082b4f;
+    font-size: 15px;
+}
+
+/*
+   CONTENIDO DEL MÓDULO
+ */
+
+.module-content {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 20px;
+    align-items: start;
+}
+
+/* Resumen sigue con el panel fijo al costado ("Últimas incidencias") - el
+   resto de los módulos ya no lo usan (la ficha de cada registro se abre en
+   un popup, ver #detailModal más abajo), así que el listado pasa a ocupar
+   todo el ancho. Se activa/desactiva desde View.actualizarLayoutModulo(). */
+.module-content--solo-lista {
+    grid-template-columns: 1fr;
+}
+
+.module-content--solo-lista .detail-panel {
+    display: none;
+}
+
+.data-list {
+    background: white;
+    border-radius: 22px;
+    box-shadow: 0 18px 40px rgba(8, 43, 79, 0.08);
+    overflow: hidden;
+}
+
+.data-row {
+    width: 100%;
+    border: none;
+    border-bottom: 1px solid #e3ebf2;
+    background: white;
+    padding: 18px 20px;
+    display: grid;
+    grid-template-columns: 140px 1fr 150px 130px;
+    gap: 16px;
+    align-items: center;
+    text-align: left;
+    cursor: pointer;
+}
+
+.data-row:hover {
+    background: #f3f7fb;
+}
+
+.data-row:last-child {
+    border-bottom: none;
+}
+
+/* Fila de Incidencias con botón "Asignar" al lado (ver crearFila() en
+   view.js) - un <button> no puede ir dentro de otro <button>, así que acá
+   el borde entre filas pasa del .data-row (que ya no lo necesita, queda
+   pegado al de al lado) a este envoltorio. */
+.data-row-envoltura {
+    display: flex;
+    align-items: stretch;
+    border-bottom: 1px solid #e3ebf2;
+}
+
+.data-row-envoltura:last-child {
+    border-bottom: none;
+}
+
+.data-row-envoltura .data-row {
+    flex: 1;
+    border-bottom: none;
+}
+
+.btn-fila-rapido {
+    align-self: center;
+    margin: 0 16px;
+    padding: 8px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(13, 94, 166, 0.3);
+    background: white;
+    color: #0d5ea6;
+    font-weight: bold;
+    font-size: 13px;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.btn-fila-rapido:hover {
+    background: #f3f7fb;
+}
+
+.data-id {
+    font-weight: bold;
+    color: #0d5ea6;
+}
+
+.data-main {
+    color: #082b4f;
+    font-weight: bold;
+}
+
+.data-sub {
+    color: #5d6b7a;
+    font-size: 14px;
+}
+
+.estado {
+    justify-self: start;
+    padding: 7px 12px;
+    border-radius: 999px;
+    font-weight: bold;
+    font-size: 13px;
+}
+
+.estado-abierta,
+.estado-roto,
+.estado-mantenimiento,
+.estado-rota {
+    background: #ffe8e8;
+    color: #b42318;
+}
+
+.estado-en-curso,
+.estado-asignado,
+.estado-desbordado,
+.estado-pendiente {
+    background: #fff4d6;
+    color: #946200;
+}
+
+.estado-resuelta,
+.estado-funcional,
+.estado-disponible,
+.estado-activo,
+.estado-activa,
+.estado-operativo,
+.estado-funcionando,
+.estado-finalizada {
+    background: #ddf7e7;
+    color: #137a3a;
+}
+
+.estado-baja,
+.estado-sin-iniciar {
+    background: #eceff3;
+    color: #55606b;
+}
+
+/*
+   PANEL DE DETALLE
+*/
+
+.detail-panel {
+    background: white;
+    border-radius: 22px;
+    box-shadow: 0 18px 40px rgba(8, 43, 79, 0.08);
+    padding: 24px;
+    min-height: 260px;
+    position: sticky;
+    top: 24px;
+}
+
+.detail-empty {
+    color: #6b7a89;
+    line-height: 1.6;
+}
+
+.detail-panel h3 {
+    color: #082b4f;
+    font-size: 22px;
+    margin-bottom: 8px;
+}
+
+.detail-panel p {
+    color: #5d6b7a;
+    line-height: 1.6;
+    margin-bottom: 18px;
+}
+
+.detail-grid {
+    display: grid;
+    gap: 12px;
+}
+
+.detail-item {
+    background: #f6f9fc;
+    padding: 12px;
+    border-radius: 12px;
+}
+
+.detail-item span {
+    display: block;
+    color: #6b7a89;
+    font-size: 13px;
+    margin-bottom: 4px;
+}
+
+.detail-item strong {
+    color: #082b4f;
+}
+
+/* Misma cajita ".detail-item" de siempre, pero con un campo escribible
+   adentro en vez de span+strong - pedido de Matías: al tocar "Editar" la
+   ficha no cambia de aspecto ni salta a otro formulario, solo habilita
+   estos valores para escribir en el mismo lugar donde ya se veían (ver
+   crearDetalleItemEditable/renderDetalle en view.js). */
+.detail-item-editable label {
+    display: block;
+    color: #6b7a89;
+    font-size: 13px;
+    margin-bottom: 4px;
+}
+
+.detail-item-editable input,
+.detail-item-editable select,
+.detail-item-editable textarea {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #cbd8e4;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #082b4f;
+    font: inherit;
+}
+
+.detail-item-editable textarea {
+    resize: vertical;
+}
+
+/* Pedido de Matías: al editar tiene que entrar todo en pantalla sin
+   scrollear. En modo edición aparecen más ítems que en modo lectura (ver
+   claseGrid en renderDetalle/view.js), así que acomodan de a dos por fila
+   en vez de uno solo - reduce la altura total a la mitad más o menos, sin
+   dejar de ser la misma cajita ".detail-item" de siempre. Los campos de
+   texto largo (dirección, ubicación, recorrido...) siguen ocupando la fila
+   entera con ".detail-item-completo", para no partirlos en dos. En modo
+   lectura (".detail-grid" sin este modificador) sigue siendo de una sola
+   columna, como siempre. */
+.detail-grid--edicion {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.detail-grid--edicion .detail-item-completo {
+    grid-column: 1 / -1;
+}
+
+@media (max-width: 480px) {
+    .detail-grid--edicion {
+        grid-template-columns: 1fr;
+    }
+}
+
+.detail-actions {
+    margin-top: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.detail-asignacion {
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid #e3ebf2;
+}
+
+.detail-asignacion h4 {
+    color: #082b4f;
+    font-size: 15px;
+    margin-bottom: 14px;
+}
+
+.detail-asignacion .grupo-formulario {
+    margin-bottom: 14px;
+}
+
+.detail-nota {
+    font-size: 13px;
+    font-style: italic;
+    color: #6b7a89 !important;
+    background: #f6f9fc;
+    padding: 12px;
+    border-radius: 12px;
+    margin-top: 14px !important;
+}
+
+.lista-simple {
+    list-style: none;
+    display: grid;
+    gap: 8px;
+}
+
+.lista-simple li {
+    background: #f6f9fc;
+    padding: 10px 12px;
+    border-radius: 10px;
+    color: #082b4f;
+    font-weight: 600;
+}
+
+.btn-peligro {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    font-weight: 700;
+    border-radius: 12px;
+    padding: 13px 18px;
+    font-size: 0.95rem;
+    border: 1.5px solid #d92d20;
+    background: white;
+    color: #d92d20;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.btn-peligro:hover {
+    background: #fff1f0;
+}
+
+/*
+   MAQUINARIA (detalle de centros de acopio / vertederos)
+*/
+
+.lista-maquinaria {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 14px;
+    max-height: 260px;
+    overflow-y: auto;
+}
+
+.maquina-card {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    background: #f6f9fc;
+    padding: 12px;
+    border-radius: 12px;
+}
+
+.maquina-card-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.maquina-card-tipo {
+    color: #082b4f;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.maquina-card-acciones {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.maquina-card-acciones select {
+    padding: 8px 10px;
+    border: 1px solid #d5e1ec;
+    border-radius: 10px;
+    background: white;
+    color: #082b4f;
+    font-size: 13px;
+    font-family: inherit;
+}
+
+.maquina-card-acciones .btn-chico {
+    padding: 7px 14px;
+    font-size: 13px;
+}
+
+.maquina-vacio {
+    color: #6b7a89;
+    line-height: 1.6;
+    background: #f6f9fc;
+    padding: 12px;
+    border-radius: 12px;
+    margin-bottom: 14px !important;
+}
+
+/*
+   CUADRILLAS (edición desde el admin: operarios asignados)
+   Mismo patrón visual que .maquina-card, para consistencia.
+*/
+
+.lista-operarios-cuadrilla {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.operario-card {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    background: #f6f9fc;
+    padding: 12px;
+    border-radius: 12px;
+}
+
+.operario-card-nombre {
+    color: #082b4f;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.operario-card .btn-chico {
+    padding: 7px 14px;
+    font-size: 13px;
+}
+
+/*
+   Buscador por nombre/cédula sobre un select o un checklist con muchas
+   opciones (Jefe/Chofer/Operarios en el alta y edición de cuadrilla) - ver
+   activarBuscador() en view.js. Hereda el estilo de .grupo-formulario input
+   de components.css, solo le suma un margen para no pegarse con lo de abajo.
+*/
+
+.input-buscador {
+    margin-bottom: 8px;
+}
+
+/*
+   Checklist de operarios en el alta de cuadrilla (modal) - selección
+   múltiple, mismo tono de tarjeta que el resto de los listados.
+*/
+
+.lista-checkbox-operarios {
+    display: grid;
+    gap: 8px;
+    max-height: 220px;
+    overflow-y: auto;
+    padding: 2px;
+}
+
+.checkbox-operario {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #f6f9fc;
+    padding: 10px 12px;
+    border-radius: 10px;
+    color: #082b4f;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.checkbox-operario input {
+    width: auto;
+    accent-color: #0d3d86;
+}
+
+/*
+   CONTROL DE RUTA (panel del chofer)
+   Misma tarjeta que .detail-panel pero SIN position:sticky - ese panel
+   está pensado para el layout lista+detalle del admin (columna derecha
+   fija), acá es un bloque más en una pantalla de una sola columna.
+*/
+
+.panel-columna-apilada {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.control-ruta {
+    background: white;
+    border-radius: 22px;
+    box-shadow: 0 18px 40px rgba(8, 43, 79, 0.08);
+    padding: 24px;
+}
+
+.control-ruta h3 {
+    color: #082b4f;
+    font-size: 22px;
+    margin-bottom: 8px;
+}
+
+.control-ruta > p {
+    color: #5d6b7a;
+    line-height: 1.6;
+    margin-bottom: 18px;
+}
+
+.control-ruta-horarios {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.control-ruta-horario {
+    background: #f6f9fc;
+    padding: 10px 16px;
+    border-radius: 12px;
+    min-width: 130px;
+}
+
+.control-ruta-horario span {
+    display: block;
+    color: #6b7a89;
+    font-size: 13px;
+    margin-bottom: 4px;
+}
+
+.control-ruta-horario strong {
+    color: #082b4f;
+    font-size: 16px;
+}
+
+/*
+   ESTADOS VACÍOS
+*/
+
+.empty-state {
+    padding: 28px;
+    color: #5d6b7a;
+    line-height: 1.6;
+}
+
+/*
+   MODAL DE ALTA
+*/
+
+.oculto {
+    display: none !important;
+}
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(8, 43, 79, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 50;
+}
+
+.modal-card {
+    background: white;
+    border-radius: 22px;
+    padding: 30px;
+    width: 100%;
+    max-width: 620px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 30px 60px rgba(8, 43, 79, 0.25);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 22px;
+}
+
+.modal-header h3 {
+    color: #082b4f;
+    font-size: 1.4rem;
+}
+
+.modal-cerrar {
+    border: none;
+    background: #eef3f8;
+    color: #082b4f;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 22px;
+}
+
+/* Popup de detalle de un registro (ver #detailModal en admin.html y
+   View.abrirDetailModal/renderDetalle): mismo .modal-overlay/.modal-card de
+   arriba, pero su contenido (el ex #detailPanel) ya trae su propio título
+   (<h3>) - así que este encabezado queda solo con el botón de cerrar. */
+.modal-header-detalle {
+    justify-content: flex-end;
+    margin-bottom: 8px;
+}
+
+/* Popup de confirmación genérico (ver confirmar-ui.js) - mismo
+   .modal-overlay/.modal-card de arriba, pero más angosto porque solo
+   lleva un mensaje corto y dos botones, sin encabezado. */
+.modal-confirmacion {
+    max-width: 400px;
+    text-align: center;
+}
+
+.modal-confirmacion-mensaje {
+    color: #082b4f;
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+/* Este popup no tiene un lado "principal" como el modal de alta/edición
+   (que alinea Cancelar/Guardar a la derecha, debajo de un formulario largo
+   con inputs también alineados a la izquierda) - acá con un mensaje corto
+   y centrado, los botones quedan mejor centrados también. */
+.modal-confirmacion .modal-actions {
+    justify-content: center;
+}
+
+/* Popup de asignación rápida / texto corto (ver asignar-ui.js) - botones
+   "Asignar cuadrilla"/"Asignar chofer"/"Asignar ruta" y el detalle de "qué
+   se hizo" al resolver una incidencia. Mismo .modal-overlay/.modal-card de
+   arriba, angosto como .modal-confirmacion pero con un campo (select o
+   textarea) en vez de solo texto. */
+.modal-asignacion {
+    max-width: 460px;
+}
+
+.modal-asignacion-titulo {
+    color: #082b4f;
+    font-size: 1.2rem;
+    margin-bottom: 18px;
+}
+
+.modal-asignacion-error {
+    display: block;
+    color: #b42318;
+    font-size: 13px;
+    margin-top: 6px;
+}
+
+/*
+   NOTIFICACIONES (ítem 13 del backlog): campanita + desplegable + banner.
+   Las usa tanto admin.html (dentro de .module-header) como los paneles de
+   Chofer/Jefe/Operario (dentro de .panel-funcionario-header-acciones, ver
+   panel-funcionario.css) - por eso viven acá, en la hoja de estilos que
+   cargan las 4 pantallas.
+*/
+
+.notificaciones-campanita-caja {
+    position: relative;
+}
+
+.notificaciones-campanita {
+    position: relative;
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+    border: none;
+    background: #eef3f8;
+    color: #0d5ea6;
+    font-size: 20px;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    transition: 0.2s;
+}
+
+.notificaciones-campanita:hover {
+    background: #dce8f5;
+}
+
+.notificaciones-contador {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: #d0342c;
+    color: white;
+    font-size: 11px;
+    font-weight: bold;
+    display: grid;
+    place-items: center;
+    line-height: 1;
+}
+
+.notificaciones-desplegable {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: 340px;
+    max-height: 420px;
+    overflow-y: auto;
+    background: white;
+    border-radius: 18px;
+    box-shadow: 0 20px 45px rgba(8, 43, 79, 0.22);
+    z-index: 60;
+    padding: 10px;
+}
+
+.notificaciones-desplegable-titulo {
+    padding: 8px 10px;
+    color: #082b4f;
+    font-weight: bold;
+}
+
+.notificacion-item {
+    padding: 12px 10px;
+    border-radius: 12px;
+    margin-bottom: 4px;
+}
+
+.notificacion-item.no-leida {
+    background: #eef6ff;
+}
+
+/* Notificaciones con un registro al que ir (ítem 13: por ahora, "nueva
+   incidencia" en el panel administrador - ver notificaciones-ui.js). */
+.notificacion-item.notificacion-clickeable {
+    cursor: pointer;
+    transition: 0.15s;
+}
+
+.notificacion-item.notificacion-clickeable:hover,
+.notificacion-item.notificacion-clickeable:focus-visible {
+    background: #e3edf7;
+    outline: none;
+}
+
+.notificacion-item p {
+    color: #24313f;
+    font-size: 14px;
+    line-height: 1.4;
+    margin-bottom: 4px;
+}
+
+.notificacion-item span {
+    color: #8393a3;
+    font-size: 12px;
+}
+
+.notificaciones-vacio {
+    padding: 24px 10px;
+    text-align: center;
+    color: #8393a3;
+    font-size: 14px;
+}
+
+.notificacion-banner {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    max-width: 360px;
+    background: #082b4f;
+    color: white;
+    padding: 16px 20px;
+    border-radius: 16px;
+    box-shadow: 0 20px 45px rgba(8, 43, 79, 0.3);
+    z-index: 80;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    transform: translateY(-12px);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+.notificacion-banner.visible {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.notificacion-banner-icono {
+    font-size: 20px;
+}
+
+.notificacion-banner p {
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+/*
+   MI CUENTA: botón + desplegable con el formulario para cambiar correo,
+   contraseña y teléfono propios. Misma idea que las notificaciones de
+   arriba (compartido entre admin.html y los 4 paneles), así que vive en la
+   misma hoja de estilos - ver cuenta-ui.js.
+*/
+
+.cuenta-menu-caja {
+    position: relative;
+}
+
+.cuenta-boton {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 46px;
+    padding: 0 16px 0 6px;
+    border-radius: 999px;
+    border: none;
+    background: #eef3f8;
+    color: #082b4f;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.cuenta-boton:hover {
+    background: #dce8f5;
+}
+
+.cuenta-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #0d5ea6;
+    color: white;
+    display: grid;
+    place-items: center;
+    font-size: 15px;
+}
+
+.cuenta-desplegable {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: 320px;
+    max-height: 520px;
+    overflow-y: auto;
+    background: white;
+    border-radius: 18px;
+    box-shadow: 0 20px 45px rgba(8, 43, 79, 0.22);
+    z-index: 60;
+    padding: 18px;
+}
+
+.cuenta-desplegable-titulo {
+    margin-bottom: 14px;
+}
+
+.cuenta-desplegable-titulo strong {
+    display: block;
+    color: #082b4f;
+    font-size: 15px;
+}
+
+.cuenta-desplegable-titulo span {
+    color: #8393a3;
+    font-size: 13px;
+}
+
+/* Cada dato (correo, teléfono, contraseña) es una "sección" propia:
+   arranca en modo lectura (.cuenta-seccion-vista) con un botón "Cambiar",
+   y ese botón revela el formulario de ESE dato nomás (.cuenta-seccion-form)
+   - ver la lógica de acordeón en cuenta-ui.js. Separadas con una línea
+   fina entre una y otra. */
+.cuenta-seccion {
+    padding: 14px 0;
+    border-bottom: 1px solid #eef1f5;
+}
+
+.cuenta-seccion:last-of-type {
+    border-bottom: none;
+}
+
+.cuenta-seccion-vista {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.cuenta-seccion-info {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+
+.cuenta-seccion-etiqueta {
+    font-size: 12px;
+    color: #8393a3;
+}
+
+.cuenta-seccion-valor {
+    font-size: 14px;
+    color: #082b4f;
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cuenta-seccion-vista .btn-chico {
+    flex-shrink: 0;
+    padding: 7px 14px;
+    font-size: 13px;
+}
+
+.cuenta-seccion-form {
+    margin-top: 14px;
+}
+
+.cuenta-seccion-form .grupo-formulario {
+    margin-bottom: 14px;
+}
+
+.cuenta-seccion-acciones {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.cuenta-aviso {
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 1.4;
+    margin-top: 14px;
+    background: #eaf4ff;
+    color: #082b4f;
+}
+
+.cuenta-aviso-error {
+    background: #fbe6e4;
+    color: #a3231c;
+}
+
+.cuenta-aviso-exito {
+    background: #ddf7e7;
+    color: #137a3a;
+}
+
+/*
+   RESPONSIVE
+*/
+
+@media (max-width: 1100px) {
+    .admin-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-sidebar {
+        gap: 24px;
+    }
+
+    .module-content {
+        grid-template-columns: 1fr;
+    }
+
+    .detail-panel {
+        position: static;
+    }
+}
+
+@media (max-width: 750px) {
+    .admin-main {
+        padding: 22px;
+    }
+
+    .admin-resumen {
+        grid-template-columns: 1fr;
+    }
+
+    .module-tools {
+        grid-template-columns: 1fr;
+    }
+
+    .data-row {
+        grid-template-columns: 1fr;
+    }
+
+    .module-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .notificaciones-desplegable,
+    .cuenta-desplegable {
+        width: 100%;
+        max-width: 320px;
+    }
+}

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- CSP: sin scripts/estilos inline, todo del propio origen. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+    <title>Panel del chofer - SiGeRU</title>
+
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/pages/admin.css?v=24">
+    <link rel="stylesheet" href="css/pages/panel-funcionario.css">
+</head>
+<body>
+
+    <header class="panel-funcionario-marca">
+        <div class="marca-logo">SR</div>
+        <div>
+            <strong>SiGeRU</strong>
+            <span>Gestión de Residuos Urbanos</span>
+        </div>
+    </header>
+
+    <div class="panel-funcionario-layout">
+
+        <header class="panel-funcionario-header">
+            <div>
+                <p class="admin-etiqueta">Chofer</p>
+                <h2 id="nombreFuncionario">Cargando...</h2>
+            </div>
+
+            <div class="panel-funcionario-header-acciones">
+                <div id="notificacionesContenedor" class="notificaciones-campanita-caja"></div>
+                <div id="cuentaContenedor" class="cuenta-menu-caja"></div>
+                <a href="#" id="btnSalir" class="admin-salir">Cerrar sesión</a>
+            </div>
+        </header>
+
+        <main id="contenidoPanel" class="panel-funcionario-contenido">
+            <p class="detail-empty">Cargando información de la cuadrilla...</p>
+        </main>
+    </div>
+
+    <script src="js/almacenamiento-simulado.js?v=11"></script>
+    <script type="module" src="js/panel-chofer.js?v=26"></script>
+</body>
+</html>
