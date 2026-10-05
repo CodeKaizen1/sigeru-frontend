@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- CSP: sin scripts/estilos inline, todo del propio origen. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+    <title>SiGeRU - Portal de acceso</title>
+
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/pages/landing.css?v=3">
+</head>
+<body>
+
+    <div class="page-layout">
+
+        <aside class="sidebar">
+            <div class="sidebar-content">
+                <div class="brand-panel">
+                    <div class="brand-mark">
+                        <span>SR</span>
+                    </div>
+
+                    <div class="brand-text">
+                        <h1>SiGeRU</h1>
+                        <p>Gestión de Residuos Urbanos</p>
+                    </div>
+                </div>
+
+                <nav class="sidebar-nav">
+                    <a href="#inicio" class="sidebar-link active">
+                        <span class="sidebar-icon">🏠</span>
+                        <span>Inicio</span>
+                    </a>
+
+                    <a href="#como-funciona" class="sidebar-link">
+                        <span class="sidebar-icon">ℹ️</span>
+                        <span>Cómo funciona</span>
+                    </a>
+
+                    <a href="#situaciones" class="sidebar-link">
+                        <span class="sidebar-icon">📍</span>
+                        <span>Situaciones</span>
+                    </a>
+
+                    <a href="#reportar" class="sidebar-link">
+                        <span class="sidebar-icon">📝</span>
+                        <span>Reportar incidencia</span>
+                    </a>
+
+                    <a href="#seguimiento" class="sidebar-link">
+                        <span class="sidebar-icon">🔎</span>
+                        <span>Seguimiento</span>
+                    </a>
+
+                    <a href="#mapa" class="sidebar-link">
+                        <span class="sidebar-icon">🗺️</span>
+                        <span>Mapa</span>
+                    </a>
+                </nav>
+
+                <div class="sidebar-illustration">
+                    <img src="img/camion.png" alt="Ilustración de ciudad y camión de residuos" class="sidebar-icon-img">
+                </div>
+
+                <div class="sidebar-message">
+                    <p>
+                        Una herramienta para que la comunidad pueda informar situaciones
+                        relacionadas con la limpieza urbana de forma simple y organizada.
+                    </p>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <p>Sistema institucional</p>
+            </div>
+        </aside>
+
+        <main class="page-main">
+
+            <div class="hero-top">
+                <div class="auth-discreto">
+                    <a href="../sigeru-frontend-usuarios/login.html">Iniciar sesión</a>
+                    <span class="auth-discreto-sep">·</span>
+                    <a href="../sigeru-frontend-usuarios/registro.html">Registrarse</a>
+                </div>
+
+                <a href="#como-funciona" class="help-pill">Ayuda</a>
+            </div>
+
+            <section class="hero" id="inicio">
+                <div class="hero-grid">
+
+                    <div class="hero-copy">
+                        <p class="hero-label">Portal para la comunidad</p>
+
+                        <h2>SiGeRU: gestión de residuos urbanos para la comunidad</h2>
+
+                        <p class="hero-subtitle">
+                            Reportá incidencias, avisá situaciones en la vía pública y colaborá
+                            con una ciudad más limpia desde una plataforma simple y organizada.
+                        </p>
+
+                        <p>
+                            SiGeRU permite centralizar avisos relacionados con contenedores,
+                            residuos fuera de lugar y otros problemas vinculados a la limpieza
+                            urbana, facilitando su revisión por parte de los equipos responsables.
+                        </p>
+
+                        <div class="hero-decor"></div>
+                    </div>
+
+                    <div class="hero-card">
+                        <div class="hero-card-header">
+                            <div>
+                                <h2>Reportá una situación</h2>
+                                <p>
+                                    Contanos qué está pasando con un contenedor o con residuos
+                                    en la vía pública.
+                                </p>
+                            </div>
+
+                            <div class="hero-card-icon">
+                                <span>📍</span>
+                            </div>
+                        </div>
+
+                        <div class="hero-card-actions">
+                            <a href="#reportar" class="btn-principal">Reportar ahora</a>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+            <section class="info-section" id="como-funciona">
+                <div class="info-header">
+                    <p class="hero-label">Funcionamiento del sistema</p>
+                    <h2>¿Cómo funciona SiGeRU?</h2>
+                    <p>
+                        El sistema organiza los avisos realizados por la comunidad para que
+                        puedan ser revisados, gestionados y actualizados por los responsables
+                        correspondientes.
+                    </p>
+                </div>
+
+                <div class="info-steps">
+                    <article class="info-step">
+                        <span>01</span>
+                        <h3>Completás el formulario</h3>
+                        <p>
+                            Indicás la ubicación del contenedor y el tipo de incidencia en el
+                            formulario de la sección "Reportar incidencia".
+                        </p>
+                    </article>
+
+                    <article class="info-step">
+                        <span>02</span>
+                        <h3>El aviso queda registrado</h3>
+                        <p>
+                            La información enviada queda centralizada en el sistema para que
+                            pueda ser revisada por el área correspondiente.
+                        </p>
+                    </article>
+
+                    <article class="info-step">
+                        <span>03</span>
+                        <h3>Se gestiona el caso</h3>
+                        <p>
+                            Los funcionarios pueden dar seguimiento, actualizar el estado y
+                            coordinar las acciones necesarias.
+                        </p>
+                    </article>
+                </div>
+            </section>
+
+            <section class="situations-section" id="situaciones">
+                <div class="section-heading">
+                    <p class="hero-label">Avisos ciudadanos</p>
+                    <h2>Situaciones que podés informar desde SiGeRU</h2>
+
+                    <p>
+                        SiGeRU permite que los vecinos comuniquen situaciones relacionadas con
+                        la limpieza urbana para que puedan ser revisadas por el área correspondiente.
+                        La idea es centralizar estos avisos en un mismo sistema y facilitar su
+                        seguimiento.
+                    </p>
+
+                    <p>
+                        Algunos ejemplos de situaciones que pueden informarse son:
+                    </p>
+                </div>
+
+                <ul class="situations-simple-list">
+                    <li>
+                        <strong>Contenedores desbordados:</strong>
+                        cuando un contenedor se encuentra lleno o con residuos acumulados alrededor.
+                    </li>
+
+                    <li>
+                        <strong>Contenedores dañados:</strong>
+                        cuando presenta roturas, problemas en la tapa, ruedas o estructura.
+                    </li>
+
+                    <li>
+                        <strong>Residuos fuera de lugar:</strong>
+                        cuando hay bolsas, restos u otros residuos ubicados fuera del área correspondiente.
+                    </li>
+
+                    <li>
+                        <strong>Acumulación de basura:</strong>
+                        cuando se detectan residuos acumulados en la vía pública o en espacios cercanos.
+                    </li>
+                </ul>
+
+                <p class="situations-note">
+                    Estos avisos ayudan a mejorar la organización del servicio y permiten contar
+                    con información más clara sobre las necesidades de cada zona.
+                </p>
+            </section>
+
+            <section class="report-section" id="reportar">
+                <div class="section-heading">
+                    <p class="hero-label">Reportar una situación</p>
+                    <h2>Informá una incidencia</h2>
+                    <p>
+                        Completá los siguientes datos para informar una situación relacionada
+                        con un contenedor o con residuos en la vía pública.
+                    </p>
+                </div>
+
+                <form class="report-form" id="formIncidencia">
+                    <div class="form-grid">
+                        <div class="grupo-formulario grupo-formulario-completo">
+                            <label for="direccion-incidencia">Dirección del contenedor</label>
+                            <select id="direccion-incidencia" name="contenedorId" required>
+                                <option value="" disabled selected>Seleccione la dirección del contenedor</option>
+                            </select>
+                            <span class="ayuda-campo">Solo se pueden informar incidencias en direcciones donde ya hay un contenedor registrado.</span>
+                        </div>
+
+                        <div class="grupo-formulario">
+                            <label for="tipo-incidencia">Tipo de incidencia</label>
+                            <select id="tipo-incidencia" name="tipo" required>
+                                <option value="" disabled selected>Seleccione una opción</option>
+                                <option value="desbordado">Contenedor desbordado</option>
+                                <option value="danado">Contenedor dañado</option>
+                                <option value="incendio">Contenedor prendido fuego</option>
+                                <option value="fuera-de-lugar">Residuos fuera de lugar</option>
+                                <option value="otro">Otra situación</option>
+                            </select>
+                        </div>
+
+                        <div class="grupo-formulario">
+                            <label for="zona-incidencia">Barrio / zona</label>
+                            <input type="text" id="zona-incidencia" name="zona" placeholder="Se completa solo al elegir la dirección" readonly>
+                            <span class="ayuda-campo">Se completa solo según el contenedor elegido - corroborá que sea el barrio correcto.</span>
+                        </div>
+
+                        <div class="grupo-formulario grupo-formulario-completo">
+                            <label for="descripcion-incidencia">Descripción adicional</label>
+                            <textarea id="descripcion-incidencia" name="descripcion" rows="4" placeholder="Agregue detalles que puedan ayudar a identificar la situación"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="grupo-formulario captcha-grupo">
+                        <div class="captcha-robot-caja" id="captchaRobotCaja" role="checkbox" aria-checked="false" tabindex="0">
+                            <span class="captcha-robot-check" id="captchaRobotCheck"></span>
+                            <span class="captcha-robot-texto">No soy un robot</span>
+                            <span class="captcha-robot-spinner" id="captchaRobotSpinner" aria-hidden="true"></span>
+                        </div>
+
+                        <span class="captcha-error" id="captchaError">Confirmá que no sos un robot antes de enviar el aviso.</span>
+                    </div>
+
+                    <p class="aviso-formulario" id="avisoIncidencia">
+                        El aviso quedará registrado para que el área correspondiente pueda revisarlo. Vas a poder buscarlo después en la sección "Seguimiento" con la dirección que ingreses acá.
+                    </p>
+
+                    <button type="submit" class="btn-principal">Enviar aviso</button>
+                </form>
+            </section>
+
+            <section class="report-section" id="seguimiento">
+                <div class="section-heading">
+                    <p class="hero-label">Seguimiento de incidencias</p>
+                    <h2>Buscá el estado de tu aviso</h2>
+                    <p>
+                        Acá aparecen todas las incidencias: las que todavía están en proceso
+                        y las que ya se resolvieron. Buscá por dirección, barrio o el número
+                        de aviso que te mostramos al enviarlo.
+                    </p>
+                </div>
+
+                <div class="grupo-formulario grupo-formulario-completo buscador-incidencias-campo">
+                    <label for="buscarIncidencia">Buscar por dirección, barrio o número de aviso</label>
+                    <input type="search" id="buscarIncidencia" placeholder="Ej: Pocitos, o INC-004">
+                </div>
+
+                <div class="incidencias-columnas">
+                    <div class="incidencias-columna">
+                        <h3>Incidencias en curso</h3>
+                        <div id="resultadosIncidenciasEnCurso" class="resultados-incidencias"></div>
+                    </div>
+
+                    <div class="incidencias-columna">
+                        <h3>Incidencias resueltas</h3>
+                        <div id="resultadosIncidenciasResueltas" class="resultados-incidencias"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="map-section" id="mapa">
+                <div class="section-heading">
+                    <p class="hero-label">Mapa de contenedores</p>
+                    <h2>Ubicación de contenedores y camiones</h2>
+                    <p>
+                        Próximamente vas a poder ver en un mapa interactivo la ubicación de
+                        los contenedores y, más adelante, el recorrido de los camiones de
+                        recolección en tiempo real.
+                    </p>
+                </div>
+
+                <div class="map-placeholder">
+                    <span class="map-placeholder-icon">🗺️</span>
+                    <p>Mapa interactivo — próximamente</p>
+                </div>
+            </section>
+
+            <footer class="landing-footer">
+                <div class="footer-links">
+                    <span>Municipalidad de la Ciudad</span>
+                    <span>•</span>
+                    <span>Dirección de Servicios Urbanos</span>
+                </div>
+
+                <p>© 2026 SiGeRU. Todos los derechos reservados.</p>
+            </footer>
+
+        </main>
+    </div>
+
+    <script src="js/app.js?v=5"></script>
+    <script src="js/buscador-incidencias.js?v=2"></script>
+</body>
+</html>
