@@ -663,17 +663,28 @@ async function cargarRutas() {
     const { ok, datos: filas } = await llamarRecoleccion("ruta", "GET");
     if (!ok || !Array.isArray(filas)) return;
 
-    datos.rutas = filas.map((fila) => ({
-        id: String(fila.idRuta),
-        zona: fila.zonaRuta || "",
-        recorrido: fila.recorridoRuta || "",
-        frecuencia: fila.frecuenciaDeRecoleccionRuta || "",
-        horario: fila.horarioRuta || "",
-        estado: fila.estadoRuta || "sin iniciar",
-        horaInicioReal: fila.horaInicioRealRuta || null,
-        horaFinReal: fila.horaFinRealRuta || null,
-        estadoAdmin: fila.estadoAdminRuta || "activa"
-    }));
+    // El municipio no es una columna propia de ruta todavia -- se deriva del
+    // texto de recorridoRuta, que para los circuitos reales de la IMM siempre
+    // trae "..., Municipio X)" (ver agregar_rutas_recoleccion.sql). Si una
+    // ruta no sigue ese formato (por ejemplo una cargada a mano desde el
+    // panel), simplemente queda sin municipio y no aparece en ese filtro.
+    const MUNICIPIO_DESDE_RECORRIDO = /,\s*Municipio\s+([A-Za-zÁÉÍÓÚÑ]+)\)/;
+
+    datos.rutas = filas.map((fila) => {
+        const matchMunicipio = (fila.recorridoRuta || "").match(MUNICIPIO_DESDE_RECORRIDO);
+        return {
+            id: String(fila.idRuta),
+            zona: fila.zonaRuta || "",
+            recorrido: fila.recorridoRuta || "",
+            municipio: matchMunicipio ? `Municipio ${matchMunicipio[1]}` : "",
+            frecuencia: fila.frecuenciaDeRecoleccionRuta || "",
+            horario: fila.horarioRuta || "",
+            estado: fila.estadoRuta || "sin iniciar",
+            horaInicioReal: fila.horaInicioRealRuta || null,
+            horaFinReal: fila.horaFinRealRuta || null,
+            estadoAdmin: fila.estadoAdminRuta || "activa"
+        };
+    });
 }
 
 async function guardarRuta(ruta) {
@@ -1098,6 +1109,8 @@ export const configuracionModulos = {
         descripcion: "Listado de contenedores con estado y ubicación.",
         estados: ["funcional", "roto", "desbordado", "baja"],
         filtrosExtra: [
+            { campo: "zona", etiqueta: "Barrio", todosLabel: "Todos los barrios", opciones: "dinamico" },
+            { campo: "municipio", etiqueta: "Municipio", todosLabel: "Todos los municipios", opciones: "dinamico" },
             { campo: "tipoResiduo", etiqueta: "Tipo de residuo", todosLabel: "Todos los tipos de residuo", opciones: ["Residuos mezclados", "Residuos reciclables", "Residuos orgánicos"] }
         ],
         columnasExport: [
@@ -1150,11 +1163,14 @@ export const configuracionModulos = {
         estados: ["activa", "baja"],
         filtrosExtra: [
             { campo: "zona", etiqueta: "Zona", todosLabel: "Todas las zonas", opciones: "dinamico" },
-            { campo: "frecuencia", etiqueta: "Frecuencia", todosLabel: "Todas las frecuencias", opciones: ["Diaria", "Interdiaria", "Semanal", "Irregular", "Sin datos"] }
+            { campo: "municipio", etiqueta: "Municipio", todosLabel: "Todos los municipios", opciones: "dinamico" },
+            { campo: "frecuencia", etiqueta: "Frecuencia", todosLabel: "Todas las frecuencias", opciones: ["Diaria", "Interdiaria", "Semanal", "Irregular", "Sin datos"] },
+            { campo: "estado", etiqueta: "Seguimiento de hoy", todosLabel: "Todos", opciones: ["sin iniciar", "en curso", "finalizada"] }
         ],
         columnasExport: [
             { campo: "id", etiqueta: "ID" },
             { campo: "zona", etiqueta: "Zona" },
+            { campo: "municipio", etiqueta: "Municipio", valorVacio: "Sin datos" },
             { campo: "frecuencia", etiqueta: "Frecuencia" },
             { campo: "recorrido", etiqueta: "Recorrido" },
             { campo: "horario", etiqueta: "Horario" },
