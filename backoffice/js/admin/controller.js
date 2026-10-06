@@ -1,8 +1,8 @@
 // CONTROLADOR: escucha clicks/submits del panel, pide datos al Modelo y actualiza la Vista.
 // También guarda el estado propio de la pantalla (módulo abierto, registro en edición).
 
-import * as Model from "./model.js?v=23";
-import * as View from "./view.js?v=23";
+import * as Model from "./model.js?v=24";
+import * as View from "./view.js?v=24";
 import * as NotificacionesUI from "./notificaciones-ui.js?v=2";
 import * as CuentaUI from "./cuenta-ui.js?v=3";
 import * as ExportarExcel from "./exportar-excel.js?v=1";
@@ -140,13 +140,14 @@ function mostrarModuloDesdeFiltro() {
     mostrarModulo();
 }
 
-// Carga los módulos de los que depende el resumen y pinta las tarjetas.
+// Carga los módulos de los que depende el resumen y pinta las tarjetas + gráficos.
 async function mostrarResumen() {
     const [contenedores, camiones] = await Promise.all([
         Model.obtenerRegistros("contenedores"),
         Model.obtenerRegistros("camiones"),
         Model.obtenerRegistros("incidencias"),
-        Model.obtenerRegistros("funcionarios")
+        Model.obtenerRegistros("funcionarios"),
+        Model.obtenerRegistros("rutas")
     ]);
     const solicitudes = await Model.obtenerSolicitudesPendientes();
 
@@ -158,7 +159,13 @@ async function mostrarResumen() {
         solicitudesPendientes: solicitudes.length
     });
 
-    View.mostrarMensajeListaInicial();
+    View.renderGraficosResumen({
+        incidenciasPorEstado: Model.distribucionIncidenciasPorEstado(),
+        incidenciasPorTipo: Model.distribucionIncidenciasPorTipo(),
+        contenedoresPorEstado: Model.distribucionContenedoresPorEstado(),
+        rutasPorFrecuencia: Model.distribucionRutasPorFrecuencia()
+    });
+
     View.renderUltimasIncidencias(Model.obtenerUltimasIncidencias(5));
 }
 

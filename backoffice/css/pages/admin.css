@@ -176,6 +176,44 @@
 }
 
 /*
+   GRÁFICOS DEL RESUMEN (moduleList en la pantalla de Resumen)
+*/
+
+.graficos-resumen {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+    padding: 20px;
+}
+
+/* moduleList (.data-list) ya es una tarjeta blanca con sombra -- cada
+   gráfico va con fondo claro + borde fino en vez de otra tarjeta blanca con
+   sombra propia, para no verse como "tarjetas adentro de una tarjeta". */
+.grafico-card {
+    background: var(--light-bg);
+    border: 1px solid var(--border-soft);
+    padding: 18px 20px;
+    border-radius: 14px;
+}
+
+.grafico-card h3 {
+    font-size: 15px;
+    color: #082b4f;
+    margin-bottom: 14px;
+}
+
+.grafico-lienzo {
+    position: relative;
+    height: 220px;
+}
+
+@media (max-width: 960px) {
+    .graficos-resumen {
+        grid-template-columns: 1fr;
+    }
+}
+
+/*
    ÚLTIMAS INCIDENCIAS (panel de detalle en Resumen)
 */
 

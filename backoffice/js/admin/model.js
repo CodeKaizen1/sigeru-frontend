@@ -248,6 +248,10 @@ function recomputarResumenIncidenciasEnContenedores() {
     });
 }
 
+export function distribucionContenedoresPorEstado() {
+    return contarPorCategoria(datos.contenedores, "estado", configuracionModulos.contenedores.estados);
+}
+
 async function cargarIncidencias() {
     const { ok, datos: filas } = await llamarGestion("incidencia", "GET");
     if (!ok || !Array.isArray(filas)) return;
@@ -363,6 +367,37 @@ export function obtenerUltimasIncidencias(cantidad = 5) {
 
 export function contarIncidenciasAbiertas() {
     return datos.incidencias.filter((incidencia) => incidencia.estado === "abierta").length;
+}
+
+// Misma lista fija que valida api-gestion/index.php (tipoIncidencia) y usa
+// el <select> del formulario público -- se repite acá (no hay forma de leerla
+// del backend) solo para que el gráfico de "Incidencias por tipo" del Resumen
+// muestre siempre las 5 categorías en el mismo orden, aunque alguna tenga 0.
+const TIPOS_INCIDENCIA = [
+    "Contenedor desbordado",
+    "Contenedor dañado",
+    "Contenedor prendido fuego",
+    "Residuos fuera de lugar",
+    "Otra situación"
+];
+
+// Cuenta cuántos registros de "lista" caen en cada valor de "categorias", en
+// ese mismo orden (nunca se reordena por cantidad) -- así en los gráficos de
+// Resumen cada categoría mantiene siempre el mismo color/posición, tenga 0 o
+// no registros.
+function contarPorCategoria(lista, campo, categorias) {
+    return categorias.map((categoria) => ({
+        categoria,
+        cantidad: lista.filter((item) => item[campo] === categoria).length
+    }));
+}
+
+export function distribucionIncidenciasPorEstado() {
+    return contarPorCategoria(datos.incidencias, "estado", configuracionModulos.incidencias.estados);
+}
+
+export function distribucionIncidenciasPorTipo() {
+    return contarPorCategoria(datos.incidencias, "tipo", TIPOS_INCIDENCIA);
 }
 
 //
@@ -685,6 +720,15 @@ async function cargarRutas() {
             estadoAdmin: fila.estadoAdminRuta || "activa"
         };
     });
+}
+
+// Mismas 5 categorías del filtro "Frecuencia" de Rutas (ver configuracionModulos
+// más abajo) -- se repite el literal porque ahí está anidado dentro de
+// filtrosExtra, no vale la pena desarmarlo solo para reusarlo acá.
+const FRECUENCIAS_RUTA = ["Diaria", "Interdiaria", "Semanal", "Irregular", "Sin datos"];
+
+export function distribucionRutasPorFrecuencia() {
+    return contarPorCategoria(datos.rutas, "frecuencia", FRECUENCIAS_RUTA);
 }
 
 async function guardarRuta(ruta) {
