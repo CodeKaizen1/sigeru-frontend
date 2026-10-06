@@ -117,8 +117,10 @@ async function manejarRegistro(evento) {
     mostrarAviso(aviso, "¡Listo! Tu solicitud fue enviada. Vas a poder ingresar una vez que un Administrador la apruebe y te asigne un rol.", "exito");
 }
 
-// El token de reseteo (1 solo uso, válido 1 hora) se muestra en pantalla
-// porque el proyecto no tiene servidor de correo configurado todavía.
+// El token de reseteo (1 solo uso, válido 1 hora) ahora viaja por mail real
+// (ver recuperarPassword en api-usuarios/index.php, con PHPMailer) -- la API
+// nunca lo devuelve en la respuesta, así que acá solo se muestra el mensaje
+// genérico, exista o no el correo.
 
 function obtenerTokenDeURL() {
     return new URLSearchParams(window.location.search).get("token");
@@ -142,13 +144,8 @@ async function manejarRecuperar(evento) {
     aviso.classList.remove("oculto", "aviso-formulario-error");
     aviso.classList.add("aviso-formulario-exito");
 
-    if (datos.token) {
-        // innerHTML porque el mensaje necesita un <a> real para el enlace.
-        aviso.innerHTML = `Si el correo está registrado, ya podés continuar. <strong>Nota:</strong> como todavía no hay un servidor de correo real conectado, te dejamos el enlace acá mismo en vez de mandarlo por mail — <a href="restablecer.html?token=${encodeURIComponent(datos.token)}">restablecer contraseña</a> (válido por 1 hora).`;
-    } else {
-        // Mensaje genérico: no filtra qué correos están registrados.
-        aviso.textContent = datos.mensaje || "Si el correo está registrado, vas a poder continuar con el cambio de contraseña.";
-    }
+    // Mensaje genérico: no filtra qué correos están registrados.
+    aviso.textContent = datos.mensaje || "Si el correo está registrado, en unos minutos vas a recibir un correo con el link para restablecer tu contraseña.";
 }
 
 async function manejarRestablecer(evento) {
