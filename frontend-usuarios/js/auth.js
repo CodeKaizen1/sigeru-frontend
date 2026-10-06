@@ -126,6 +126,11 @@ function obtenerTokenDeURL() {
     return new URLSearchParams(window.location.search).get("token");
 }
 
+// Segundos que el botón queda deshabilitado después de enviar, antes de
+// dejar pedir el link de nuevo (evita que alguien lo reenvíe en loop
+// mientras el mail todavía puede estar en camino).
+const SEGUNDOS_ESPERA_REENVIO_RECUPERAR = 30;
+
 async function manejarRecuperar(evento) {
     evento.preventDefault();
 
@@ -135,17 +140,47 @@ async function manejarRecuperar(evento) {
     if (!aviso) return;
 
     const boton = evento.target.querySelector("button[type=submit]");
+    const textoOriginalBoton = boton ? boton.textContent : "";
     if (boton) boton.disabled = true;
 
-    const { datos } = await llamarApiUsuarios("recuperarPassword", "POST", { email });
-
-    if (boton) boton.disabled = false;
+    const { ok, datos } = await llamarApiUsuarios("recuperarPassword", "POST", { email });
 
     aviso.classList.remove("oculto", "aviso-formulario-error");
-    aviso.classList.add("aviso-formulario-exito");
 
+    if (!ok) {
+        // Esto sí es un error real de conexión/servidor (no "el email no existe",
+        // eso lo sigue cubriendo el mensaje genérico de abajo).
+        aviso.classList.add("aviso-formulario-error");
+        aviso.textContent = datos.error || "No se pudo enviar la solicitud. Probá de nuevo.";
+        if (boton) boton.disabled = false;
+        return;
+    }
+
+    aviso.classList.add("aviso-formulario-exito");
     // Mensaje genérico: no filtra qué correos están registrados.
-    aviso.textContent = datos.mensaje || "Si el correo está registrado, en unos minutos vas a recibir un correo con el link para restablecer tu contraseña.";
+    aviso.textContent = datos.mensaje || "Listo, si ese correo está registrado ya te enviamos el enlace para restablecer tu contraseña. Revisá también la carpeta de spam.";
+    aviso.scrollIntoView({ behavior: "smooth", block: "nearest" });
+
+    // Cuenta regresiva en el botón: mientras tanto queda deshabilitado, y al
+    // llegar a 0 vuelve a su texto original por si el correo no llegó y hay
+    // que pedirlo de nuevo.
+    if (boton) {
+        let segundosRestantes = SEGUNDOS_ESPERA_REENVIO_RECUPERAR;
+        boton.textContent = `Reenviar en ${segundosRestantes}s`;
+
+        const intervalo = setInterval(() => {
+            segundosRestantes--;
+
+            if (segundosRestantes <= 0) {
+                clearInterval(intervalo);
+                boton.disabled = false;
+                boton.textContent = textoOriginalBoton;
+                return;
+            }
+
+            boton.textContent = `Reenviar en ${segundosRestantes}s`;
+        }, 1000);
+    }
 }
 
 async function manejarRestablecer(evento) {
