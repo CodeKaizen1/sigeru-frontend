@@ -1,7 +1,7 @@
 // CONTROLADOR: escucha clicks/submits del panel, pide datos al Modelo y actualiza la Vista.
 // También guarda el estado propio de la pantalla (módulo abierto, registro en edición).
 
-import * as Model from "./model.js?v=26";
+import * as Model from "./model.js?v=27";
 import * as View from "./view.js?v=26";
 import * as NotificacionesUI from "./notificaciones-ui.js?v=2";
 import * as CuentaUI from "./cuenta-ui.js?v=4";
@@ -24,8 +24,8 @@ let paginaActual = 1;
 // Ids ya vistos en esta pestaña, para distinguir notificaciones nuevas de las ya conocidas.
 let notificacionesConocidas = new Set();
 
-function actualizarNotificaciones() {
-    const notificaciones = Model.obtenerNotificacionesAdmin();
+async function actualizarNotificaciones() {
+    const notificaciones = await Model.obtenerNotificacionesAdmin();
     const nuevas = notificaciones.filter((n) => !notificacionesConocidas.has(n.id));
 
     if (nuevas.length && notificacionesConocidas.size > 0) {
@@ -56,7 +56,7 @@ async function manejarClickNotificacion(notificacion) {
         await mostrarDetalle(notificacion.entidadId);
     }
 
-    actualizarNotificaciones();
+    await actualizarNotificaciones();
 }
 
 // Mi cuenta (cualquier rol puede cambiar su correo, contraseña y teléfono)
@@ -104,6 +104,10 @@ async function cambiarModulo(nombreModulo) {
     } else {
         await mostrarModulo();
     }
+
+    // Sin un backend de notificaciones con polling/websockets, navegar entre
+    // módulos es el momento más natural para refrescar la campanita (punto 16).
+    await actualizarNotificaciones();
 }
 
 function actualizarControlesModulo() {
@@ -791,7 +795,6 @@ export async function initAdmin() {
     if (Model.usuarioActual && Model.usuarioActual.rol === "administrador") {
         iniciarEventos();
         await cambiarModulo("resumen");
-        actualizarNotificaciones();
         await iniciarCuenta();
     } else {
         View.mostrarAccesoNoAutorizado();

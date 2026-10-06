@@ -9,10 +9,18 @@ const API_USUARIOS = "../../api-usuarios/index.php";
 const API_GESTION = "../../api-gestion/index.php";
 const API_RECOLECCION = "../../api-recoleccion/index.php";
 
-async function llamarApi(base, recurso, metodo = "GET", cuerpo, id) {
+// paramsExtra: objeto con parámetros extra de query string (ej. destinatario/idCuadrilla
+// para notificaciones), agregado para el punto 16 -- ningún llamado previo lo necesitaba.
+async function llamarApi(base, recurso, metodo = "GET", cuerpo, id, paramsExtra) {
     let url = `${base}?recurso=${recurso}`;
     if (id !== undefined && id !== null && id !== "") {
         url += `&id=${encodeURIComponent(id)}`;
+    }
+    if (paramsExtra) {
+        for (const [clave, valor] of Object.entries(paramsExtra)) {
+            if (valor === undefined || valor === null || valor === "") continue;
+            url += `&${clave}=${encodeURIComponent(valor)}`;
+        }
     }
 
     const opciones = { method: metodo, credentials: "same-origin" };
@@ -32,14 +40,14 @@ async function llamarApi(base, recurso, metodo = "GET", cuerpo, id) {
     return { ok: respuesta.ok, status: respuesta.status, datos: datosRespuesta };
 }
 
-function llamarUsuarios(recurso, metodo, cuerpo, id) {
-    return llamarApi(API_USUARIOS, recurso, metodo, cuerpo, id);
+function llamarUsuarios(recurso, metodo, cuerpo, id, paramsExtra) {
+    return llamarApi(API_USUARIOS, recurso, metodo, cuerpo, id, paramsExtra);
 }
-function llamarGestion(recurso, metodo, cuerpo, id) {
-    return llamarApi(API_GESTION, recurso, metodo, cuerpo, id);
+function llamarGestion(recurso, metodo, cuerpo, id, paramsExtra) {
+    return llamarApi(API_GESTION, recurso, metodo, cuerpo, id, paramsExtra);
 }
-function llamarRecoleccion(recurso, metodo, cuerpo, id) {
-    return llamarApi(API_RECOLECCION, recurso, metodo, cuerpo, id);
+function llamarRecoleccion(recurso, metodo, cuerpo, id, paramsExtra) {
+    return llamarApi(API_RECOLECCION, recurso, metodo, cuerpo, id, paramsExtra);
 }
 
 // Traduce entre la clave de rol del login y la etiqueta que muestra la UI.
@@ -1191,19 +1199,57 @@ export async function actualizarCuentaPropia({ email, telefono, contrasenaActual
 }
 
 //
-// Notificaciones — sin backend todavía, quedan stub.
+// Notificaciones (punto 16) — api-gestion?recurso=notificacion, no entra en
+// el patrón de caché de "datos" porque necesita estar siempre al día (se
+// vuelve a pedir cada vez que se abre la campanita), no una sola carga inicial.
 //
 
-export function obtenerNotificacionesAdmin() {
-    return [];
+// Convierte la fila cruda del backend a lo que espera notificaciones-ui.js.
+// fechaNotificacion viene "YYYY-MM-DD HH:MM:SS" (formato MySQL) -- se le
+// cambia el espacio por "T" para que `new Date(...)` lo parsee siempre igual
+// entre navegadores (mismo motivo que formatearFechaCorta() más arriba).
+function normalizarNotificacion(fila) {
+    return {
+        id: String(fila.idNotificacion),
+        mensaje: fila.mensajeNotificacion || "",
+        fecha: fila.fechaNotificacion ? String(fila.fechaNotificacion).replace(" ", "T") : new Date().toISOString(),
+        leida: Boolean(Number(fila.leidaNotificacion)),
+        entidadId: (fila.idEntidadNotificacion !== null && fila.idEntidadNotificacion !== undefined)
+            ? String(fila.idEntidadNotificacion)
+            : undefined,
+        tipo: fila.tipoNotificacion || ""
+    };
 }
 
-export function obtenerNotificacionesCuadrilla() {
-    return [];
+export async function obtenerNotificacionesAdmin() {
+    const { ok, datos: filas } = await llamarGestion("notificacion", "GET", undefined, undefined, { destinatario: "admin" });
+    if (!ok || !Array.isArray(filas)) return [];
+    return filas.map(normalizarNotificacion);
 }
 
-export function marcarNotificacionesLeidas() {
-    // no-op
+export async function obtenerNotificacionesCuadrilla(idCuadrilla) {
+    if (idCuadrilla === null || idCuadrilla === undefined || idCuadrilla === "") return [];
+
+    const { ok, datos: filas } = await llamarGestion("notificacion", "GET", undefined, undefined, {
+        destinatario: "cuadrilla",
+        idCuadrilla
+    });
+    if (!ok || !Array.isArray(filas)) return [];
+    return filas.map(normalizarNotificacion);
+}
+
+// Recibe la lista completa que pinta la campanita (no solo las no leídas --
+// renderCampanita() avisa con todas al abrirse, ver notificaciones-ui.js) o un
+// array de un solo elemento al hacer click en una puntual; ambos casos arman
+// el mismo body {ids: [...]} para el PUT.
+export async function marcarNotificacionesLeidas(notificaciones) {
+    const ids = (notificaciones || [])
+        .map((n) => Number(n.id))
+        .filter((id) => Number.isInteger(id) && id > 0);
+
+    if (!ids.length) return;
+
+    await llamarGestion("notificacion", "PUT", { ids });
 }
 
 //

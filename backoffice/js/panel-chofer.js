@@ -3,7 +3,7 @@
 // abiertas en su ruta (con posibilidad de marcarlas resueltas). No usa el patrón de lista +
 // detalle del panel administrador: el contenido es siempre "lo mío", no un listado a filtrar.
 
-import * as Model from "./admin/model.js?v=26";
+import * as Model from "./admin/model.js?v=27";
 import * as NotificacionesUI from "./admin/notificaciones-ui.js?v=2";
 import * as CuentaUI from "./admin/cuenta-ui.js?v=4";
 import { confirmar } from "./admin/confirmar-ui.js?v=2";
@@ -221,11 +221,11 @@ document.getElementById("btnSalir").addEventListener("click", async (evento) => 
 
 let notificacionesConocidas = new Set();
 
-function actualizarNotificaciones() {
+async function actualizarNotificaciones() {
     if (!usuario || usuario.rol !== "chofer") return;
 
     const cuadrilla = Model.obtenerCuadrillaDeChofer(usuario.cedulaUsuario);
-    const notificaciones = cuadrilla ? Model.obtenerNotificacionesCuadrilla(cuadrilla.id) : [];
+    const notificaciones = cuadrilla ? await Model.obtenerNotificacionesCuadrilla(cuadrilla.id) : [];
     const nuevas = notificaciones.filter((n) => !notificacionesConocidas.has(n.id));
 
     if (nuevas.length && notificacionesConocidas.size > 0) {
@@ -268,7 +268,7 @@ async function iniciarCuenta() {
 
 async function iniciarPanel() {
     await render();
-    actualizarNotificaciones();
+    await actualizarNotificaciones();
     await iniciarCuenta();
 }
 
