@@ -8,6 +8,8 @@
     <title>SiGeRU - Portal de acceso</title>
 
     <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+    <link rel="stylesheet" href="vendor/leaflet.markercluster/MarkerCluster.css">
+    <link rel="stylesheet" href="vendor/leaflet.markercluster/MarkerCluster.Default.css">
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/layout.css">
     <link rel="stylesheet" href="css/components.css">
@@ -329,6 +331,7 @@
                 <div class="map-leyenda">
                     <span class="map-leyenda-item"><span class="map-leyenda-punto map-leyenda-punto-contenedor"></span> Contenedor</span>
                     <span class="map-leyenda-item"><span class="map-leyenda-punto map-leyenda-punto-incidencia"></span> Incidencia abierta</span>
+                    <span class="map-leyenda-item">Los círculos con número agrupan contenedores cercanos — hacé zoom para separarlos</span>
                 </div>
             </section>
 
@@ -346,8 +349,9 @@
     </div>
 
     <script src="vendor/leaflet/leaflet.js"></script>
+    <script src="vendor/leaflet.markercluster/leaflet.markercluster.js"></script>
     <script src="js/app.js?v=5"></script>
     <script src="js/buscador-incidencias.js?v=3"></script>
-    <script src="js/mapa.js?v=1"></script>
+    <script src="js/mapa.js?v=2"></script>
 </body>
 </html>
