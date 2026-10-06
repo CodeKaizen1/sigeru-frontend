@@ -44,13 +44,35 @@
             <form id="formRestablecer">
                 <div class="grupo-formulario">
                     <label for="password">Contraseña nueva</label>
-                    <input type="password" id="password" name="password" placeholder="Ingresá una contraseña nueva" required>
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        placeholder="Ingresá una contraseña nueva"
+                        minlength="8"
+                        pattern="(?=.*[A-Za-z])(?=.*\d).{8,}"
+                        title="Mínimo 8 caracteres, con al menos una letra y un número"
+                        required
+                    >
                 </div>
 
                 <div class="grupo-formulario">
                     <label for="confirmar-password">Confirmar contraseña</label>
-                    <input type="password" id="confirmar-password" name="confirmar-password" placeholder="Repetí la contraseña" required>
+                    <input
+                        type="password"
+                        id="confirmar-password"
+                        name="confirmar-password"
+                        placeholder="Repetí la contraseña"
+                        minlength="8"
+                        pattern="(?=.*[A-Za-z])(?=.*\d).{8,}"
+                        title="Mínimo 8 caracteres, con al menos una letra y un número"
+                        required
+                    >
                 </div>
+
+                <p class="aviso-formulario">
+                    La contraseña debe tener al menos 8 caracteres, con al menos una letra y un número.
+                </p>
 
                 <button type="submit" class="btn-principal btn-ancho">Guardar contraseña</button>
             </form>

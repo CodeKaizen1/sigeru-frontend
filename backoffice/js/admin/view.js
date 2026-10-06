@@ -1142,10 +1142,20 @@ function construirCamposHtml(config, modo, valoresIniciales) {
             `;
         }
 
+        // minlength/pattern/title son opcionales (hoy solo los usa la
+        // contraseña inicial de "Alta de funcionario" - ítem 11 de
+        // seguridad: mismo mínimo que ya se pide en registro.html y en
+        // "Mi cuenta" > Cambiar contraseña).
+        const atributosExtra = [
+            campo.minlength ? `minlength="${campo.minlength}"` : "",
+            campo.pattern ? `pattern="${campo.pattern}"` : "",
+            campo.title ? `title="${escapeHtml(campo.title)}"` : ""
+        ].filter(Boolean).join(" ");
+
         return `
             <div class="grupo-formulario ${claseAncho}">
                 <label for="campo-${campo.nombre}">${campo.etiqueta}</label>
-                <input type="${campo.tipo}" id="campo-${campo.nombre}" name="${campo.nombre}" value="${escapeHtml(valorInicial)}" placeholder="${campo.placeholder || ""}" ${campo.requerido ? "required" : ""}>
+                <input type="${campo.tipo}" id="campo-${campo.nombre}" name="${campo.nombre}" value="${escapeHtml(valorInicial)}" placeholder="${campo.placeholder || ""}" ${campo.requerido ? "required" : ""} ${atributosExtra}>
             </div>
         `;
     }).join("");

@@ -238,6 +238,11 @@ export function renderMenuCuenta(contenedor, perfil, alGuardar) {
             return;
         }
 
+        if (resultado === "CONTRASENA_DEBIL") {
+            mostrarAviso("La contraseña nueva debe tener al menos 8 caracteres, con al menos una letra y un número.", "error");
+            return;
+        }
+
         if (!resultado) return;
 
         // alGuardar ya cierra la sesión y redirige a login (cambiar contraseña fuerza cambioSesion).

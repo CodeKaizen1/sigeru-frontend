@@ -1157,7 +1157,11 @@ export async function actualizarCuentaPropia({ email, telefono, contrasenaActual
             contraseniaNueva: contrasenaNueva
         });
         if (!ok) {
-            return status === 403 ? "CONTRASENA_INCORRECTA" : null;
+            if (status === 403) return "CONTRASENA_INCORRECTA";
+            // El formulario ya exige el mínimo con minlength/pattern (ítem 11
+            // de seguridad); esto solo debería pasar saltándose el formulario.
+            if (status === 400) return "CONTRASENA_DEBIL";
+            return null;
         }
     }
 
@@ -1423,7 +1427,15 @@ export const formulariosAlta = {
             { nombre: "telefono", etiqueta: "Teléfono", tipo: "tel", requerido: true },
             { nombre: "direccion", etiqueta: "Dirección", tipo: "text", requerido: true, ancho: "completo" },
             { nombre: "email", etiqueta: "Correo electrónico", tipo: "email", requerido: true, ancho: "completo", placeholder: "Se usa para iniciar sesión" },
-            { nombre: "password", etiqueta: "Contraseña", tipo: "password", requerido: true, placeholder: "Contraseña inicial de la cuenta" },
+            {
+                nombre: "password", etiqueta: "Contraseña", tipo: "password", requerido: true,
+                placeholder: "Contraseña inicial de la cuenta",
+                // Ítem 11 de seguridad: mismo mínimo que ya se pide en
+                // registro.html y en "Mi cuenta" > Cambiar contraseña.
+                minlength: 8,
+                pattern: "(?=.*[A-Za-z])(?=.*\\d).{8,}",
+                title: "Mínimo 8 caracteres, con al menos una letra y un número"
+            },
             { nombre: "rol", etiqueta: "Rol", tipo: "select", requerido: true, opciones: ROLES_FUNCIONARIO_OPCIONES }
         ]
     }
@@ -1731,6 +1743,10 @@ export async function crearRegistro(modulo, valoresCampos) {
 
         if (!ok) {
             if (status === 400 && respuesta && /cédula/i.test(respuesta.error || "")) return "CEDULA_DUPLICADA";
+            // El formulario ya exige el mínimo con minlength/pattern, así que
+            // esto solo debería pasar si alguien manda el pedido saltándose
+            // el formulario (devtools/curl) - el servidor también lo exige.
+            if (status === 400 && respuesta && /contraseña/i.test(respuesta.error || "")) return "CONTRASENA_DEBIL";
             return null;
         }
 

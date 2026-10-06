@@ -1,10 +1,10 @@
 // CONTROLADOR: escucha clicks/submits del panel, pide datos al Modelo y actualiza la Vista.
 // También guarda el estado propio de la pantalla (módulo abierto, registro en edición).
 
-import * as Model from "./model.js?v=25";
-import * as View from "./view.js?v=25";
+import * as Model from "./model.js?v=26";
+import * as View from "./view.js?v=26";
 import * as NotificacionesUI from "./notificaciones-ui.js?v=2";
-import * as CuentaUI from "./cuenta-ui.js?v=3";
+import * as CuentaUI from "./cuenta-ui.js?v=4";
 import * as ExportarExcel from "./exportar-excel.js?v=1";
 import * as AsignarUI from "./asignar-ui.js?v=1";
 
@@ -64,7 +64,7 @@ async function manejarClickNotificacion(notificacion) {
 async function alGuardarCuenta(cambios) {
     const resultado = await Model.actualizarCuentaPropia(cambios);
 
-    if (resultado && resultado !== "CONTRASENA_INCORRECTA" && resultado !== "EMAIL_DUPLICADO" && resultado.cambioSesion) {
+    if (resultado && resultado !== "CONTRASENA_INCORRECTA" && resultado !== "EMAIL_DUPLICADO" && resultado !== "CONTRASENA_DEBIL" && resultado.cambioSesion) {
         alert("Tu correo o tu contraseña cambiaron: iniciá sesión de nuevo.");
         sessionStorage.removeItem("sigeru_sesion_v1");
         window.location.href = "../frontend-usuarios/login.html";
@@ -609,6 +609,13 @@ async function manejarFormularioSubmit(evento) {
     // Cédula ya registrada por otra cuenta.
     if (resultado === "CEDULA_DUPLICADA") {
         alert("Ya existe una cuenta con esa cédula.");
+        return;
+    }
+
+    // El formulario ya exige el mínimo (minlength/pattern); esto solo
+    // debería pasar si el servidor lo rechazó por otro motivo (ítem 11).
+    if (resultado === "CONTRASENA_DEBIL") {
+        alert("La contraseña debe tener al menos 8 caracteres, con al menos una letra y un número.");
         return;
     }
 
