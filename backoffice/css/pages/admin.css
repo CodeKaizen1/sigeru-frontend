@@ -214,6 +214,102 @@
 }
 
 /*
+   INFORME DE INCIDENCIAS (punto 15 del backlog, moduleList en la pantalla
+   de Informes) -- mismo criterio de "fondo claro + borde fino" que ya usan
+   los gráficos de Resumen, para no verse como tarjetas dentro de una
+   tarjeta (moduleList ya es .data-list, blanca con sombra propia).
+*/
+
+.informe-incidencias {
+    display: grid;
+    gap: 18px;
+    padding: 20px;
+}
+
+.informe-filtros {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 14px;
+}
+
+.informe-filtros .grupo-formulario {
+    min-width: 170px;
+}
+
+.informe-filtros select,
+.informe-filtros input[type="date"] {
+    min-width: 170px;
+    padding: 14px 16px;
+    border: 1px solid #d5e1ec;
+    border-radius: 14px;
+    background: white;
+    color: #082b4f;
+    font-size: 15px;
+}
+
+.informe-filtros-acciones {
+    display: flex;
+    gap: 10px;
+    margin-left: auto;
+}
+
+/* Mismas tarjetas de Resumen (.resumen-card), pero acá son solo 4 y nunca
+   necesitan el ancho mínimo de 200px de .admin-resumen -- se angosta un
+   poco para que las 4 entren cómodas sin estirarse de más en pantallas anchas. */
+.informe-tarjetas {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.informe-grafico .grafico-lienzo {
+    height: 260px;
+}
+
+.informe-tabla-envoltura {
+    overflow-x: auto;
+}
+
+.informe-tabla {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.informe-tabla th,
+.informe-tabla td {
+    padding: 12px 14px;
+    text-align: left;
+    border-bottom: 1px solid #e3ebf2;
+    white-space: nowrap;
+}
+
+.informe-tabla th {
+    color: #5d6b7a;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.informe-tabla td:last-child,
+.informe-tabla th:last-child {
+    white-space: normal;
+}
+
+.informe-tabla tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.informe-tabla-nota {
+    margin-top: 12px;
+}
+
+@media (max-width: 960px) {
+    .informe-filtros-acciones {
+        margin-left: 0;
+        width: 100%;
+    }
+}
+
+/*
    ÚLTIMAS INCIDENCIAS (panel de detalle en Resumen)
 */
 

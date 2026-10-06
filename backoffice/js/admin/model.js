@@ -170,6 +170,13 @@ async function asegurarCargado(modulo) {
         await cargarFuncionarios();
         return;
     }
+
+    if (modulo === "informes") {
+        await cargarContenedores();
+        await cargarIncidencias();
+        recomputarResumenIncidenciasEnContenedores();
+        return;
+    }
 }
 
 function formatearFechaCorta(fechaMysql) {
@@ -398,6 +405,85 @@ export function distribucionIncidenciasPorEstado() {
 
 export function distribucionIncidenciasPorTipo() {
     return contarPorCategoria(datos.incidencias, "tipo", TIPOS_INCIDENCIA);
+}
+
+//
+// Informe de incidencias (Fase 4, punto 15). Mismo dataset ya cargado en
+// memoria que usa el módulo Incidencias, pero filtrado por un RANGO de
+// fechas (desde/hasta) en vez del filtro de un solo día que usa ese módulo
+// -- un informe tipo "del 1 al 30 de este mes" necesita rango, no un día
+// exacto, así que se arma aparte en vez de reusar filtrarRegistros().
+//
+
+// Mismas zonas/tipos presentes en los datos reales, para poblar los <select>
+// del informe (valoresUnicos ya es genérica, se reusa tal cual).
+export function opcionesZonaInformeIncidencias() {
+    return valoresUnicos("incidencias", "zona");
+}
+
+export function opcionesTipoInformeIncidencias() {
+    return valoresUnicos("incidencias", "tipo");
+}
+
+// Compara por la parte de fecha (YYYY-MM-DD) del dato crudo de MySQL -- ese
+// formato ya ordena bien como texto, no hace falta parsear a Date ni
+// preocuparse por huso horario.
+function fechaIncidenciaDentroDeRango(incidencia, desde, hasta) {
+    if (!incidencia._fechaReporteCruda) return false;
+    const fechaIso = String(incidencia._fechaReporteCruda).slice(0, 10);
+    if (desde && fechaIso < desde) return false;
+    if (hasta && fechaIso > hasta) return false;
+    return true;
+}
+
+// Arma el informe: totales por estado + el listado de incidencias que caen
+// en el rango y los filtros pedidos (zona/tipo, iguales que los del módulo
+// Incidencias). Sin "desde"/"hasta" no filtra por fecha (informe de todo el
+// historial cargado).
+export function generarInformeIncidencias({ desde = "", hasta = "", zona = "", tipo = "" } = {}) {
+    const filas = datos.incidencias.filter((incidencia) => {
+        if (!fechaIncidenciaDentroDeRango(incidencia, desde, hasta)) return false;
+        if (zona && incidencia.zona !== zona) return false;
+        if (tipo && incidencia.tipo !== tipo) return false;
+        return true;
+    });
+
+    return {
+        total: filas.length,
+        abiertas: filas.filter((f) => f.estado === "abierta").length,
+        enCurso: filas.filter((f) => f.estado === "en curso").length,
+        resueltas: filas.filter((f) => f.estado === "resuelta").length,
+        porEstado: contarPorCategoria(filas, "estado", configuracionModulos.incidencias.estados),
+        filas: [...filas].sort((a, b) => Number(b.id) - Number(a.id))
+    };
+}
+
+// Columnas fijas del informe (menos campos que el export genérico de
+// Incidencias -- acá interesa el resumen, no cada detalle administrativo).
+const COLUMNAS_INFORME_INCIDENCIAS = [
+    { campo: "id", etiqueta: "ID" },
+    { campo: "fecha", etiqueta: "Fecha" },
+    { campo: "tipo", etiqueta: "Tipo" },
+    { campo: "zona", etiqueta: "Zona" },
+    { campo: "estado", etiqueta: "Estado" },
+    { campo: "contenedor", etiqueta: "Contenedor asociado" },
+    { campo: "resolucion", etiqueta: "Qué se hizo para resolverla", valorVacio: "Sin resolver todavía" }
+];
+
+// Exporta SIEMPRE todas las filas que matchean el informe (no solo las que
+// se muestran en la tabla en pantalla, que se recorta por prolijidad).
+export function filasInformeIncidenciasParaExportar(filas) {
+    const encabezados = COLUMNAS_INFORME_INCIDENCIAS.map((columna) => columna.etiqueta);
+    const filasExport = filas.map((registro) =>
+        COLUMNAS_INFORME_INCIDENCIAS.map((columna) => {
+            const valor = registro[columna.campo];
+            if (valor === null || valor === undefined || valor === "") {
+                return columna.valorVacio !== undefined ? columna.valorVacio : "";
+            }
+            return String(valor);
+        })
+    );
+    return { encabezados, filas: filasExport };
 }
 
 //
@@ -1147,6 +1233,11 @@ export const configuracionModulos = {
             { campo: "resolucion", etiqueta: "Qué se hizo para resolverla", valorVacio: "Sin resolver todavía" },
             { campo: "fechaResolucion", etiqueta: "Resuelta el", valorVacio: "Sin resolver todavía" }
         ]
+    },
+    informes: {
+        titulo: "Informes de incidencias",
+        descripcion: "Totales de incidencias abiertas, en curso y resueltas en un período, filtrables por zona y tipo.",
+        estados: []
     },
     contenedores: {
         titulo: "Contenedores",

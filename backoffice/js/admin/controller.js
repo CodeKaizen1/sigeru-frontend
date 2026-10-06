@@ -1,8 +1,8 @@
 // CONTROLADOR: escucha clicks/submits del panel, pide datos al Modelo y actualiza la Vista.
 // También guarda el estado propio de la pantalla (módulo abierto, registro en edición).
 
-import * as Model from "./model.js?v=24";
-import * as View from "./view.js?v=24";
+import * as Model from "./model.js?v=25";
+import * as View from "./view.js?v=25";
 import * as NotificacionesUI from "./notificaciones-ui.js?v=2";
 import * as CuentaUI from "./cuenta-ui.js?v=3";
 import * as ExportarExcel from "./exportar-excel.js?v=1";
@@ -98,6 +98,9 @@ async function cambiarModulo(nombreModulo) {
 
     if (nombreModulo === "resumen") {
         await mostrarResumen();
+    } else if (nombreModulo === "informes") {
+        filtrosInforme = { desde: "", hasta: "", zona: "", tipo: "" };
+        await mostrarInformes();
     } else {
         await mostrarModulo();
     }
@@ -106,7 +109,7 @@ async function cambiarModulo(nombreModulo) {
 function actualizarControlesModulo() {
     const config = Model.configuracionModulos[moduloActual];
     View.actualizarFiltroEstados(config.estados);
-    View.mostrarHerramientasModulo(moduloActual === "resumen");
+    View.mostrarHerramientasModulo(moduloActual === "resumen" || moduloActual === "informes");
 
     // Cuadrillas no tiene alta genérica: se crea vacía y se completa desde su detalle.
     const configAlta = moduloActual === "cuadrillas"
@@ -167,6 +170,62 @@ async function mostrarResumen() {
     });
 
     View.renderUltimasIncidencias(Model.obtenerUltimasIncidencias(5));
+}
+
+// Informe de incidencias (Fase 4, punto 15). Filtros propios (no los de
+// #moduleTools, que están ocultos acá) -- se guardan en este módulo para
+// sobrevivir a los reenganches cada vez que cambia un filtro.
+let filtrosInforme = { desde: "", hasta: "", zona: "", tipo: "" };
+
+async function mostrarInformes() {
+    await Model.obtenerRegistros("informes");
+
+    const informe = Model.generarInformeIncidencias(filtrosInforme);
+
+    View.renderInformeIncidencias({
+        filtros: filtrosInforme,
+        zonas: Model.opcionesZonaInformeIncidencias(),
+        tipos: Model.opcionesTipoInformeIncidencias(),
+        informe
+    });
+
+    engancharControlesInforme();
+}
+
+function engancharControlesInforme() {
+    const contenedor = document.getElementById("moduleList");
+
+    contenedor.querySelector("[data-informe-desde]").addEventListener("change", (evento) => {
+        filtrosInforme.desde = evento.target.value;
+        mostrarInformes();
+    });
+
+    contenedor.querySelector("[data-informe-hasta]").addEventListener("change", (evento) => {
+        filtrosInforme.hasta = evento.target.value;
+        mostrarInformes();
+    });
+
+    contenedor.querySelector("[data-informe-zona]").addEventListener("change", (evento) => {
+        filtrosInforme.zona = evento.target.value;
+        mostrarInformes();
+    });
+
+    contenedor.querySelector("[data-informe-tipo]").addEventListener("change", (evento) => {
+        filtrosInforme.tipo = evento.target.value;
+        mostrarInformes();
+    });
+
+    contenedor.querySelector("[data-informe-limpiar]").addEventListener("click", () => {
+        filtrosInforme = { desde: "", hasta: "", zona: "", tipo: "" };
+        mostrarInformes();
+    });
+
+    contenedor.querySelector("[data-informe-exportar]").addEventListener("click", () => {
+        const informe = Model.generarInformeIncidencias(filtrosInforme);
+        const { encabezados, filas } = Model.filasInformeIncidenciasParaExportar(informe.filas);
+        const fecha = new Date().toISOString().slice(0, 10);
+        ExportarExcel.exportarExcel(`SiGeRU_Informe_Incidencias_${fecha}.xlsx`, encabezados, filas);
+    });
 }
 
 // Lee del DOM los filtros del módulo actual (buscador, estado, filtros extra y fecha).
