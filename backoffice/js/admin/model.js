@@ -1150,7 +1150,7 @@ export const configuracionModulos = {
         estados: ["activa", "baja"],
         filtrosExtra: [
             { campo: "zona", etiqueta: "Zona", todosLabel: "Todas las zonas", opciones: "dinamico" },
-            { campo: "frecuencia", etiqueta: "Frecuencia", todosLabel: "Todas las frecuencias", opciones: ["Diaria", "Día por medio", "Semanal"] }
+            { campo: "frecuencia", etiqueta: "Frecuencia", todosLabel: "Todas las frecuencias", opciones: ["Diaria", "Interdiaria", "Semanal", "Irregular", "Sin datos"] }
         ],
         columnasExport: [
             { campo: "id", etiqueta: "ID" },
@@ -1237,7 +1237,7 @@ export const formulariosAlta = {
         campos: [
             { nombre: "zona", etiqueta: "Zona / barrio", tipo: "text", requerido: true, ancho: "completo", placeholder: "Ej: Pocitos" },
             { nombre: "recorrido", etiqueta: "Recorrido", tipo: "text", requerido: true, ancho: "completo", placeholder: "Ej: Av. Brasil - Bulevar España - Rambla" },
-            { nombre: "frecuencia", etiqueta: "Frecuencia", tipo: "select", requerido: true, opciones: ["Diaria", "Día por medio", "Semanal"] },
+            { nombre: "frecuencia", etiqueta: "Frecuencia", tipo: "select", requerido: true, opciones: ["Diaria", "Interdiaria", "Semanal", "Irregular", "Sin datos"] },
             { nombre: "horario", etiqueta: "Horario", tipo: "text", requerido: true, placeholder: "Ej: 08:00 a 14:00" }
         ]
     },
