@@ -396,6 +396,30 @@ export function renderListaRegistros(modulo, registros) {
     return lista;
 }
 
+// Controles de página (Anterior/Página X de Y/Siguiente) debajo del listado.
+// Con los ~11.130 contenedores oficiales de la IMM cargados, pintar todo el
+// listado filtrado de una (como antes) congela el panel -- mostrarModulo()
+// en controller.js ahora solo pasa a renderListaRegistros() la página
+// actual y usa esto para que se pueda navegar entre el resto. Si todo entra
+// en una sola página, queda vacío (y oculto, ver .paginador:empty en CSS).
+export function renderPaginador(paginaActual, totalPaginas) {
+    const contenedor = document.getElementById("paginador");
+    if (!contenedor) return null;
+
+    if (totalPaginas <= 1) {
+        contenedor.innerHTML = "";
+        return contenedor;
+    }
+
+    contenedor.innerHTML = `
+        <button type="button" class="btn-secundario" data-pagina-anterior ${paginaActual <= 1 ? "disabled" : ""}>Anterior</button>
+        <span>Página ${paginaActual} de ${totalPaginas}</span>
+        <button type="button" class="btn-secundario" data-pagina-siguiente ${paginaActual >= totalPaginas ? "disabled" : ""}>Siguiente</button>
+    `;
+
+    return contenedor;
+}
+
 //
 // Popup de detalle de un registro
 //

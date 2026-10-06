@@ -2,7 +2,7 @@
 // También guarda el estado propio de la pantalla (módulo abierto, registro en edición).
 
 import * as Model from "./model.js?v=20";
-import * as View from "./view.js?v=21";
+import * as View from "./view.js?v=22";
 import * as NotificacionesUI from "./notificaciones-ui.js?v=2";
 import * as CuentaUI from "./cuenta-ui.js?v=3";
 import * as ExportarExcel from "./exportar-excel.js?v=1";
@@ -10,6 +10,14 @@ import * as AsignarUI from "./asignar-ui.js?v=1";
 
 let moduloActual = "resumen";
 let idEnEdicion = null;
+
+// Paginado del listado (controller.js arma la página, View.renderListaRegistros
+// solo pinta lo que le llega). Necesario desde que se cargaron los ~11.130
+// contenedores oficiales de la IMM: antes renderListaRegistros() pintaba
+// TODO el listado filtrado de una, y con esa cantidad de filas el panel se
+// congelaba. 50 por página es arbitrario pero cómodo para navegar.
+const REGISTROS_POR_PAGINA = 50;
+let paginaActual = 1;
 
 // Notificaciones
 
@@ -75,6 +83,7 @@ async function iniciarCuenta() {
 
 async function cambiarModulo(nombreModulo) {
     moduloActual = nombreModulo;
+    paginaActual = 1;
 
     document.querySelectorAll(".admin-menu-link").forEach((boton) => {
         boton.classList.toggle("active", boton.dataset.module === nombreModulo);
@@ -116,11 +125,19 @@ function actualizarControlesModulo() {
 
 function engancharFiltrosExtra() {
     document.querySelectorAll("#filtrosExtra [data-campo-filtro]").forEach((select) => {
-        select.addEventListener("change", mostrarModulo);
+        select.addEventListener("change", mostrarModuloDesdeFiltro);
     });
 
     const fechaInput = document.getElementById("dateFilter");
-    if (fechaInput) fechaInput.addEventListener("change", mostrarModulo);
+    if (fechaInput) fechaInput.addEventListener("change", mostrarModuloDesdeFiltro);
+}
+
+// Cualquier cambio de filtro (búsqueda, estado, filtros extra, fecha) vuelve
+// a la página 1 -- si no, un cambio de filtro podía dejar "paginaActual" en
+// una página que ya no existe para el nuevo resultado filtrado.
+function mostrarModuloDesdeFiltro() {
+    paginaActual = 1;
+    mostrarModulo();
 }
 
 // Carga los módulos de los que depende el resumen y pinta las tarjetas.
@@ -146,7 +163,9 @@ async function mostrarResumen() {
 }
 
 // Lee del DOM los filtros del módulo actual (buscador, estado, filtros extra y fecha).
-// Compartido con manejarExportar() para que exporte exactamente lo que se ve en pantalla.
+// Compartido con manejarExportar(), que exporta TODO lo que matchea los
+// filtros (no solo la página actual que se ve en pantalla -- eso sería una
+// sorpresa rara al exportar con 11 mil contenedores filtrados).
 function leerFiltrosActuales() {
     const textoBusqueda = document.getElementById("searchInput").value;
     const estadoSeleccionado = document.getElementById("stateFilter").value;
@@ -173,8 +192,42 @@ async function mostrarModulo() {
     View.ocultarTarjetasResumen();
     View.cerrarDetailModal();
 
-    const registros = await registrosDelModuloActual();
+    const registrosFiltrados = await registrosDelModuloActual();
+
+    const totalPaginas = Math.max(1, Math.ceil(registrosFiltrados.length / REGISTROS_POR_PAGINA));
+    // Si el filtro cambió el total y paginaActual quedó apuntando a una
+    // página que ya no existe (ej: estabas en la página 4 de "funcional" y
+    // cambiaste a un filtro con solo 1 página), se recorta a la última válida.
+    if (paginaActual > totalPaginas) paginaActual = totalPaginas;
+
+    const inicio = (paginaActual - 1) * REGISTROS_POR_PAGINA;
+    const registros = registrosFiltrados.slice(inicio, inicio + REGISTROS_POR_PAGINA);
+
     const lista = View.renderListaRegistros(moduloActual, registros);
+    const paginador = View.renderPaginador(paginaActual, totalPaginas);
+
+    if (paginador) {
+        const botonAnterior = paginador.querySelector("[data-pagina-anterior]");
+        const botonSiguiente = paginador.querySelector("[data-pagina-siguiente]");
+
+        if (botonAnterior) {
+            botonAnterior.addEventListener("click", () => {
+                if (paginaActual > 1) {
+                    paginaActual -= 1;
+                    mostrarModulo();
+                }
+            });
+        }
+
+        if (botonSiguiente) {
+            botonSiguiente.addEventListener("click", () => {
+                if (paginaActual < totalPaginas) {
+                    paginaActual += 1;
+                    mostrarModulo();
+                }
+            });
+        }
+    }
 
     lista.querySelectorAll(".data-row").forEach((fila) => {
         fila.addEventListener("click", () => {
@@ -632,8 +685,8 @@ function iniciarEventos() {
         });
     });
 
-    document.getElementById("searchInput").addEventListener("input", mostrarModulo);
-    document.getElementById("stateFilter").addEventListener("change", mostrarModulo);
+    document.getElementById("searchInput").addEventListener("input", mostrarModuloDesdeFiltro);
+    document.getElementById("stateFilter").addEventListener("change", mostrarModuloDesdeFiltro);
 
     document.getElementById("newRecordBtn").addEventListener("click", abrirFormularioAlta);
     document.getElementById("formAlta").addEventListener("submit", manejarFormularioSubmit);

@@ -290,6 +290,33 @@
     overflow: hidden;
 }
 
+/* Paginador del listado (View.renderPaginador) - con los ~11.130
+   contenedores oficiales de la IMM cargados, pintar todas las filas de
+   una trababa el panel; ahora moduleList solo pinta la página actual y
+   este bloque deja navegar entre páginas. Se oculta solo (queda vacío)
+   en los módulos que entran en una sola página. */
+.paginador {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.paginador:empty {
+    display: none;
+}
+
+.paginador span {
+    color: #5d6b7a;
+    font-size: 0.92rem;
+}
+
+.paginador button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
 .data-row {
     width: 100%;
     border: none;
