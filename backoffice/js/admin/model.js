@@ -221,6 +221,11 @@ async function cargarContenedores() {
             // del formulario espera el valor inicial).
             latitud: fila.latitudContenedor ?? "",
             longitud: fila.longitudContenedor ?? "",
+            // Barrio y municipio (entrega final, contenedores oficiales IMM
+            // enriquecidos) -- string vacio si no estan cargados (contenedores
+            // creados a mano desde el panel pueden no tenerlos).
+            zona: fila.zonaContenedor || "",
+            municipio: fila.municipioContenedor || "",
             incidencias: calcularResumenIncidenciasContenedor(fila.idContenedor)
         };
         _cacheContenedoresPorId.set(item.id, item);
@@ -1099,6 +1104,8 @@ export const configuracionModulos = {
             { campo: "id", etiqueta: "ID" },
             { campo: "estado", etiqueta: "Estado" },
             { campo: "ubicacion", etiqueta: "Ubicación", valorVacio: "En depósito (repuesto)" },
+            { campo: "zona", etiqueta: "Barrio", valorVacio: "Sin datos" },
+            { campo: "municipio", etiqueta: "Municipio", valorVacio: "Sin datos" },
             { campo: "capacidad", etiqueta: "Capacidad" },
             { campo: "tipoResiduo", etiqueta: "Tipo de residuo" },
             { campo: "incidencias", etiqueta: "Incidencias asociadas" }
@@ -1200,6 +1207,8 @@ export const formulariosAlta = {
         tituloEdicion: "Editar contenedor",
         campos: [
             { nombre: "ubicacion", etiqueta: "Ubicación", tipo: "text", requerido: false, ancho: "completo", placeholder: "Ej: Av. Brasil y Bulevar España (dejalo vacío si es repuesto en depósito)" },
+            { nombre: "zona", etiqueta: "Barrio", tipo: "text", requerido: false, placeholder: "Ej: Pocitos (opcional)" },
+            { nombre: "municipio", etiqueta: "Municipio", tipo: "text", requerido: false, placeholder: "Ej: Municipio CH (opcional)" },
             { nombre: "capacidad", etiqueta: "Capacidad", tipo: "text", requerido: true, placeholder: "Ej: 1100 litros" },
             { nombre: "tipoResiduo", etiqueta: "Tipo de residuo", tipo: "select", requerido: true, opciones: ["Residuos mezclados", "Residuos reciclables", "Residuos orgánicos"] },
             { nombre: "estado", etiqueta: "Estado inicial", tipo: "select", requerido: true, opciones: ["funcional", "roto", "desbordado"] },
@@ -1466,7 +1475,9 @@ export async function crearRegistro(modulo, valoresCampos) {
             capacidadContenedor: aNumeroONull(valoresCampos.capacidad),
             tipoResiduoContenedor: valoresCampos.tipoResiduo,
             latitudContenedor: aNumeroONull(valoresCampos.latitud),
-            longitudContenedor: aNumeroONull(valoresCampos.longitud)
+            longitudContenedor: aNumeroONull(valoresCampos.longitud),
+            zonaContenedor: valoresCampos.zona || null,
+            municipioContenedor: valoresCampos.municipio || null
         });
         if (!ok) return null;
         await cargarContenedores();
@@ -1596,7 +1607,9 @@ export async function editarRegistro(modulo, id, valoresCampos) {
             capacidadContenedor: aNumeroONull(valoresCampos.capacidad),
             tipoResiduoContenedor: valoresCampos.tipoResiduo,
             latitudContenedor: aNumeroONull(valoresCampos.latitud),
-            longitudContenedor: aNumeroONull(valoresCampos.longitud)
+            longitudContenedor: aNumeroONull(valoresCampos.longitud),
+            zonaContenedor: valoresCampos.zona || null,
+            municipioContenedor: valoresCampos.municipio || null
         }, id));
     } else if (modulo === "camiones") {
         const choferIdCedula = valoresCampos.choferId || null;
@@ -1686,7 +1699,9 @@ export async function alternarBaja(modulo, id) {
             capacidadContenedor: aNumeroONull(registro.capacidad),
             tipoResiduoContenedor: registro.tipoResiduo,
             latitudContenedor: aNumeroONull(registro.latitud),
-            longitudContenedor: aNumeroONull(registro.longitud)
+            longitudContenedor: aNumeroONull(registro.longitud),
+            zonaContenedor: registro.zona || null,
+            municipioContenedor: registro.municipio || null
         }, id));
     } else if (modulo === "camiones") {
         ok = await guardarCamion({ ...registro, estado: nuevoEstado });

@@ -271,12 +271,16 @@ function crearFila(modulo, registro) {
             ? registro.ubicacion
             : "En depósito (repuesto)";
 
+        const subUbicacion = registro.zona
+            ? `${registro.zona} · ${registro.capacidad}`
+            : registro.capacidad;
+
         return `
             <button class="data-row" data-id="${registro.id}" type="button">
                 <span class="data-id">${registro.id}</span>
                 <span>
                     <span class="data-main">${escapeHtml(ubicacionTexto)}</span>
-                    <span class="data-sub">${escapeHtml(registro.capacidad)}</span>
+                    <span class="data-sub">${escapeHtml(subUbicacion)}</span>
                 </span>
                 <span class="estado estado-${claseEstado(registro.estado)}">${escapeHtml(registro.estado)}</span>
                 <span class="data-sub">${escapeHtml(registro.tipoResiduo)}</span>
@@ -555,6 +559,7 @@ export function renderDetalle(modulo, registro, datosExtra = {}, configEdicion =
                 ${enEdicion ? item("Ubicación", registro.ubicacion, "ubicacion") : ""}
                 ${item("Estado", registro.estado, "estado")}
                 ${item("Barrio / zona", registro.zona, "zona")}
+                ${item("Municipio", registro.municipio, "municipio")}
                 ${item("Capacidad", registro.capacidad, "capacidad")}
                 ${item("Tipo de residuo", registro.tipoResiduo, "tipoResiduo")}
                 ${item("Incidencias asociadas", registro.incidencias)}
