@@ -6,7 +6,7 @@
 import * as Model from "./admin/model.js?v=28";
 import * as NotificacionesUI from "./admin/notificaciones-ui.js?v=2";
 import * as CuentaUI from "./admin/cuenta-ui.js?v=4";
-import { confirmar } from "./admin/confirmar-ui.js?v=2";
+import { confirmar } from "./admin/confirmar-ui.js?v=3";
 import { pedirTexto } from "./admin/asignar-ui.js?v=1";
 
 const usuario = Model.usuarioActual;

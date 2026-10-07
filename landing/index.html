@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/layout.css">
     <link rel="stylesheet" href="css/components.css">
-    <link rel="stylesheet" href="css/pages/landing.css?v=5">
+    <link rel="stylesheet" href="css/pages/landing.css?v=6">
 </head>
 <body>
 
@@ -236,12 +236,12 @@
 
                 <form class="report-form" id="formIncidencia">
                     <div class="form-grid">
-                        <div class="grupo-formulario grupo-formulario-completo">
+                        <div class="grupo-formulario grupo-formulario-completo autocomplete-combo">
                             <label for="direccion-incidencia">Dirección del contenedor</label>
-                            <select id="direccion-incidencia" name="contenedorId" required>
-                                <option value="" disabled selected>Seleccione la dirección del contenedor</option>
-                            </select>
-                            <span class="ayuda-campo">Solo se pueden informar incidencias en direcciones donde ya hay un contenedor registrado.</span>
+                            <input type="text" id="direccion-incidencia" autocomplete="off" placeholder="Escribí la dirección (ej: 18 de Julio)" required>
+                            <input type="hidden" id="direccion-incidencia-id" name="contenedorId">
+                            <ul id="direccion-incidencia-resultados" class="autocomplete-resultados" role="listbox" hidden></ul>
+                            <span class="ayuda-campo">Solo se pueden informar incidencias en direcciones donde ya hay un contenedor registrado. Empezá a escribir y elegí una de las coincidencias.</span>
                         </div>
 
                         <div class="grupo-formulario">
@@ -380,7 +380,7 @@
 
     <script src="vendor/leaflet/leaflet.js"></script>
     <script src="vendor/leaflet.markercluster/leaflet.markercluster.js"></script>
-    <script src="js/app.js?v=5"></script>
+    <script src="js/app.js?v=6"></script>
     <script src="js/buscador-incidencias.js?v=3"></script>
     <script src="js/mapa.js?v=3"></script>
 </body>

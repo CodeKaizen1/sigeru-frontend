@@ -38,27 +38,147 @@ function contenedoresConDireccion(lista) {
     return lista.filter((c) => c.ubicacionContenedor && c.ubicacionContenedor.trim());
 }
 
-async function poblarSelectDeContenedores() {
-    const select = document.getElementById("direccion-incidencia");
-    if (!select) return;
+// Cuántas coincidencias se muestran como máximo mientras se escribe -- con
+// los ~11.130 contenedores oficiales de la IMM ya no se podía pintar un
+// <option> por cada uno (dejaba el formulario pesadísimo de abrir). Ahora
+// se filtra en memoria (todos los contenedores ya están cargados) y solo se
+// pintan las primeras coincidencias de lo que el vecino va escribiendo.
+const MAX_SUGERENCIAS_CONTENEDOR = 8;
+
+function normalizarTextoContenedor(valor) {
+    return String(valor ?? "").toLowerCase();
+}
+
+async function inicializarAutocompletarContenedor() {
+    const campoTexto = document.getElementById("direccion-incidencia");
+    const campoId = document.getElementById("direccion-incidencia-id");
+    const listaResultados = document.getElementById("direccion-incidencia-resultados");
+    const campoZona = document.getElementById("zona-incidencia");
+    if (!campoTexto || !campoId || !listaResultados) return;
 
     const { ok, datos } = await llamarApiGestion("contenedor", "GET");
+    if (ok && Array.isArray(datos)) {
+        contenedoresDisponibles = contenedoresConDireccion(datos);
+    }
 
-    if (!ok || !Array.isArray(datos)) return;
+    let indiceActivo = -1;
 
-    contenedoresDisponibles = contenedoresConDireccion(datos);
+    function limpiarSeleccion() {
+        campoId.value = "";
+        if (campoZona) campoZona.value = "";
+    }
 
-    contenedoresDisponibles.forEach((contenedor) => {
-        const opcion = document.createElement("option");
-        opcion.value = String(contenedor.idContenedor);
-        opcion.textContent = contenedor.ubicacionContenedor;
-        select.appendChild(opcion);
+    function ocultarResultados() {
+        listaResultados.hidden = true;
+        listaResultados.innerHTML = "";
+        indiceActivo = -1;
+    }
+
+    function elegirContenedor(contenedor) {
+        campoTexto.value = contenedor.ubicacionContenedor;
+        campoId.value = String(contenedor.idContenedor);
+        if (campoZona) campoZona.value = contenedor.ubicacionContenedor;
+        ocultarResultados();
+    }
+
+    function marcarActivo(indice) {
+        const items = listaResultados.querySelectorAll("li[data-id]");
+        items.forEach((item) => item.classList.remove("autocomplete-activo"));
+        if (indice >= 0 && items[indice]) {
+            items[indice].classList.add("autocomplete-activo");
+            items[indice].scrollIntoView({ block: "nearest" });
+        }
+        indiceActivo = indice;
+    }
+
+    function mostrarResultados(texto) {
+        const textoNormalizado = normalizarTextoContenedor(texto);
+
+        if (!textoNormalizado) {
+            ocultarResultados();
+            return;
+        }
+
+        const coincidencias = contenedoresDisponibles
+            .filter((c) => normalizarTextoContenedor(c.ubicacionContenedor).includes(textoNormalizado))
+            .slice(0, MAX_SUGERENCIAS_CONTENEDOR);
+
+        listaResultados.innerHTML = "";
+        indiceActivo = -1;
+
+        if (!coincidencias.length) {
+            const item = document.createElement("li");
+            item.className = "autocomplete-sin-resultados";
+            item.textContent = "No hay contenedores con esa dirección.";
+            listaResultados.appendChild(item);
+            listaResultados.hidden = false;
+            return;
+        }
+
+        coincidencias.forEach((contenedor) => {
+            const item = document.createElement("li");
+            item.setAttribute("role", "option");
+            item.dataset.id = String(contenedor.idContenedor);
+            item.textContent = contenedor.ubicacionContenedor;
+
+            // mousedown (no click) para que dispare antes del blur del input.
+            item.addEventListener("mousedown", (evento) => {
+                evento.preventDefault();
+                elegirContenedor(contenedor);
+            });
+
+            listaResultados.appendChild(item);
+        });
+
+        listaResultados.hidden = false;
+    }
+
+    campoTexto.addEventListener("input", () => {
+        limpiarSeleccion();
+        mostrarResultados(campoTexto.value);
     });
 
-    select.addEventListener("change", () => {
-        const contenedorElegido = contenedoresDisponibles.find((c) => String(c.idContenedor) === select.value);
-        const campoZona = document.getElementById("zona-incidencia");
-        if (campoZona) campoZona.value = contenedorElegido ? contenedorElegido.ubicacionContenedor : "";
+    campoTexto.addEventListener("focus", () => {
+        if (campoTexto.value.trim()) mostrarResultados(campoTexto.value);
+    });
+
+    campoTexto.addEventListener("blur", () => {
+        // Pequeña espera para que el mousedown de una opción llegue a tiempo
+        // antes de que el blur cierre la lista.
+        setTimeout(() => {
+            ocultarResultados();
+            // Si lo que quedó escrito no corresponde a ninguna dirección
+            // elegida de la lista, se limpia -- evita que quede un texto
+            // suelto que parece elegido pero no tiene contenedor asociado.
+            if (!campoId.value) campoTexto.value = "";
+        }, 150);
+    });
+
+    campoTexto.addEventListener("keydown", (evento) => {
+        const items = listaResultados.querySelectorAll("li[data-id]");
+
+        if (evento.key === "Escape") {
+            ocultarResultados();
+            return;
+        }
+
+        if (!items.length) return;
+
+        if (evento.key === "ArrowDown") {
+            evento.preventDefault();
+            marcarActivo(Math.min(indiceActivo + 1, items.length - 1));
+        } else if (evento.key === "ArrowUp") {
+            evento.preventDefault();
+            marcarActivo(Math.max(indiceActivo - 1, 0));
+        } else if (evento.key === "Enter") {
+            // Si todavía no se marcó ninguna con las flechas, Enter elige la
+            // primera coincidencia visible (más permisivo que exigir que el
+            // vecino navegue con flechas antes de poder confirmar).
+            evento.preventDefault();
+            const indice = indiceActivo >= 0 ? indiceActivo : 0;
+            const contenedor = contenedoresDisponibles.find((c) => String(c.idContenedor) === items[indice].dataset.id);
+            if (contenedor) elegirContenedor(contenedor);
+        }
     });
 }
 
@@ -123,7 +243,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!formulario) return;
 
     inicializarCaptcha();
-    poblarSelectDeContenedores();
+    inicializarAutocompletarContenedor();
 
     const aviso = document.getElementById("avisoIncidencia");
     const mensajeInicial = aviso ? aviso.textContent : "";

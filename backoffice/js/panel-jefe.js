@@ -6,7 +6,7 @@
 import * as Model from "./admin/model.js?v=28";
 import * as NotificacionesUI from "./admin/notificaciones-ui.js?v=2";
 import * as CuentaUI from "./admin/cuenta-ui.js?v=4";
-import { confirmar } from "./admin/confirmar-ui.js?v=2";
+import { confirmar, avisar } from "./admin/confirmar-ui.js?v=3";
 import { pedirTexto } from "./admin/asignar-ui.js?v=1";
 
 const usuario = Model.usuarioActual;
@@ -286,14 +286,14 @@ async function render() {
             const descripcion = document.getElementById("textareaDescripcionIncidencia").value.trim();
 
             if (!descripcion) {
-                alert("Contá brevemente qué pasó antes de reportar la incidencia.");
+                await avisar("Contá brevemente qué pasó antes de reportar la incidencia.");
                 return;
             }
 
             // Si hay contenedores cargados en la zona de la ruta, hay que elegir
             // uno -- solo se reporta sin contenedor cuando la lista vino vacía.
             if (contenedoresDeRuta.length && !idContenedorSeleccionado) {
-                alert("Elegí sobre cuál contenedor es el inconveniente.");
+                await avisar("Elegí sobre cuál contenedor es el inconveniente.");
                 return;
             }
 
