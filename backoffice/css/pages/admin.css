@@ -1359,6 +1359,61 @@
 }
 
 /*
+   Autocompletar de "Contenedor" en "Reportar un inconveniente" (panel del
+   jefe de cuadrilla) -- mismo patrón que el de la landing (ver
+   landing/css/pages/landing.css), filtrando en memoria sobre los
+   contenedores de la ruta de la cuadrilla (lista ya chica, no hace falta
+   pedirle nada más al servidor para esto).
+*/
+
+.autocomplete-combo {
+    position: relative;
+}
+
+.autocomplete-resultados {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    z-index: 20;
+    margin: 0;
+    padding: 6px;
+    list-style: none;
+    background: var(--white);
+    border: 1px solid var(--border-soft);
+    border-radius: 10px;
+    box-shadow: var(--shadow-soft);
+    max-height: 260px;
+    overflow-y: auto;
+}
+
+.autocomplete-resultados[hidden] {
+    display: none;
+}
+
+.autocomplete-resultados li {
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    color: var(--text-dark);
+    cursor: pointer;
+}
+
+.autocomplete-resultados li:hover,
+.autocomplete-resultados li.autocomplete-activo {
+    background: var(--light-bg);
+}
+
+.autocomplete-resultados li.autocomplete-sin-resultados {
+    color: var(--text-muted);
+    cursor: default;
+}
+
+.autocomplete-resultados li.autocomplete-sin-resultados:hover {
+    background: none;
+}
+
+/*
    RESPONSIVE
 */
 

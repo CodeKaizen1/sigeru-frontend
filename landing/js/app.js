@@ -30,59 +30,103 @@ async function llamarApiGestion(recurso, metodo, cuerpo) {
     }
 }
 
-// Cache de contenedores ya pedidos al servidor (se llena una vez al cargar la página).
-let contenedoresDisponibles = [];
+// Contenedor elegido actualmente en el autocompletar (o null si todavía no
+// se eligió ninguno) -- lo usa el submit más abajo. Con los ~11.130
+// contenedores oficiales de la IMM cargados, ya no se puede traer
+// obtenerTodos() entero solo para este formulario (ver mapa.js, mismo
+// problema): se busca en el servidor a medida que el vecino escribe, igual
+// que ya hacía el buscador del mapa (ContenedorController::buscar).
+let contenedorSeleccionadoReporte = null;
 
-// El vecino elige entre direcciones con contenedor ya registrado, no las escribe a mano.
-function contenedoresConDireccion(lista) {
-    return lista.filter((c) => c.ubicacionContenedor && c.ubicacionContenedor.trim());
-}
-
-// Cuántas coincidencias se muestran como máximo mientras se escribe -- con
-// los ~11.130 contenedores oficiales de la IMM ya no se podía pintar un
-// <option> por cada uno (dejaba el formulario pesadísimo de abrir). Ahora
-// se filtra en memoria (todos los contenedores ya están cargados) y solo se
-// pintan las primeras coincidencias de lo que el vecino va escribiendo.
+// Cuántas coincidencias se muestran como máximo en la lista -- el backend
+// ya limita a 300 filas, pero acá alcanza con mostrar las primeras.
 const MAX_SUGERENCIAS_CONTENEDOR = 8;
 
-function normalizarTextoContenedor(valor) {
-    return String(valor ?? "").toLowerCase();
+// Espera tras la última tecla antes de pedir coincidencias al servidor --
+// evita un fetch por cada letra mientras el vecino todavía está escribiendo.
+const ESPERA_BUSQUEDA_CONTENEDOR_MS = 300;
+
+function debounce(funcion, esperaMs) {
+    let temporizador = null;
+    return (...args) => {
+        clearTimeout(temporizador);
+        temporizador = setTimeout(() => funcion(...args), esperaMs);
+    };
+}
+
+// Mismas listas de barrio que usa el buscador del mapa (recurso=contenedor&accion=filtros).
+async function cargarBarriosDisponibles(selectBarrio) {
+    try {
+        const respuesta = await fetch(`${API_GESTION}?recurso=contenedor&accion=filtros`, {
+            credentials: "same-origin"
+        });
+        const datos = await respuesta.json().catch(() => null);
+        const barrios = (datos && Array.isArray(datos.barrios)) ? datos.barrios : [];
+
+        barrios.forEach((barrio) => {
+            const opcion = document.createElement("option");
+            opcion.value = barrio;
+            opcion.textContent = barrio;
+            selectBarrio.appendChild(opcion);
+        });
+    } catch (error) {
+        // Si falla, el select queda solo con "Todos los barrios" -- no bloquea el resto del formulario.
+    }
+}
+
+// Mismo endpoint que el buscador del mapa: dirección y barrio son
+// independientes y combinables.
+async function buscarContenedoresReporte(direccion, barrio) {
+    try {
+        const parametros = new URLSearchParams({ recurso: "contenedor" });
+        if (direccion) parametros.set("direccion", direccion);
+        if (barrio) parametros.set("barrio", barrio);
+
+        const respuesta = await fetch(`${API_GESTION}?${parametros.toString()}`, {
+            credentials: "same-origin"
+        });
+        const datos = await respuesta.json().catch(() => null);
+        return Array.isArray(datos) ? datos : [];
+    } catch (error) {
+        return [];
+    }
 }
 
 async function inicializarAutocompletarContenedor() {
     const campoTexto = document.getElementById("direccion-incidencia");
     const campoId = document.getElementById("direccion-incidencia-id");
     const listaResultados = document.getElementById("direccion-incidencia-resultados");
-    const campoZona = document.getElementById("zona-incidencia");
+    const selectBarrio = document.getElementById("barrio-incidencia");
     if (!campoTexto || !campoId || !listaResultados) return;
 
-    const { ok, datos } = await llamarApiGestion("contenedor", "GET");
-    if (ok && Array.isArray(datos)) {
-        contenedoresDisponibles = contenedoresConDireccion(datos);
-    }
+    if (selectBarrio) cargarBarriosDisponibles(selectBarrio);
 
     let indiceActivo = -1;
+    let coincidenciasVisibles = [];
+    let tokenBusqueda = 0;
 
     function limpiarSeleccion() {
         campoId.value = "";
-        if (campoZona) campoZona.value = "";
+        contenedorSeleccionadoReporte = null;
     }
 
     function ocultarResultados() {
         listaResultados.hidden = true;
         listaResultados.innerHTML = "";
         indiceActivo = -1;
+        coincidenciasVisibles = [];
     }
 
     function elegirContenedor(contenedor) {
         campoTexto.value = contenedor.ubicacionContenedor;
         campoId.value = String(contenedor.idContenedor);
-        if (campoZona) campoZona.value = contenedor.ubicacionContenedor;
+        contenedorSeleccionadoReporte = contenedor;
+        if (selectBarrio && contenedor.zonaContenedor) selectBarrio.value = contenedor.zonaContenedor;
         ocultarResultados();
     }
 
     function marcarActivo(indice) {
-        const items = listaResultados.querySelectorAll("li[data-id]");
+        const items = listaResultados.querySelectorAll("li[role='option']");
         items.forEach((item) => item.classList.remove("autocomplete-activo"));
         if (indice >= 0 && items[indice]) {
             items[indice].classList.add("autocomplete-activo");
@@ -91,22 +135,12 @@ async function inicializarAutocompletarContenedor() {
         indiceActivo = indice;
     }
 
-    function mostrarResultados(texto) {
-        const textoNormalizado = normalizarTextoContenedor(texto);
-
-        if (!textoNormalizado) {
-            ocultarResultados();
-            return;
-        }
-
-        const coincidencias = contenedoresDisponibles
-            .filter((c) => normalizarTextoContenedor(c.ubicacionContenedor).includes(textoNormalizado))
-            .slice(0, MAX_SUGERENCIAS_CONTENEDOR);
-
+    function pintarResultados(coincidencias) {
+        coincidenciasVisibles = coincidencias.slice(0, MAX_SUGERENCIAS_CONTENEDOR);
         listaResultados.innerHTML = "";
         indiceActivo = -1;
 
-        if (!coincidencias.length) {
+        if (!coincidenciasVisibles.length) {
             const item = document.createElement("li");
             item.className = "autocomplete-sin-resultados";
             item.textContent = "No hay contenedores con esa dirección.";
@@ -115,11 +149,12 @@ async function inicializarAutocompletarContenedor() {
             return;
         }
 
-        coincidencias.forEach((contenedor) => {
+        coincidenciasVisibles.forEach((contenedor) => {
             const item = document.createElement("li");
             item.setAttribute("role", "option");
-            item.dataset.id = String(contenedor.idContenedor);
-            item.textContent = contenedor.ubicacionContenedor;
+            item.textContent = contenedor.zonaContenedor
+                ? `${contenedor.ubicacionContenedor} — ${contenedor.zonaContenedor}`
+                : contenedor.ubicacionContenedor;
 
             // mousedown (no click) para que dispare antes del blur del input.
             item.addEventListener("mousedown", (evento) => {
@@ -133,13 +168,34 @@ async function inicializarAutocompletarContenedor() {
         listaResultados.hidden = false;
     }
 
+    async function buscarYMostrar() {
+        const texto = campoTexto.value.trim();
+        const barrio = selectBarrio ? selectBarrio.value : "";
+
+        if (!texto) {
+            ocultarResultados();
+            return;
+        }
+
+        const miToken = ++tokenBusqueda;
+        const coincidencias = await buscarContenedoresReporte(texto, barrio);
+
+        // Si mientras esperaba la respuesta el vecino siguió escribiendo (o
+        // cambió el barrio), esta respuesta ya quedó vieja y se descarta.
+        if (miToken !== tokenBusqueda) return;
+
+        pintarResultados(coincidencias);
+    }
+
+    const buscarDebounced = debounce(buscarYMostrar, ESPERA_BUSQUEDA_CONTENEDOR_MS);
+
     campoTexto.addEventListener("input", () => {
         limpiarSeleccion();
-        mostrarResultados(campoTexto.value);
+        buscarDebounced();
     });
 
     campoTexto.addEventListener("focus", () => {
-        if (campoTexto.value.trim()) mostrarResultados(campoTexto.value);
+        if (campoTexto.value.trim()) buscarDebounced();
     });
 
     campoTexto.addEventListener("blur", () => {
@@ -155,18 +211,16 @@ async function inicializarAutocompletarContenedor() {
     });
 
     campoTexto.addEventListener("keydown", (evento) => {
-        const items = listaResultados.querySelectorAll("li[data-id]");
-
         if (evento.key === "Escape") {
             ocultarResultados();
             return;
         }
 
-        if (!items.length) return;
+        if (!coincidenciasVisibles.length) return;
 
         if (evento.key === "ArrowDown") {
             evento.preventDefault();
-            marcarActivo(Math.min(indiceActivo + 1, items.length - 1));
+            marcarActivo(Math.min(indiceActivo + 1, coincidenciasVisibles.length - 1));
         } else if (evento.key === "ArrowUp") {
             evento.preventDefault();
             marcarActivo(Math.max(indiceActivo - 1, 0));
@@ -176,10 +230,20 @@ async function inicializarAutocompletarContenedor() {
             // vecino navegue con flechas antes de poder confirmar).
             evento.preventDefault();
             const indice = indiceActivo >= 0 ? indiceActivo : 0;
-            const contenedor = contenedoresDisponibles.find((c) => String(c.idContenedor) === items[indice].dataset.id);
-            if (contenedor) elegirContenedor(contenedor);
+            elegirContenedor(coincidenciasVisibles[indice]);
         }
     });
+
+    if (selectBarrio) {
+        selectBarrio.addEventListener("change", () => {
+            // Si había un contenedor elegido de otro barrio, cambiar el
+            // filtro de barrio invalida esa selección.
+            if (contenedorSeleccionadoReporte && contenedorSeleccionadoReporte.zonaContenedor !== selectBarrio.value) {
+                limpiarSeleccion();
+            }
+            if (campoTexto.value.trim()) buscarDebounced();
+        });
+    }
 }
 
 // Captcha anti-spam: simulación puramente del lado del cliente, sin backend.
@@ -263,7 +327,9 @@ document.addEventListener("DOMContentLoaded", () => {
         if (errorCaptcha) errorCaptcha.classList.remove("visible");
 
         const idContenedor = formulario.elements["contenedorId"].value;
-        const contenedor = contenedoresDisponibles.find((c) => String(c.idContenedor) === idContenedor);
+        const contenedor = contenedorSeleccionadoReporte && String(contenedorSeleccionadoReporte.idContenedor) === idContenedor
+            ? contenedorSeleccionadoReporte
+            : null;
         if (!contenedor) return;
 
         const boton = formulario.querySelector("button[type=submit]");
@@ -295,6 +361,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         formulario.reset();
+        contenedorSeleccionadoReporte = null;
         reiniciarCaptcha();
 
         setTimeout(() => {

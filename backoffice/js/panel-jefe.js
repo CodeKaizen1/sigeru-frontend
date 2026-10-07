@@ -116,12 +116,6 @@ async function render() {
         `).join("")
         : `<p class="detail-empty">No hay incidencias abiertas en la ruta de esta cuadrilla.</p>`;
 
-    const opcionesContenedorIncidencia = contenedoresDeRuta.length
-        ? contenedoresDeRuta.map((c) => `
-            <option value="${c.idContenedor}">#${c.idContenedor} — ${escapeHtmlPanel(c.ubicacionContenedor || "Sin dirección")}</option>
-        `).join("")
-        : `<option value="">No hay contenedores cargados en tu zona todavía</option>`;
-
     contenido.innerHTML = `
         <section class="admin-resumen">
             <article class="resumen-card">
@@ -212,14 +206,16 @@ async function render() {
 
                     <div class="detail-asignacion">
                         <h4>Reportar un inconveniente</h4>
-                        <div class="grupo-formulario">
-                            <label for="selectContenedorIncidencia">Contenedor</label>
-                            <select id="selectContenedorIncidencia" ${contenedoresDeRuta.length ? "" : "disabled"}>
-                                ${opcionesContenedorIncidencia}
-                            </select>
+                        <div class="grupo-formulario autocomplete-combo">
+                            <label for="buscadorContenedorIncidencia">Contenedor</label>
+                            <input type="text" id="buscadorContenedorIncidencia" autocomplete="off"
+                                placeholder="${contenedoresDeRuta.length ? "Escribí para buscar en tu ruta" : "No hay contenedores en tu zona"}"
+                                ${contenedoresDeRuta.length ? "" : "disabled"}>
+                            <input type="hidden" id="selectContenedorIncidencia">
+                            <ul id="resultadosContenedorIncidencia" class="autocomplete-resultados" role="listbox" hidden></ul>
                             <p class="ayuda-campo">
                                 ${contenedoresDeRuta.length
-                                    ? "Contenedores en el barrio de tu ruta -- elegí sobre cuál es el inconveniente."
+                                    ? "Contenedores en el barrio de tu ruta -- escribí para buscar y elegí sobre cuál es el inconveniente."
                                     : "No se encontraron contenedores cargados en el barrio de tu ruta; se va a reportar sin contenedor asociado."}
                             </p>
                         </div>
@@ -245,6 +241,8 @@ async function render() {
             </div>
         </div>
     `;
+
+    inicializarAutocompletarContenedorRuta(contenedoresDeRuta);
 
     contenido.querySelectorAll("[data-resolver]").forEach((boton) => {
         boton.addEventListener("click", async () => {
@@ -305,6 +303,130 @@ async function render() {
             await render();
         });
     }
+}
+
+// Autocompletar de "Contenedor" en "Reportar un inconveniente": filtra en
+// memoria sobre contenedoresDeRuta (ya viene acotado al barrio de la ruta
+// de la cuadrilla, lista chica -- no hace falta pedirle nada más al
+// servidor, a diferencia del mismo campo en la landing que sí busca en el
+// servidor por tener los ~11.130 contenedores completos de fondo).
+function inicializarAutocompletarContenedorRuta(contenedoresDeRuta) {
+    const campoTexto = document.getElementById("buscadorContenedorIncidencia");
+    const campoId = document.getElementById("selectContenedorIncidencia");
+    const listaResultados = document.getElementById("resultadosContenedorIncidencia");
+    if (!campoTexto || !campoId || !listaResultados) return;
+
+    let indiceActivo = -1;
+    let coincidenciasVisibles = [];
+
+    function normalizarTexto(valor) {
+        return String(valor ?? "").toLowerCase();
+    }
+
+    function limpiarSeleccion() {
+        campoId.value = "";
+    }
+
+    function ocultarResultados() {
+        listaResultados.hidden = true;
+        listaResultados.innerHTML = "";
+        indiceActivo = -1;
+        coincidenciasVisibles = [];
+    }
+
+    function elegirContenedor(contenedorElegido) {
+        campoTexto.value = `#${contenedorElegido.idContenedor} — ${contenedorElegido.ubicacionContenedor || "Sin dirección"}`;
+        campoId.value = String(contenedorElegido.idContenedor);
+        ocultarResultados();
+    }
+
+    function marcarActivo(indice) {
+        const items = listaResultados.querySelectorAll("li[role='option']");
+        items.forEach((item) => item.classList.remove("autocomplete-activo"));
+        if (indice >= 0 && items[indice]) {
+            items[indice].classList.add("autocomplete-activo");
+            items[indice].scrollIntoView({ block: "nearest" });
+        }
+        indiceActivo = indice;
+    }
+
+    function mostrarResultados(texto) {
+        const textoNormalizado = normalizarTexto(texto);
+
+        // Sin texto todavía se muestran las primeras del barrio de la ruta
+        // (lista chica) para poder elegir sin tener que escribir nada.
+        const coincidencias = textoNormalizado
+            ? contenedoresDeRuta.filter((c) => normalizarTexto(`${c.idContenedor} ${c.ubicacionContenedor || ""}`).includes(textoNormalizado))
+            : contenedoresDeRuta;
+
+        coincidenciasVisibles = coincidencias.slice(0, 8);
+        listaResultados.innerHTML = "";
+        indiceActivo = -1;
+
+        if (!coincidenciasVisibles.length) {
+            const item = document.createElement("li");
+            item.className = "autocomplete-sin-resultados";
+            item.textContent = "No hay contenedores que coincidan.";
+            listaResultados.appendChild(item);
+            listaResultados.hidden = false;
+            return;
+        }
+
+        coincidenciasVisibles.forEach((contenedorFila) => {
+            const item = document.createElement("li");
+            item.setAttribute("role", "option");
+            item.textContent = `#${contenedorFila.idContenedor} — ${contenedorFila.ubicacionContenedor || "Sin dirección"}`;
+
+            // mousedown (no click) para que dispare antes del blur del input.
+            item.addEventListener("mousedown", (evento) => {
+                evento.preventDefault();
+                elegirContenedor(contenedorFila);
+            });
+
+            listaResultados.appendChild(item);
+        });
+
+        listaResultados.hidden = false;
+    }
+
+    campoTexto.addEventListener("input", () => {
+        limpiarSeleccion();
+        mostrarResultados(campoTexto.value);
+    });
+
+    campoTexto.addEventListener("focus", () => {
+        mostrarResultados(campoTexto.value);
+    });
+
+    campoTexto.addEventListener("blur", () => {
+        // Pequeña espera para que el mousedown de una opción llegue a tiempo
+        // antes de que el blur cierre la lista.
+        setTimeout(() => {
+            ocultarResultados();
+            if (!campoId.value) campoTexto.value = "";
+        }, 150);
+    });
+
+    campoTexto.addEventListener("keydown", (evento) => {
+        if (evento.key === "Escape") {
+            ocultarResultados();
+            return;
+        }
+
+        if (!coincidenciasVisibles.length) return;
+
+        if (evento.key === "ArrowDown") {
+            evento.preventDefault();
+            marcarActivo(Math.min(indiceActivo + 1, coincidenciasVisibles.length - 1));
+        } else if (evento.key === "ArrowUp") {
+            evento.preventDefault();
+            marcarActivo(Math.max(indiceActivo - 1, 0));
+        } else if (evento.key === "Enter") {
+            evento.preventDefault();
+            const indice = indiceActivo >= 0 ? indiceActivo : 0;
+            elegirContenedor(coincidenciasVisibles[indice]);
+        }
+    });
 }
 
 document.getElementById("btnSalir").addEventListener("click", async (evento) => {

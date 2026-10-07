@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/layout.css">
     <link rel="stylesheet" href="css/components.css">
-    <link rel="stylesheet" href="css/pages/landing.css?v=6">
+    <link rel="stylesheet" href="css/pages/landing.css?v=7">
 </head>
 <body>
 
@@ -257,9 +257,11 @@
                         </div>
 
                         <div class="grupo-formulario">
-                            <label for="zona-incidencia">Barrio / zona</label>
-                            <input type="text" id="zona-incidencia" name="zona" placeholder="Se completa solo al elegir la dirección" readonly>
-                            <span class="ayuda-campo">Se completa solo según el contenedor elegido - corroborá que sea el barrio correcto.</span>
+                            <label for="barrio-incidencia">Barrio</label>
+                            <select id="barrio-incidencia" name="zona">
+                                <option value="">Todos los barrios</option>
+                            </select>
+                            <span class="ayuda-campo">Opcional: elegilo para acotar las coincidencias de dirección, o dejalo así y escribí directo arriba. Se corrige solo cuando elegís una dirección.</span>
                         </div>
 
                         <div class="grupo-formulario grupo-formulario-completo">
@@ -380,7 +382,7 @@
 
     <script src="vendor/leaflet/leaflet.js"></script>
     <script src="vendor/leaflet.markercluster/leaflet.markercluster.js"></script>
-    <script src="js/app.js?v=6"></script>
+    <script src="js/app.js?v=7"></script>
     <script src="js/buscador-incidencias.js?v=3"></script>
     <script src="js/mapa.js?v=3"></script>
 </body>
