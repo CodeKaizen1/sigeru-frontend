@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/layout.css">
     <link rel="stylesheet" href="css/components.css">
-    <link rel="stylesheet" href="css/pages/landing.css?v=4">
+    <link rel="stylesheet" href="css/pages/landing.css?v=5">
 </head>
 <body>
 
@@ -326,6 +326,36 @@
                     </p>
                 </div>
 
+                <form id="buscadorMapa" class="map-buscador" role="search" aria-label="Buscar contenedores en el mapa">
+                    <div class="map-buscador-grid">
+                        <div class="grupo-formulario map-buscador-campo">
+                            <label for="buscadorMapaMunicipio">Municipio</label>
+                            <select id="buscadorMapaMunicipio">
+                                <option value="">Todos</option>
+                            </select>
+                        </div>
+
+                        <div class="grupo-formulario map-buscador-campo">
+                            <label for="buscadorMapaBarrio">Barrio</label>
+                            <select id="buscadorMapaBarrio">
+                                <option value="">Todos</option>
+                            </select>
+                        </div>
+
+                        <div class="grupo-formulario map-buscador-campo map-buscador-campo-calle">
+                            <label for="buscadorMapaCalle">Calle y número de puerta</label>
+                            <input type="search" id="buscadorMapaCalle" placeholder="Ej: Juan C Molina 547" autocomplete="off">
+                        </div>
+                    </div>
+
+                    <div class="map-buscador-acciones">
+                        <button type="submit" class="btn-principal">Buscar en el mapa</button>
+                        <button type="button" id="buscadorMapaLimpiar" class="btn-secundario">Limpiar búsqueda</button>
+                    </div>
+
+                    <p id="buscadorMapaEstado" class="map-buscador-estado" role="status" aria-live="polite"></p>
+                </form>
+
                 <div id="mapaIncidencias" class="map-leaflet" role="img" aria-label="Mapa interactivo con la ubicación de los contenedores e incidencias"></div>
 
                 <div class="map-leyenda">
@@ -352,6 +382,6 @@
     <script src="vendor/leaflet.markercluster/leaflet.markercluster.js"></script>
     <script src="js/app.js?v=5"></script>
     <script src="js/buscador-incidencias.js?v=3"></script>
-    <script src="js/mapa.js?v=2"></script>
+    <script src="js/mapa.js?v=3"></script>
 </body>
 </html>

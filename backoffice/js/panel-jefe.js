@@ -3,7 +3,7 @@
 // ni asigna la ruta (eso es exclusivo del Administrador). Sí puede marcar inicio/fin de ruta
 // y reportar o resolver incidencias.
 
-import * as Model from "./admin/model.js?v=27";
+import * as Model from "./admin/model.js?v=28";
 import * as NotificacionesUI from "./admin/notificaciones-ui.js?v=2";
 import * as CuentaUI from "./admin/cuenta-ui.js?v=4";
 import { confirmar } from "./admin/confirmar-ui.js?v=2";
@@ -22,6 +22,18 @@ const TIPOS_INCIDENCIA_RUTA = {
     ruta: "Inconveniente en la ruta o el camión",
     otro: "Otra situación"
 };
+
+// Mismo patrón que escapeHtml() en view.js/mapa.js: esto se inserta con
+// innerHTML, así que lo que venga del servidor (direcciones de contenedor)
+// hay que escaparlo antes.
+function escapeHtmlPanel(valor) {
+    return String(valor ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+}
 
 function claseEstadoRuta(estado) {
     return (estado || "sin iniciar").toLowerCase().replaceAll(" ", "-");
@@ -77,6 +89,13 @@ async function render() {
         return;
     }
 
+    // Lista de contenedores de la zona de la ruta asignada, para que el Jefe
+    // pueda indicar sobre cuál es la incidencia que está reportando (antes
+    // se reportaba sin contenedor asociado). Se pide por barrio -- igual que
+    // el buscador del mapa de la landing -- para no cargar los ~11.130
+    // contenedores completos solo para esto.
+    const contenedoresDeRuta = await Model.obtenerContenedoresDeRutaDeCuadrilla(cuadrilla.id);
+
     const operariosHtml = cuadrilla.operarios.length
         ? cuadrilla.operarios.map((f) => `<li>${f.nombre} ${f.apellido}</li>`).join("")
         : "<li>Sin operarios asignados</li>";
@@ -96,6 +115,12 @@ async function render() {
             </div>
         `).join("")
         : `<p class="detail-empty">No hay incidencias abiertas en la ruta de esta cuadrilla.</p>`;
+
+    const opcionesContenedorIncidencia = contenedoresDeRuta.length
+        ? contenedoresDeRuta.map((c) => `
+            <option value="${c.idContenedor}">#${c.idContenedor} — ${escapeHtmlPanel(c.ubicacionContenedor || "Sin dirección")}</option>
+        `).join("")
+        : `<option value="">No hay contenedores cargados en tu zona todavía</option>`;
 
     contenido.innerHTML = `
         <section class="admin-resumen">
@@ -188,6 +213,17 @@ async function render() {
                     <div class="detail-asignacion">
                         <h4>Reportar un inconveniente</h4>
                         <div class="grupo-formulario">
+                            <label for="selectContenedorIncidencia">Contenedor</label>
+                            <select id="selectContenedorIncidencia" ${contenedoresDeRuta.length ? "" : "disabled"}>
+                                ${opcionesContenedorIncidencia}
+                            </select>
+                            <p class="ayuda-campo">
+                                ${contenedoresDeRuta.length
+                                    ? "Contenedores en el barrio de tu ruta -- elegí sobre cuál es el inconveniente."
+                                    : "No se encontraron contenedores cargados en el barrio de tu ruta; se va a reportar sin contenedor asociado."}
+                            </p>
+                        </div>
+                        <div class="grupo-formulario">
                             <label for="selectTipoIncidencia">Tipo</label>
                             <select id="selectTipoIncidencia">
                                 ${opcionesTipoIncidencia}
@@ -244,6 +280,8 @@ async function render() {
     const btnReportar = document.getElementById("btnReportarIncidencia");
     if (btnReportar) {
         btnReportar.addEventListener("click", async () => {
+            const selectContenedor = document.getElementById("selectContenedorIncidencia");
+            const idContenedorSeleccionado = selectContenedor ? selectContenedor.value : "";
             const tipoSeleccionado = document.getElementById("selectTipoIncidencia").value;
             const descripcion = document.getElementById("textareaDescripcionIncidencia").value.trim();
 
@@ -252,9 +290,17 @@ async function render() {
                 return;
             }
 
+            // Si hay contenedores cargados en la zona de la ruta, hay que elegir
+            // uno -- solo se reporta sin contenedor cuando la lista vino vacía.
+            if (contenedoresDeRuta.length && !idContenedorSeleccionado) {
+                alert("Elegí sobre cuál contenedor es el inconveniente.");
+                return;
+            }
+
             await Model.crearIncidenciaDesdeCuadrilla(cuadrilla.id, {
                 tipo: TIPOS_INCIDENCIA_RUTA[tipoSeleccionado] || "Otra situación",
-                descripcion
+                descripcion,
+                idContenedor: idContenedorSeleccionado || null
             });
             await render();
         });

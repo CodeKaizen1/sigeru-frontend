@@ -350,8 +350,22 @@ export async function asignarCuadrillaAIncidencia(idIncidencia, idCuadrilla) {
     return incidencia;
 }
 
+// Contenedores del barrio de la ruta asignada a una cuadrilla, para que el
+// Jefe pueda elegir sobre cuál es la incidencia que está reportando (antes
+// se reportaba siempre con idContenedor null). Reusa el mismo buscador por
+// barrio que el mapa de la landing (ContenedorController::buscar) -- no
+// tiene sentido traer los ~11.130 contenedores completos solo para esto.
+export async function obtenerContenedoresDeRutaDeCuadrilla(idCuadrilla) {
+    const cuadrilla = detalleCuadrilla(idCuadrilla);
+    const zona = cuadrilla && cuadrilla.ruta ? cuadrilla.ruta.zona : null;
+    if (!zona) return [];
+
+    const { ok, datos: respuesta } = await llamarGestion("contenedor", "GET", undefined, null, { barrio: zona });
+    return ok && Array.isArray(respuesta) ? respuesta : [];
+}
+
 // Crea una incidencia reportada por el Jefe de Cuadrilla para su propia cuadrilla.
-export async function crearIncidenciaDesdeCuadrilla(idCuadrilla, { tipo, descripcion }) {
+export async function crearIncidenciaDesdeCuadrilla(idCuadrilla, { tipo, descripcion, idContenedor }) {
     const cuadrilla = detalleCuadrilla(idCuadrilla);
     if (!cuadrilla) return null;
 
@@ -364,7 +378,7 @@ export async function crearIncidenciaDesdeCuadrilla(idCuadrilla, { tipo, descrip
         tipoIncidencia: tipo,
         zonaIncidencia: zona,
         fechaReporte: fechaHoraParaMySQL(new Date()),
-        idContenedor: null,
+        idContenedor: idContenedor || null,
         idCuadrilla: Number(idCuadrilla)
     };
 
@@ -691,7 +705,9 @@ export function opcionesCuadrillaParaAsignar() {
         datos.cuadrillas.map((cuadrilla) => {
             const ruta = datos.rutas.find((item) => item.id === cuadrilla.rutaId);
             const etiquetaZona = ruta ? ` — ${ruta.zona}` : "";
-            return { value: cuadrilla.id, label: `${cuadrilla.id}${etiquetaZona}` };
+            const nombreJefe = cuadrilla.jefeId ? nombreFuncionario(cuadrilla.jefeId) : null;
+            const etiquetaJefe = nombreJefe ? ` (jefe: ${nombreJefe})` : " (sin jefe asignado)";
+            return { value: cuadrilla.id, label: `${cuadrilla.id}${etiquetaZona}${etiquetaJefe}` };
         })
     );
 }

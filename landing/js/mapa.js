@@ -163,6 +163,137 @@ async function recargarContenedoresVisibles(mapa, capaCluster) {
     });
 }
 
+// ---------------------------------------------------------------------------
+// Buscador del mapa: municipio y barrio (listas desplegables) + calle y
+// número de puerta (texto libre). Los tres filtros son independientes y
+// combinables entre sí -- se puede buscar solo por calle, sin elegir barrio
+// ni municipio (ver ContenedorController::buscar en api-gestion, que ya
+// resuelve "calle y numero" con un solo LIKE sobre ubicacionContenedor).
+// ---------------------------------------------------------------------------
+
+// Mientras hay una búsqueda activa, el recargo automático por bounding box
+// (moveend/zoomend) se pausa: si no, el propio fitBounds() que usa el
+// buscador para centrar los resultados dispararía un moveend que los pisa
+// con lo que entra en ese viewport.
+let modoBusquedaMapaActivo = false;
+
+async function obtenerFiltrosDisponiblesMapa() {
+    try {
+        const parametros = new URLSearchParams({ recurso: "contenedor", accion: "filtros" });
+        const respuesta = await fetch(`${API_GESTION_MAPA}?${parametros.toString()}`, {
+            credentials: "same-origin"
+        });
+        const datos = await respuesta.json().catch(() => null);
+        if (!respuesta.ok || !datos || typeof datos !== "object") return { barrios: [], municipios: [] };
+        return {
+            barrios: Array.isArray(datos.barrios) ? datos.barrios : [],
+            municipios: Array.isArray(datos.municipios) ? datos.municipios : []
+        };
+    } catch (error) {
+        return { barrios: [], municipios: [] };
+    }
+}
+
+async function buscarContenedoresMapa({ direccion, barrio, municipio }) {
+    try {
+        const parametros = new URLSearchParams({ recurso: "contenedor" });
+        if (direccion) parametros.set("direccion", direccion);
+        if (barrio) parametros.set("barrio", barrio);
+        if (municipio) parametros.set("municipio", municipio);
+
+        const respuesta = await fetch(`${API_GESTION_MAPA}?${parametros.toString()}`, {
+            credentials: "same-origin"
+        });
+        const datos = await respuesta.json().catch(() => null);
+        return respuesta.ok && Array.isArray(datos) ? datos : [];
+    } catch (error) {
+        return [];
+    }
+}
+
+// Usa textContent (no innerHTML) para los <option>: no hace falta escapar a
+// mano, el navegador nunca interpreta ese texto como HTML.
+function poblarSelectMapa(elementoSelect, valores) {
+    if (!elementoSelect) return;
+    valores.forEach((valor) => {
+        const opcion = document.createElement("option");
+        opcion.value = valor;
+        opcion.textContent = valor;
+        elementoSelect.appendChild(opcion);
+    });
+}
+
+function mostrarEstadoBuscadorMapa(elementoEstado, mensaje, esVacio) {
+    if (!elementoEstado) return;
+    elementoEstado.textContent = mensaje;
+    elementoEstado.classList.toggle("map-buscador-estado-vacio", Boolean(esVacio));
+}
+
+async function inicializarBuscadorMapa(mapa, capaCluster) {
+    const formulario = document.getElementById("buscadorMapa");
+    const selectMunicipio = document.getElementById("buscadorMapaMunicipio");
+    const selectBarrio = document.getElementById("buscadorMapaBarrio");
+    const campoCalle = document.getElementById("buscadorMapaCalle");
+    const elementoEstado = document.getElementById("buscadorMapaEstado");
+    const botonLimpiar = document.getElementById("buscadorMapaLimpiar");
+
+    if (!formulario) return;
+
+    const filtros = await obtenerFiltrosDisponiblesMapa();
+    poblarSelectMapa(selectMunicipio, filtros.municipios);
+    poblarSelectMapa(selectBarrio, filtros.barrios);
+
+    formulario.addEventListener("submit", async (evento) => {
+        evento.preventDefault();
+
+        const direccion = campoCalle ? campoCalle.value.trim() : "";
+        const barrio = selectBarrio ? selectBarrio.value : "";
+        const municipio = selectMunicipio ? selectMunicipio.value : "";
+
+        if (!direccion && !barrio && !municipio) {
+            mostrarEstadoBuscadorMapa(elementoEstado, "Ingresá al menos un criterio: municipio, barrio o calle.", true);
+            return;
+        }
+
+        mostrarEstadoBuscadorMapa(elementoEstado, "Buscando...", false);
+
+        const resultados = await buscarContenedoresMapa({ direccion, barrio, municipio });
+
+        // A partir de aquí el recargo por viewport queda pausado hasta que
+        // se limpie la búsqueda (ver recargarDebounced en cargarMapaIncidencias).
+        modoBusquedaMapaActivo = true;
+        capaCluster.clearLayers();
+
+        const marcadores = resultados.map((fila) => crearMarcadorContenedor(fila)).filter(Boolean);
+        marcadores.forEach((marcador) => capaCluster.addLayer(marcador));
+
+        if (marcadores.length === 0) {
+            mostrarEstadoBuscadorMapa(elementoEstado, "No se encontraron contenedores con esos criterios.", true);
+            return;
+        }
+
+        mostrarEstadoBuscadorMapa(
+            elementoEstado,
+            marcadores.length === 1 ? "Se encontró 1 contenedor." : `Se encontraron ${marcadores.length} contenedores.`,
+            false
+        );
+
+        const grupoResultados = L.featureGroup(marcadores);
+        mapa.fitBounds(grupoResultados.getBounds(), { padding: [40, 40], maxZoom: 18 });
+
+        if (marcadores.length === 1) marcadores[0].openPopup();
+    });
+
+    if (botonLimpiar) {
+        botonLimpiar.addEventListener("click", () => {
+            formulario.reset();
+            mostrarEstadoBuscadorMapa(elementoEstado, "", false);
+            modoBusquedaMapaActivo = false;
+            recargarContenedoresVisibles(mapa, capaCluster);
+        });
+    }
+}
+
 async function cargarMapaIncidencias() {
     const elementoMapa = document.getElementById("mapaIncidencias");
     if (!elementoMapa || typeof L === "undefined") return;
