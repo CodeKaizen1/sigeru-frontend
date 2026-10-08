@@ -446,6 +446,26 @@
     font-size: 0.92rem;
 }
 
+/* Punto 10 de la Fase 2 (auditoría 08/10/2026): con ~223 páginas de 50
+   contenedores, ir dando "Siguiente" uno por uno no alcanza -- esto deja
+   saltar directo a una página. */
+.paginador-ir {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #5d6b7a;
+    font-size: 0.92rem;
+}
+
+.paginador-ir input {
+    width: 56px;
+    padding: 4px 6px;
+    border: 1px solid #d6dde3;
+    border-radius: 4px;
+    text-align: center;
+    font-size: 0.92rem;
+}
+
 .paginador button:disabled {
     opacity: 0.45;
     cursor: not-allowed;

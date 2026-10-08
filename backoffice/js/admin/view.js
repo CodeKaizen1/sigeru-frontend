@@ -630,6 +630,10 @@ export function renderPaginador(paginaActual, totalPaginas) {
     contenedor.innerHTML = `
         <button type="button" class="btn-secundario" data-pagina-anterior ${paginaActual <= 1 ? "disabled" : ""}>Anterior</button>
         <span>Página ${paginaActual} de ${totalPaginas}</span>
+        <label class="paginador-ir">
+            Ir a
+            <input type="number" min="1" max="${totalPaginas}" value="${paginaActual}" data-pagina-input>
+        </label>
         <button type="button" class="btn-secundario" data-pagina-siguiente ${paginaActual >= totalPaginas ? "disabled" : ""}>Siguiente</button>
     `;
 

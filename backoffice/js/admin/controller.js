@@ -2,7 +2,7 @@
 // También guarda el estado propio de la pantalla (módulo abierto, registro en edición).
 
 import * as Model from "./model.js?v=29";
-import * as View from "./view.js?v=26";
+import * as View from "./view.js?v=27";
 import * as NotificacionesUI from "./notificaciones-ui.js?v=2";
 import * as CuentaUI from "./cuenta-ui.js?v=4";
 import * as ExportarExcel from "./exportar-excel.js?v=1";
@@ -314,6 +314,29 @@ async function mostrarModulo() {
                     mostrarModulo();
                 }
             });
+        }
+
+        // Punto 10 de la Fase 2: saltar directo a una página en vez de
+        // tener que ir de a una con Anterior/Siguiente.
+        const inputPagina = paginador.querySelector("[data-pagina-input]");
+        if (inputPagina) {
+            const irAPagina = () => {
+                const destino = Math.min(Math.max(Math.trunc(Number(inputPagina.value)) || 1, 1), totalPaginas);
+                if (destino !== paginaActual) {
+                    paginaActual = destino;
+                    mostrarModulo();
+                } else {
+                    inputPagina.value = paginaActual;
+                }
+            };
+
+            inputPagina.addEventListener("keydown", (evento) => {
+                if (evento.key === "Enter") {
+                    evento.preventDefault();
+                    irAPagina();
+                }
+            });
+            inputPagina.addEventListener("blur", irAPagina);
         }
     }
 
