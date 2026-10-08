@@ -726,6 +726,15 @@
     border: 1.5px solid var(--border-soft);
     overflow: hidden;
     background: var(--light-bg);
+    /* Leaflet pone sus panes y controles internos en z-index hasta 1000
+       (ver vendor/leaflet/leaflet.css), muy por encima del z-index:40 del
+       .site-header sticky -- sin esto, el mapa se mete pasando por encima
+       de la barra de navegación en vez de quedar ella arriba. position +
+       z-index acá aíslan ese z-index interno de Leaflet en su propio
+       contexto de apilamiento: hacia afuera, todo el mapa vale como un
+       solo z-index:1, bien por debajo de la barra. */
+    position: relative;
+    z-index: 1;
 }
 
 .map-leyenda {
