@@ -1087,22 +1087,24 @@ function construirCamposCuadrillaHtml({ jefes, choferes, rutas, operarios }, cua
     const textoBusquedaFuncionario = (f) => `${f.nombre} ${f.apellido} ${f.cedula || ""}`;
 
     // Model ya anota cada funcionario con _otraCuadrilla ({id, nombre}) cuando
-    // ya pertenece a OTRA cuadrilla -- se usa para el filtro de arriba
-    // (data-estado) y para aclarar en la propia opción/checkbox a cuál (ver
-    // manejarFormularioSubmit/manejarEdicionCuadrillaEnDetalleSubmit, que
-    // piden confirmación antes de guardar si se elige a alguien "asignado").
-    const etiquetaConConflicto = (f) => `${f.nombre} ${f.apellido}` + (f._otraCuadrilla ? ` — ya en "${f._otraCuadrilla.nombre}"` : "");
+    // ya pertenece a OTRA cuadrilla -- se usa solo para el filtro de arriba
+    // (data-estado: "libre"/"asignado"), no se muestra en la propia opción/
+    // checkbox (el nombre de la otra cuadrilla puede traer códigos internos
+    // feos tipo "(E_DU_RM_CL_111)" que no aportan nada acá). El aviso real
+    // es la confirmación al guardar (ver manejarFormularioSubmit/
+    // manejarEdicionCuadrillaEnDetalleSubmit) si se elige a alguien "asignado".
+    const etiquetaFuncionario = (f) => `${f.nombre} ${f.apellido}`;
     const estadoConflicto = (f) => f._otraCuadrilla ? "asignado" : "libre";
 
-    const opcionesJefe = crearOpciones(jefes, cuadrillaRaw?.jefeId ?? null, etiquetaConConflicto, textoBusquedaFuncionario, estadoConflicto);
-    const opcionesChofer = crearOpciones(choferes, cuadrillaRaw?.choferId ?? null, etiquetaConConflicto, textoBusquedaFuncionario, estadoConflicto);
+    const opcionesJefe = crearOpciones(jefes, cuadrillaRaw?.jefeId ?? null, etiquetaFuncionario, textoBusquedaFuncionario, estadoConflicto);
+    const opcionesChofer = crearOpciones(choferes, cuadrillaRaw?.choferId ?? null, etiquetaFuncionario, textoBusquedaFuncionario, estadoConflicto);
     const opcionesRuta = crearOpciones(rutas, cuadrillaRaw?.rutaId ?? null, (r) => `${r.zona} — ${r.horario}`);
     const operariosDeEstaCuadrilla = cuadrillaRaw?.operarios ?? [];
 
     const operarioCheckboxHtml = (f) => `
         <label class="checkbox-operario" data-busqueda="${escapeHtml(normalizarBusqueda(textoBusquedaFuncionario(f)))}" data-estado="${estadoConflicto(f)}">
             <input type="checkbox" name="operarios" value="${f.id}" ${operariosDeEstaCuadrilla.includes(f.id) ? "checked" : ""}>
-            ${escapeHtml(etiquetaConConflicto(f))}
+            ${escapeHtml(etiquetaFuncionario(f))}
         </label>
     `;
 
