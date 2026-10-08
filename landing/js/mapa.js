@@ -165,10 +165,12 @@ async function recargarContenedoresVisibles(mapa, capaCluster) {
 
 // ---------------------------------------------------------------------------
 // Buscador del mapa: municipio y barrio (listas desplegables) + calle y
-// número de puerta (texto libre). Los tres filtros son independientes y
+// esquina más cercana (texto libre). Los tres filtros son independientes y
 // combinables entre sí -- se puede buscar solo por calle, sin elegir barrio
 // ni municipio (ver ContenedorController::buscar en api-gestion, que ya
-// resuelve "calle y numero" con un solo LIKE sobre ubicacionContenedor).
+// resuelve cualquier texto libre con un solo LIKE sobre ubicacionContenedor,
+// así que no importa si el usuario escribe un número de puerta, una esquina
+// o solo el nombre de la calle).
 // ---------------------------------------------------------------------------
 
 // Mientras hay una búsqueda activa, el recargo automático por bounding box
@@ -311,16 +313,27 @@ async function cargarMapaIncidencias() {
     const capaClusterContenedores = L.markerClusterGroup({ chunkedLoading: true });
     mapa.addLayer(capaClusterContenedores);
 
-    const recargarDebounced = debounce(
-        () => recargarContenedoresVisibles(mapa, capaClusterContenedores),
-        ESPERA_RECARGA_MS
-    );
+    // modoBusquedaMapaActivo se pausa acá: antes se seteaba en
+    // inicializarBuscadorMapa() pero nada lo leía, así que el fitBounds()
+    // que usa el buscador para centrar los resultados disparaba este mismo
+    // moveend y los pisaba enseguida con lo que entraba en el nuevo
+    // viewport -- el buscador "no hacía nada" porque el resultado
+    // desaparecía casi al instante.
+    const recargarDebounced = debounce(() => {
+        if (modoBusquedaMapaActivo) return;
+        recargarContenedoresVisibles(mapa, capaClusterContenedores);
+    }, ESPERA_RECARGA_MS);
     mapa.on("moveend", recargarDebounced);
     mapa.on("zoomend", recargarDebounced);
 
+    // inicializarBuscadorMapa() pobla los <select> de municipio/barrio y
+    // engancha el submit del formulario -- sin este llamado los selects
+    // quedaban vacíos y el botón "Buscar en el mapa" no hacía nada porque
+    // el <form> nunca tenía un listener propio.
     await Promise.all([
         recargarContenedoresVisibles(mapa, capaClusterContenedores),
-        cargarIncidenciasEnMapa(mapa)
+        cargarIncidenciasEnMapa(mapa),
+        inicializarBuscadorMapa(mapa, capaClusterContenedores)
     ]);
 }
 
