@@ -19,6 +19,19 @@ let idEnEdicion = null;
 const REGISTROS_POR_PAGINA = 50;
 let paginaActual = 1;
 
+// Punto 9 de la Fase 2 (auditoría 08/10/2026): escribir en el buscador
+// refiltraba los ~11.130 contenedores en cada tecla. Mismo patrón de
+// debounce() que ya usa landing/js/app.js para su buscador.
+const ESPERA_BUSQUEDA_MS = 300;
+
+function debounce(funcion, esperaMs) {
+    let temporizador = null;
+    return (...args) => {
+        clearTimeout(temporizador);
+        temporizador = setTimeout(() => funcion(...args), esperaMs);
+    };
+}
+
 // Notificaciones
 
 // Ids ya vistos en esta pestaña, para distinguir notificaciones nuevas de las ya conocidas.
@@ -146,6 +159,11 @@ function mostrarModuloDesdeFiltro() {
     paginaActual = 1;
     mostrarModulo();
 }
+
+// Versión debounced de arriba, solo para el input de texto (ver searchInput
+// más abajo) -- estado/filtros extra/fecha siguen llamando a la de arriba
+// directo porque son "change", no "input": no disparan por cada tecla.
+const mostrarModuloDesdeFiltroDebounced = debounce(mostrarModuloDesdeFiltro, ESPERA_BUSQUEDA_MS);
 
 // Carga los módulos de los que depende el resumen y pinta las tarjetas + gráficos.
 async function mostrarResumen() {
@@ -762,7 +780,7 @@ function iniciarEventos() {
         });
     });
 
-    document.getElementById("searchInput").addEventListener("input", mostrarModuloDesdeFiltro);
+    document.getElementById("searchInput").addEventListener("input", mostrarModuloDesdeFiltroDebounced);
     document.getElementById("stateFilter").addEventListener("change", mostrarModuloDesdeFiltro);
 
     document.getElementById("newRecordBtn").addEventListener("click", abrirFormularioAlta);
