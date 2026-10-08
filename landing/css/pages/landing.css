@@ -805,7 +805,12 @@
     top: calc(100% + 6px);
     left: 0;
     right: 0;
-    z-index: 20;
+    /* Leaflet usa z-index hasta 1000 en sus propios panes/controles (ver
+       vendor/leaflet/leaflet.css) -- con z-index:20 la lista del buscador
+       del mapa quedaba tapada/cortada por el mapa de abajo. 1100 la deja
+       siempre por encima, tanto acá como en "Dirección del contenedor"
+       (que no tiene mapa cerca, pero no molesta que también quede alto). */
+    z-index: 1100;
     margin: 0;
     padding: 6px;
     list-style: none;
