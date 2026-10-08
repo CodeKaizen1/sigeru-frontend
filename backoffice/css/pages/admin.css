@@ -880,22 +880,25 @@
 */
 
 .fila-filtros-asignacion .input-buscador {
-    margin-bottom: 8px;
+    margin-bottom: 6px;
 }
 
 .select-filtro-estado {
-    margin-bottom: 8px;
+    margin-bottom: 6px;
 }
 
 /*
    Checklist de operarios en el alta de cuadrilla (modal) - selección
-   múltiple, mismo tono de tarjeta que el resto de los listados.
+   múltiple, mismo tono de tarjeta que el resto de los listados. Altura
+   acotada (tiene su propio scroll interno) para que el modal entero -con
+   Jefe/Chofer/Ruta/Operarios y sus filtros- entre sin tener que scrollear
+   hasta Guardar.
 */
 
 .lista-checkbox-operarios {
     display: grid;
-    gap: 8px;
-    max-height: 220px;
+    gap: 6px;
+    max-height: 150px;
     overflow-y: auto;
     padding: 2px;
 }
