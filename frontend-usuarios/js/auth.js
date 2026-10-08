@@ -19,9 +19,18 @@ function mostrarAviso(elemento, mensaje, tipo = "error") {
 }
 
 // Wrapper de fetch: nunca tira excepción, devuelve { ok, status, datos }.
-async function llamarApiUsuarios(recurso, metodo, cuerpo) {
+// paramsExtra: parámetros extra de query string (ej. token de validarTokenReseteo).
+async function llamarApiUsuarios(recurso, metodo, cuerpo, paramsExtra) {
     try {
-        const respuesta = await fetch(`${API_USUARIOS}?recurso=${recurso}`, {
+        let url = `${API_USUARIOS}?recurso=${recurso}`;
+        if (paramsExtra) {
+            for (const [clave, valor] of Object.entries(paramsExtra)) {
+                if (valor === undefined || valor === null || valor === "") continue;
+                url += `&${clave}=${encodeURIComponent(valor)}`;
+            }
+        }
+
+        const respuesta = await fetch(url, {
             method: metodo,
             headers: { "Content-Type": "application/json" },
             credentials: "same-origin",
@@ -183,6 +192,35 @@ async function manejarRecuperar(evento) {
     }
 }
 
+// Valida el token apenas carga restablecer.html (punto 12 de la Fase 2):
+// antes el usuario completaba el formulario entero y recién al enviarlo se
+// enteraba de que el link ya no servía. El formulario arranca oculto
+// (ver restablecer.html) y esta función lo muestra solo si el token resultó
+// válido; si no, deja el aviso de error fijo en pantalla.
+async function validarTokenRestablecer() {
+    const formulario = document.getElementById("formRestablecer");
+    const aviso = document.getElementById("avisoRestablecer");
+    if (!formulario || !aviso) return;
+
+    const token = obtenerTokenDeURL();
+    if (!token) {
+        mostrarAviso(aviso, "Este enlace no es válido. Pedí uno nuevo desde \"¿Olvidaste tu contraseña?\".");
+        return;
+    }
+
+    mostrarAviso(aviso, "Validando enlace...", "exito");
+
+    const { ok, datos } = await llamarApiUsuarios("validarTokenReseteo", "GET", undefined, { token });
+
+    if (!ok || !datos || !datos.valido) {
+        mostrarAviso(aviso, (datos && datos.error) || "Este enlace no es válido o ya venció. Pedí uno nuevo desde \"¿Olvidaste tu contraseña?\".");
+        return;
+    }
+
+    aviso.classList.add("oculto");
+    formulario.classList.remove("oculto");
+}
+
 async function manejarRestablecer(evento) {
     evento.preventDefault();
 
@@ -234,5 +272,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (formRecuperar) formRecuperar.addEventListener("submit", manejarRecuperar);
 
     const formRestablecer = document.getElementById("formRestablecer");
-    if (formRestablecer) formRestablecer.addEventListener("submit", manejarRestablecer);
+    if (formRestablecer) {
+        formRestablecer.addEventListener("submit", manejarRestablecer);
+        validarTokenRestablecer();
+    }
 });
