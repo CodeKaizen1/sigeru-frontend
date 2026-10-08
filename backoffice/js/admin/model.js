@@ -1301,6 +1301,7 @@ export const configuracionModulos = {
     incidencias: {
         titulo: "Incidencias reportadas",
         descripcion: "Listado de reportes realizados por usuarios del sistema.",
+        placeholderBusqueda: "Buscar por ID, tipo, zona, dirección o estado...",
         estados: ["abierta", "en curso", "resuelta"],
         filtrosExtra: [
             { campo: "tipo", etiqueta: "Tipo", todosLabel: "Todos los tipos", opciones: "dinamico" },
@@ -1329,6 +1330,7 @@ export const configuracionModulos = {
     contenedores: {
         titulo: "Contenedores",
         descripcion: "Listado de contenedores con estado y ubicación.",
+        placeholderBusqueda: "Buscar por ID, ubicación, barrio, municipio o estado...",
         estados: ["funcional", "roto", "desbordado", "baja"],
         filtrosExtra: [
             { campo: "zona", etiqueta: "Barrio", todosLabel: "Todos los barrios", opciones: "dinamico" },
@@ -1349,6 +1351,7 @@ export const configuracionModulos = {
     camiones: {
         titulo: "Camiones",
         descripcion: "Listado de camiones con estado operativo.",
+        placeholderBusqueda: "Buscar por ID, matrícula, marca o estado...",
         estados: ["disponible", "asignado", "mantenimiento", "baja"],
         filtrosExtra: [
             { campo: "marca", etiqueta: "Marca", todosLabel: "Todas las marcas", opciones: "dinamico" }
@@ -1369,6 +1372,7 @@ export const configuracionModulos = {
     cuadrillas: {
         titulo: "Cuadrillas",
         descripcion: "Composición de cada cuadrilla: jefe, chofer, camión, operarios y ruta asignada.",
+        placeholderBusqueda: "Buscar por ID, jefe, chofer o estado...",
         estados: ["activa", "baja"],
         columnasExport: [
             { campo: "id", etiqueta: "ID" },
@@ -1382,6 +1386,7 @@ export const configuracionModulos = {
     rutas: {
         titulo: "Rutas",
         descripcion: "Recorridos de recolección: zona, frecuencia, horario y cuadrilla asignada.",
+        placeholderBusqueda: "Buscar por ID, zona, municipio o estado...",
         estados: ["activa", "baja"],
         filtrosExtra: [
             { campo: "zona", etiqueta: "Zona", todosLabel: "Todas las zonas", opciones: "dinamico" },
@@ -1404,16 +1409,19 @@ export const configuracionModulos = {
     centrosDeAcopio: {
         titulo: "Centros de acopio",
         descripcion: "Instalaciones de acopio de residuos reciclables.",
+        placeholderBusqueda: "Buscar por ID, nombre, ubicación o estado...",
         estados: ["operativo", "mantenimiento", "baja"]
     },
     vertederos: {
         titulo: "Vertederos",
         descripcion: "Instalaciones de disposición final de residuos.",
+        placeholderBusqueda: "Buscar por ID, nombre, ubicación o estado...",
         estados: ["operativo", "mantenimiento", "baja"]
     },
     funcionarios: {
         titulo: "Funcionarios",
         descripcion: "Alta y baja de trabajadores con acceso al sistema.",
+        placeholderBusqueda: "Buscar por nombre, apellido, cédula, email o estado...",
         estados: ["activo", "baja"],
         filtrosExtra: [
             { campo: "rol", etiqueta: "Rol", todosLabel: "Todos los roles", opciones: ROLES_FUNCIONARIO_OPCIONES }
@@ -1434,6 +1442,7 @@ export const configuracionModulos = {
     solicitudes: {
         titulo: "Solicitudes de usuarios",
         descripcion: "Cuentas creadas desde el registro público, pendientes de aprobación.",
+        placeholderBusqueda: "Buscar por nombre, apellido, cédula o email...",
         estados: []
     }
 };

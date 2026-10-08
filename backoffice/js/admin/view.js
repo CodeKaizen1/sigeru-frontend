@@ -84,6 +84,12 @@ export function activarBuscador(inputId, itemsSelector) {
 export function actualizarEncabezadoModulo(config) {
     document.getElementById("moduleTitle").textContent = config.titulo;
     document.getElementById("moduleDescription").textContent = config.descripcion;
+
+    // Placeholder del buscador dinámico por módulo (Fase 2, punto 11): antes
+    // era un texto fijo en admin.html que mencionaba campos que no todos los
+    // módulos tienen. Si el módulo no define uno propio, se deja un texto genérico.
+    document.getElementById("searchInput").placeholder =
+        config.placeholderBusqueda || "Buscar...";
 }
 
 export function actualizarFiltroEstados(estados) {
