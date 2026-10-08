@@ -376,7 +376,7 @@ async function manejarAsignarCuadrillaAIncidencia(id) {
     const nuevaCuadrilla = await AsignarUI.pedirSeleccion(
         `Asignar cuadrilla — ${incidencia.id}`,
         "Cuadrilla",
-        Model.opcionesCuadrillaParaAsignar(),
+        Model.opcionesCuadrillaParaAsignar(incidencia.zona),
         incidencia.cuadrillaId || ""
     );
 

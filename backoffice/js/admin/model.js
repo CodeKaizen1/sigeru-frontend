@@ -283,9 +283,8 @@ async function cargarIncidencias() {
             descripcion: fila.descripcionIncidencia || "",
             contenedor: contenedor ? (contenedor.ubicacion || "Sin dirección") : "Sin contenedor asociado",
             cuadrillaId: fila.idCuadrilla != null ? String(fila.idCuadrilla) : null,
-            // No se persisten en la base real: se pierden al recargar la página.
-            resolucion: null,
-            fechaResolucion: null,
+            resolucion: fila.resolucionIncidencia || null,
+            fechaResolucion: fila.fechaResolucionIncidencia || null,
             _descripcionCruda: fila.descripcionIncidencia,
             _idContenedorReal: fila.idContenedor != null ? String(fila.idContenedor) : null,
             _fechaReporteCruda: fila.fechaReporte
@@ -305,7 +304,9 @@ function cuerpoIncidencia(incidencia, cambios = {}) {
         idContenedor: incidencia._idContenedorReal !== null ? Number(incidencia._idContenedorReal) : null,
         idCuadrilla: "idCuadrilla" in cambios
             ? (cambios.idCuadrilla !== null ? Number(cambios.idCuadrilla) : null)
-            : (incidencia.cuadrillaId !== null ? Number(incidencia.cuadrillaId) : null)
+            : (incidencia.cuadrillaId !== null ? Number(incidencia.cuadrillaId) : null),
+        resolucionIncidencia: "resolucionIncidencia" in cambios ? cambios.resolucionIncidencia : incidencia.resolucion,
+        fechaResolucionIncidencia: "fechaResolucionIncidencia" in cambios ? cambios.fechaResolucionIncidencia : incidencia.fechaResolucion
     };
 }
 
@@ -324,7 +325,11 @@ export async function cambiarEstadoIncidencia(idIncidencia, nuevoEstado, resoluc
         fechaResolucion = new Date().toISOString();
     }
 
-    const { ok } = await llamarGestion("incidencia", "PUT", cuerpoIncidencia(incidencia, { estadoIncidencia: nuevoEstado }), idIncidencia);
+    const { ok } = await llamarGestion("incidencia", "PUT", cuerpoIncidencia(incidencia, {
+        estadoIncidencia: nuevoEstado,
+        resolucionIncidencia: resolucion,
+        fechaResolucionIncidencia: fechaResolucion
+    }), idIncidencia);
     if (!ok) return null;
 
     incidencia.estado = nuevoEstado;
@@ -700,15 +705,32 @@ export function obtenerRutas() {
     return datos.rutas;
 }
 
-export function opcionesCuadrillaParaAsignar() {
+// Si se pasa zonaIncidencia, solo se ofrecen las cuadrillas cuya ruta
+// coincide con esa zona (una incidencia de Punta Gorda no se le puede
+// asignar a una cuadrilla que recorre Pocitos). Sin zonaIncidencia (o si
+// ninguna cuadrilla coincide y así quedaría una lista vacía), se cae de
+// nuevo a la lista completa en vez de dejar el selector sin opciones.
+export function opcionesCuadrillaParaAsignar(zonaIncidencia) {
+    const construirOpcion = (cuadrilla, ruta) => {
+        const etiquetaZona = ruta ? ` — ${ruta.zona}` : "";
+        const nombreJefe = cuadrilla.jefeId ? nombreFuncionario(cuadrilla.jefeId) : null;
+        const etiquetaJefe = nombreJefe ? ` (jefe: ${nombreJefe})` : " (sin jefe asignado)";
+        return { value: cuadrilla.id, label: `${cuadrilla.id}${etiquetaZona}${etiquetaJefe}` };
+    };
+
+    const cuadrillasConRuta = datos.cuadrillas.map((cuadrilla) => ({
+        cuadrilla,
+        ruta: datos.rutas.find((item) => item.id === cuadrilla.rutaId)
+    }));
+
+    let candidatas = cuadrillasConRuta;
+    if (zonaIncidencia) {
+        const coincidentes = cuadrillasConRuta.filter(({ ruta }) => ruta && ruta.zona === zonaIncidencia);
+        if (coincidentes.length > 0) candidatas = coincidentes;
+    }
+
     return [{ value: "", label: "Sin asignar" }].concat(
-        datos.cuadrillas.map((cuadrilla) => {
-            const ruta = datos.rutas.find((item) => item.id === cuadrilla.rutaId);
-            const etiquetaZona = ruta ? ` — ${ruta.zona}` : "";
-            const nombreJefe = cuadrilla.jefeId ? nombreFuncionario(cuadrilla.jefeId) : null;
-            const etiquetaJefe = nombreJefe ? ` (jefe: ${nombreJefe})` : " (sin jefe asignado)";
-            return { value: cuadrilla.id, label: `${cuadrilla.id}${etiquetaZona}${etiquetaJefe}` };
-        })
+        candidatas.map(({ cuadrilla, ruta }) => construirOpcion(cuadrilla, ruta))
     );
 }
 
