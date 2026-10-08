@@ -92,17 +92,39 @@ function coordenadasValidas(lat, lng) {
     return Number.isFinite(lat) && Number.isFinite(lng);
 }
 
+// Extraído de crearMarcadorContenedor() para reusarlo también en el popup
+// que abre irAContenedorEnMapa() al elegir una coincidencia del autocompletar
+// (no siempre hay todavía un marker de cluster en ese punto -- ver más abajo).
+function contenidoPopupContenedor(fila) {
+    return `
+        <strong>Contenedor #${escapeHtmlMapa(fila.idContenedor)}</strong><br>
+        ${escapeHtmlMapa(fila.ubicacionContenedor || "Sin dirección")}<br>
+        Estado: ${escapeHtmlMapa(fila.estadoContenedor || "")}<br>
+        Tipo de residuo: ${escapeHtmlMapa(fila.tipoResiduoContenedor || "")}
+    `;
+}
+
 function crearMarcadorContenedor(fila) {
     const lat = Number(fila.latitudContenedor);
     const lng = Number(fila.longitudContenedor);
     if (!coordenadasValidas(lat, lng)) return null;
 
-    return L.marker([lat, lng]).bindPopup(`
-        <strong>Contenedor #${escapeHtmlMapa(fila.idContenedor)}</strong><br>
-        ${escapeHtmlMapa(fila.ubicacionContenedor || "Sin dirección")}<br>
-        Estado: ${escapeHtmlMapa(fila.estadoContenedor || "")}<br>
-        Tipo de residuo: ${escapeHtmlMapa(fila.tipoResiduoContenedor || "")}
-    `);
+    return L.marker([lat, lng]).bindPopup(contenidoPopupContenedor(fila));
+}
+
+// Centra el mapa en un contenedor puntual y le abre el popup -- usado al
+// elegir una coincidencia del autocompletar del buscador (ver
+// inicializarBuscadorMapa). No depende de que ya exista un marker de
+// cluster ahí: abre su propio popup standalone, y el recargo normal por
+// bounding box (moveend) va a traer el marker real de todos modos una vez
+// que el mapa termine de moverse a este punto.
+function irAContenedorEnMapa(mapa, fila) {
+    const lat = Number(fila.latitudContenedor);
+    const lng = Number(fila.longitudContenedor);
+    if (!coordenadasValidas(lat, lng)) return;
+
+    mapa.setView([lat, lng], 18);
+    L.popup().setLatLng([lat, lng]).setContent(contenidoPopupContenedor(fila)).openOn(mapa);
 }
 
 // Las incidencias no tienen coordenadas propias: se ubican en el punto del
@@ -179,6 +201,16 @@ async function recargarContenedoresVisibles(mapa, capaCluster) {
 // con lo que entra en ese viewport.
 let modoBusquedaMapaActivo = false;
 
+// Autocompletar de "calle y esquina" -- mismo patrón que
+// inicializarAutocompletarContenedor() en app.js (formulario de incidencias):
+// a medida que el vecino escribe se piden coincidencias y se muestran en una
+// lista; al elegir una, el mapa va directo a ESE contenedor puntual (en vez
+// de tener que apretar "Buscar en el mapa" para ver todas las coincidencias
+// a la vez). El botón de submit sigue andando igual que antes para una
+// búsqueda amplia combinando calle + barrio + municipio.
+const MAX_SUGERENCIAS_MAPA = 8;
+const ESPERA_AUTOCOMPLETAR_MAPA_MS = 300;
+
 async function obtenerFiltrosDisponiblesMapa() {
     try {
         const parametros = new URLSearchParams({ recurso: "contenedor", accion: "filtros" });
@@ -236,6 +268,7 @@ async function inicializarBuscadorMapa(mapa, capaCluster) {
     const selectMunicipio = document.getElementById("buscadorMapaMunicipio");
     const selectBarrio = document.getElementById("buscadorMapaBarrio");
     const campoCalle = document.getElementById("buscadorMapaCalle");
+    const listaResultadosCalle = document.getElementById("buscadorMapaCalleResultados");
     const elementoEstado = document.getElementById("buscadorMapaEstado");
     const botonLimpiar = document.getElementById("buscadorMapaLimpiar");
 
@@ -244,6 +277,130 @@ async function inicializarBuscadorMapa(mapa, capaCluster) {
     const filtros = await obtenerFiltrosDisponiblesMapa();
     poblarSelectMapa(selectMunicipio, filtros.municipios);
     poblarSelectMapa(selectBarrio, filtros.barrios);
+
+    if (campoCalle && listaResultadosCalle) {
+        let indiceActivo = -1;
+        let coincidenciasVisibles = [];
+        let tokenBusqueda = 0;
+
+        function ocultarResultadosCalle() {
+            listaResultadosCalle.hidden = true;
+            listaResultadosCalle.innerHTML = "";
+            indiceActivo = -1;
+            coincidenciasVisibles = [];
+        }
+
+        function marcarActivoCalle(indice) {
+            const items = listaResultadosCalle.querySelectorAll("li[role='option']");
+            items.forEach((item) => item.classList.remove("autocomplete-activo"));
+            if (indice >= 0 && items[indice]) {
+                items[indice].classList.add("autocomplete-activo");
+                items[indice].scrollIntoView({ block: "nearest" });
+            }
+            indiceActivo = indice;
+        }
+
+        function elegirContenedorMapa(contenedor) {
+            ocultarResultadosCalle();
+            campoCalle.value = contenedor.ubicacionContenedor;
+            irAContenedorEnMapa(mapa, contenedor);
+            mostrarEstadoBuscadorMapa(elementoEstado, `Mostrando: ${contenedor.ubicacionContenedor}`, false);
+        }
+
+        function pintarResultadosCalle(coincidencias) {
+            coincidenciasVisibles = coincidencias.slice(0, MAX_SUGERENCIAS_MAPA);
+            listaResultadosCalle.innerHTML = "";
+            indiceActivo = -1;
+
+            if (!coincidenciasVisibles.length) {
+                const item = document.createElement("li");
+                item.className = "autocomplete-sin-resultados";
+                item.textContent = "No hay contenedores con esa dirección.";
+                listaResultadosCalle.appendChild(item);
+                listaResultadosCalle.hidden = false;
+                return;
+            }
+
+            coincidenciasVisibles.forEach((contenedor) => {
+                const item = document.createElement("li");
+                item.setAttribute("role", "option");
+                item.textContent = contenedor.zonaContenedor
+                    ? `${contenedor.ubicacionContenedor} — ${contenedor.zonaContenedor}`
+                    : contenedor.ubicacionContenedor;
+
+                // mousedown (no click) para que dispare antes del blur del input.
+                item.addEventListener("mousedown", (evento) => {
+                    evento.preventDefault();
+                    elegirContenedorMapa(contenedor);
+                });
+
+                listaResultadosCalle.appendChild(item);
+            });
+
+            listaResultadosCalle.hidden = false;
+        }
+
+        async function buscarYMostrarCalle() {
+            const direccion = campoCalle.value.trim();
+            const barrio = selectBarrio ? selectBarrio.value : "";
+            const municipio = selectMunicipio ? selectMunicipio.value : "";
+
+            if (!direccion) {
+                ocultarResultadosCalle();
+                return;
+            }
+
+            const miToken = ++tokenBusqueda;
+            const coincidencias = await buscarContenedoresMapa({ direccion, barrio, municipio });
+
+            // Si mientras esperaba la respuesta el vecino siguió escribiendo,
+            // esta respuesta ya quedó vieja y se descarta.
+            if (miToken !== tokenBusqueda) return;
+
+            pintarResultadosCalle(coincidencias);
+        }
+
+        const buscarCalleDebounced = debounce(buscarYMostrarCalle, ESPERA_AUTOCOMPLETAR_MAPA_MS);
+
+        campoCalle.addEventListener("input", buscarCalleDebounced);
+
+        campoCalle.addEventListener("focus", () => {
+            if (campoCalle.value.trim()) buscarCalleDebounced();
+        });
+
+        campoCalle.addEventListener("blur", () => {
+            // Pequeña espera para que el mousedown de una opción llegue a
+            // tiempo antes de que el blur cierre la lista.
+            setTimeout(ocultarResultadosCalle, 150);
+        });
+
+        campoCalle.addEventListener("keydown", (evento) => {
+            if (evento.key === "Escape") {
+                ocultarResultadosCalle();
+                return;
+            }
+
+            if (!coincidenciasVisibles.length) return;
+
+            if (evento.key === "ArrowDown") {
+                evento.preventDefault();
+                marcarActivoCalle(Math.min(indiceActivo + 1, coincidenciasVisibles.length - 1));
+            } else if (evento.key === "ArrowUp") {
+                evento.preventDefault();
+                marcarActivoCalle(Math.max(indiceActivo - 1, 0));
+            } else if (evento.key === "Enter") {
+                // coincidenciasVisibles ya viene vacío cuando pintarResultadosCalle()
+                // solo mostró el mensaje de "sin resultados" (ver más arriba),
+                // así que el guard de "!coincidenciasVisibles.length" de más
+                // arriba ya cubre ese caso -- acá siempre hay una coincidencia
+                // real para elegir. Mismo criterio que app.js: Enter elige en
+                // vez de disparar el submit del formulario.
+                evento.preventDefault();
+                const indice = indiceActivo >= 0 ? indiceActivo : 0;
+                elegirContenedorMapa(coincidenciasVisibles[indice]);
+            }
+        });
+    }
 
     formulario.addEventListener("submit", async (evento) => {
         evento.preventDefault();
@@ -289,6 +446,10 @@ async function inicializarBuscadorMapa(mapa, capaCluster) {
     if (botonLimpiar) {
         botonLimpiar.addEventListener("click", () => {
             formulario.reset();
+            if (listaResultadosCalle) {
+                listaResultadosCalle.hidden = true;
+                listaResultadosCalle.innerHTML = "";
+            }
             mostrarEstadoBuscadorMapa(elementoEstado, "", false);
             modoBusquedaMapaActivo = false;
             recargarContenedoresVisibles(mapa, capaCluster);
