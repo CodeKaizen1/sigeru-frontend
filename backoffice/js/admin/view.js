@@ -1039,18 +1039,49 @@ export function renderDetalle(modulo, registro, datosExtra = {}, configEdicion =
 function construirCamposCuadrillaHtml({ jefes, choferes, rutas, operarios }, cuadrillaRaw = null) {
     const textoBusquedaFuncionario = (f) => `${f.nombre} ${f.apellido} ${f.cedula || ""}`;
 
-    const opcionesJefe = crearOpciones(jefes, cuadrillaRaw?.jefeId ?? null, (f) => `${f.nombre} ${f.apellido}`, textoBusquedaFuncionario);
-    const opcionesChofer = crearOpciones(choferes, cuadrillaRaw?.choferId ?? null, (f) => `${f.nombre} ${f.apellido}`, textoBusquedaFuncionario);
+    // Model ya anota cada funcionario con _otraCuadrilla ({id, nombre}) cuando
+    // ya pertenece a OTRA cuadrilla -- separamos la lista en dos grupos para
+    // que se note a simple vista quién está libre y quién requeriría
+    // reasignarlo (ver manejarFormularioSubmit/manejarEdicionCuadrillaEnDetalleSubmit,
+    // que piden confirmación antes de guardar si se elige a alguien del segundo grupo).
+    const etiquetaConConflicto = (f) => `${f.nombre} ${f.apellido}` + (f._otraCuadrilla ? ` — ya en "${f._otraCuadrilla.nombre}"` : "");
+    const partirPorConflicto = (lista) => ({
+        libres: lista.filter((f) => !f._otraCuadrilla),
+        conConflicto: lista.filter((f) => f._otraCuadrilla)
+    });
+
+    const opcionesAgrupadas = (lista, idSeleccionado) => {
+        const partidos = partirPorConflicto(lista);
+        const libresHtml = partidos.libres.length
+            ? `<optgroup label="Sin cuadrilla asignada">${crearOpciones(partidos.libres, idSeleccionado, etiquetaConConflicto, textoBusquedaFuncionario)}</optgroup>`
+            : "";
+        const conConflictoHtml = partidos.conConflicto.length
+            ? `<optgroup label="Ya asignados a otra cuadrilla">${crearOpciones(partidos.conConflicto, idSeleccionado, etiquetaConConflicto, textoBusquedaFuncionario)}</optgroup>`
+            : "";
+        return libresHtml + conConflictoHtml;
+    };
+
+    const opcionesJefe = opcionesAgrupadas(jefes, cuadrillaRaw?.jefeId ?? null);
+    const opcionesChofer = opcionesAgrupadas(choferes, cuadrillaRaw?.choferId ?? null);
     const opcionesRuta = crearOpciones(rutas, cuadrillaRaw?.rutaId ?? null, (r) => `${r.zona} — ${r.horario}`);
     const operariosDeEstaCuadrilla = cuadrillaRaw?.operarios ?? [];
 
+    const operarioCheckboxHtml = (f) => `
+        <label class="checkbox-operario" data-busqueda="${escapeHtml(normalizarBusqueda(textoBusquedaFuncionario(f)))}">
+            <input type="checkbox" name="operarios" value="${f.id}" ${operariosDeEstaCuadrilla.includes(f.id) ? "checked" : ""}>
+            ${escapeHtml(etiquetaConConflicto(f))}
+        </label>
+    `;
+
+    const operariosPartidos = partirPorConflicto(operarios);
     const operariosHtml = operarios.length
-        ? operarios.map((f) => `
-            <label class="checkbox-operario" data-busqueda="${escapeHtml(normalizarBusqueda(textoBusquedaFuncionario(f)))}">
-                <input type="checkbox" name="operarios" value="${f.id}" ${operariosDeEstaCuadrilla.includes(f.id) ? "checked" : ""}>
-                ${escapeHtml(f.nombre)} ${escapeHtml(f.apellido)}
-            </label>
-        `).join("")
+        ? `
+            ${operariosPartidos.libres.map(operarioCheckboxHtml).join("")}
+            ${operariosPartidos.conConflicto.length ? `
+                <p class="detail-nota lista-checkbox-operarios-separador">Ya asignados a otra cuadrilla:</p>
+                ${operariosPartidos.conConflicto.map(operarioCheckboxHtml).join("")}
+            ` : ""}
+        `
         : `<p class="detail-empty">No hay operarios disponibles.</p>`;
 
     // El camión no se elige acá: sigue al chofer asignado (se empareja desde el módulo Camiones).

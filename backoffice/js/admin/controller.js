@@ -1,12 +1,13 @@
 // CONTROLADOR: escucha clicks/submits del panel, pide datos al Modelo y actualiza la Vista.
 // También guarda el estado propio de la pantalla (módulo abierto, registro en edición).
 
-import * as Model from "./model.js?v=31";
-import * as View from "./view.js?v=28";
+import * as Model from "./model.js?v=32";
+import * as View from "./view.js?v=29";
 import * as NotificacionesUI from "./notificaciones-ui.js?v=2";
 import * as CuentaUI from "./cuenta-ui.js?v=4";
 import * as ExportarExcel from "./exportar-excel.js?v=1";
 import * as AsignarUI from "./asignar-ui.js?v=1";
+import * as ConfirmarUI from "./confirmar-ui.js?v=3";
 
 let moduloActual = "resumen";
 let idEnEdicion = null;
@@ -418,6 +419,42 @@ async function manejarCambiarEstadoIncidencia(id) {
     await mostrarModulo();
 }
 
+// Confirmaciones antes de asignar un chofer/jefe/operario que ya está en otro
+// lado -- antes se reasignaba en silencio (se lo sacaba de donde estaba sin
+// avisar). Devuelven false si había un conflicto y el usuario lo canceló, caso
+// en el que el caller no debe seguir con el guardado.
+
+async function confirmarChoferDeCamion(cedulaChofer, idCamionExcluir) {
+    if (!cedulaChofer) return true;
+    const otroCamion = Model.obtenerOtroCamionDeChofer(cedulaChofer, idCamionExcluir);
+    if (!otroCamion) return true;
+
+    const nombre = Model.nombreFuncionario(cedulaChofer) || "Este chofer";
+    return ConfirmarUI.confirmar(
+        `${nombre} ya tiene asignado el camión ${otroCamion.matricula || otroCamion.id} (estado: ${otroCamion.estado || "sin datos"}). ¿Desea reasignarlo a este camión?`
+    );
+}
+
+async function confirmarJefeOChoferDeCuadrilla(tipo, cedula, idCuadrillaExcluir) {
+    if (!cedula) return true;
+    const otra = tipo === "jefe"
+        ? Model.obtenerOtraCuadrillaDeJefe(cedula, idCuadrillaExcluir)
+        : Model.obtenerOtraCuadrillaDeChofer(cedula, idCuadrillaExcluir);
+    if (!otra) return true;
+
+    const nombre = Model.nombreFuncionario(cedula) || "Esta persona";
+    const etiqueta = tipo === "jefe" ? "jefe" : "chofer";
+    return ConfirmarUI.confirmar(`${nombre} ya es ${etiqueta} de la cuadrilla "${otra.nombre}". ¿Desea reasignarlo a esta cuadrilla?`);
+}
+
+async function confirmarOperarioDeCuadrilla(cedula, idCuadrillaExcluir) {
+    const otra = Model.obtenerOtraCuadrillaDeOperario(cedula, idCuadrillaExcluir);
+    if (!otra) return true;
+
+    const nombre = Model.nombreFuncionario(cedula) || "Esta persona";
+    return ConfirmarUI.confirmar(`${nombre} ya es operario de la cuadrilla "${otra.nombre}". ¿Desea reasignarlo a esta cuadrilla?`);
+}
+
 async function manejarAsignarChoferCamion(id) {
     const camion = Model.obtenerRegistroPorId("camiones", id);
     if (!camion) return;
@@ -425,11 +462,12 @@ async function manejarAsignarChoferCamion(id) {
     const nuevoChofer = await AsignarUI.pedirSeleccion(
         `Asignar chofer — ${camion.marca} ${camion.modelo}`,
         "Chofer",
-        Model.opcionesChoferParaCamion(),
+        Model.opcionesChoferParaCamion(id),
         camion.choferId || ""
     );
 
     if (nuevoChofer === null) return;
+    if (!(await confirmarChoferDeCamion(nuevoChofer, id))) return;
 
     await Model.asignarChoferACamion(id, nuevoChofer);
     await mostrarModulo();
@@ -616,6 +654,14 @@ async function manejarFormularioSubmit(evento) {
             formulario.querySelectorAll('input[name="operarios"]:checked')
         ).map((input) => input.value);
 
+        // Cuadrilla nueva: no hay id propio para excluir -- cualquier jefe/chofer/
+        // operario que ya esté en otra cuadrilla requiere confirmación.
+        if (!(await confirmarJefeOChoferDeCuadrilla("jefe", jefeId, null))) return;
+        if (!(await confirmarJefeOChoferDeCuadrilla("chofer", choferId, null))) return;
+        for (const operarioId of operariosSeleccionados) {
+            if (!(await confirmarOperarioDeCuadrilla(operarioId, null))) return;
+        }
+
         View.cerrarModal();
 
         const nueva = await Model.crearCuadrilla();
@@ -642,6 +688,8 @@ async function manejarFormularioSubmit(evento) {
     config.campos.forEach((campo) => {
         valoresCampos[campo.nombre] = formulario.elements[campo.nombre].value;
     });
+
+    if (moduloActual === "camiones" && !(await confirmarChoferDeCamion(valoresCampos.choferId, null))) return;
 
     const resultado = await Model.crearRegistro(moduloActual, valoresCampos);
 
@@ -671,7 +719,7 @@ async function manejarFormularioSubmit(evento) {
 // Edición de un registro existente: "Editar" transforma el popup de detalle en un formulario in place.
 
 function abrirFormularioEdicion(id) {
-    const config = Model.obtenerConfigEdicion(moduloActual);
+    const config = Model.obtenerConfigEdicion(moduloActual, id);
     const registro = Model.obtenerRegistroPorId(moduloActual, id);
     if (!config || !registro) return;
 
@@ -721,7 +769,7 @@ function abrirFormularioEdicion(id) {
 async function manejarEdicionEnDetalleSubmit(evento) {
     evento.preventDefault();
 
-    const config = Model.obtenerConfigEdicion(moduloActual);
+    const config = Model.obtenerConfigEdicion(moduloActual, idEnEdicion);
     if (!config) return;
 
     const formulario = evento.target;
@@ -730,6 +778,8 @@ async function manejarEdicionEnDetalleSubmit(evento) {
     config.campos.forEach((campo) => {
         valoresCampos[campo.nombre] = formulario.elements[campo.nombre].value;
     });
+
+    if (moduloActual === "camiones" && !(await confirmarChoferDeCamion(valoresCampos.choferId, idEnEdicion))) return;
 
     await Model.editarRegistro(moduloActual, idEnEdicion, valoresCampos);
     await mostrarModulo();
@@ -744,10 +794,10 @@ function abrirFormularioEdicionCuadrilla(id) {
     idEnEdicion = id;
 
     const formulario = View.renderFormularioEdicionCuadrillaEnDetalle(cuadrillaRaw, {
-        jefes: Model.obtenerJefesDisponibles(),
-        choferes: Model.obtenerChoferesDisponibles(),
+        jefes: Model.obtenerJefesDisponibles(id),
+        choferes: Model.obtenerChoferesDisponibles(id),
         rutas: Model.obtenerRutas(),
-        operarios: Model.obtenerOperariosDisponibles()
+        operarios: Model.obtenerOperariosDisponibles(id)
     });
     formulario.addEventListener("submit", manejarEdicionCuadrillaEnDetalleSubmit);
     document.getElementById("detailEditCancelar").addEventListener("click", () => mostrarDetalleCuadrilla(id));
@@ -768,6 +818,12 @@ async function manejarEdicionCuadrillaEnDetalleSubmit(evento) {
 
     const cuadrillaAntes = Model.obtenerCuadrillaPorId(idEnEdicion);
     const operariosAntes = cuadrillaAntes ? [...cuadrillaAntes.operarios] : [];
+
+    if (!(await confirmarJefeOChoferDeCuadrilla("jefe", jefeId, idEnEdicion))) return;
+    if (!(await confirmarJefeOChoferDeCuadrilla("chofer", choferId, idEnEdicion))) return;
+    for (const idOperario of operariosSeleccionados) {
+        if (!(await confirmarOperarioDeCuadrilla(idOperario, idEnEdicion))) return;
+    }
 
     await Model.asignarJefeACuadrilla(idEnEdicion, jefeId);
     await Model.asignarChoferACuadrilla(idEnEdicion, choferId);

@@ -681,16 +681,66 @@ export function obtenerCuadrillaDeOperario(cedula) {
     return cuadrilla ? detalleCuadrilla(cuadrilla.id) : null;
 }
 
-export function obtenerOperariosDisponibles() {
-    return datos.funcionarios.filter((f) => f.rol === "Operario de cuadrilla" && f.estado === "activo");
+// --- Conflictos de asignación (jefe/chofer/operario ya en OTRA cuadrilla) ---
+// Antes, elegir en el formulario de cuadrilla a alguien que ya era jefe/chofer
+// de otra, o tildar como operario a alguien que ya estaba en otra, lo sacaba
+// de ahí en silencio. Estas funciones son de solo lectura (no modifican nada)
+// para que el controller pueda preguntar antes de guardar.
+function otraCuadrillaPorCampo(campo, cedula, idCuadrillaExcluir) {
+    if (!cedula) return null;
+    const cuadrilla = datos.cuadrillas.find((c) => c[campo] === cedula && String(c.id) !== String(idCuadrillaExcluir ?? ""));
+    return cuadrilla ? { id: cuadrilla.id, nombre: cuadrilla.nombre || cuadrilla.id } : null;
 }
 
-export function obtenerJefesDisponibles() {
-    return datos.funcionarios.filter((f) => f.rol === "Jefe de Cuadrilla" && f.estado === "activo");
+function otraCuadrillaDeOperarioExcluyendo(cedula, idCuadrillaExcluir) {
+    if (!cedula) return null;
+    const cuadrilla = datos.cuadrillas.find((c) => c.operarios.includes(cedula) && String(c.id) !== String(idCuadrillaExcluir ?? ""));
+    return cuadrilla ? { id: cuadrilla.id, nombre: cuadrilla.nombre || cuadrilla.id } : null;
 }
 
-export function obtenerChoferesDisponibles() {
-    return datos.funcionarios.filter((f) => f.rol === "Chofer" && f.estado === "activo");
+// Cada una devuelve {id, nombre} de la OTRA cuadrilla (distinta de idCuadrillaExcluir)
+// que ya tiene a esa persona, o null si está libre.
+export function obtenerOtraCuadrillaDeJefe(cedula, idCuadrillaExcluir = null) {
+    return otraCuadrillaPorCampo("jefeId", cedula, idCuadrillaExcluir);
+}
+
+export function obtenerOtraCuadrillaDeChofer(cedula, idCuadrillaExcluir = null) {
+    return otraCuadrillaPorCampo("choferId", cedula, idCuadrillaExcluir);
+}
+
+export function obtenerOtraCuadrillaDeOperario(cedula, idCuadrillaExcluir = null) {
+    return otraCuadrillaDeOperarioExcluyendo(cedula, idCuadrillaExcluir);
+}
+
+// El camión que ya conduce esa cédula (distinto de idCamionExcluir), o null.
+// Independiente del chequeo de cuadrilla de arriba: el chofer de un camión y
+// el chofer de una cuadrilla son campos separados que solo deberían coincidir
+// por convención, no están forzados a ser iguales en la base.
+export function obtenerOtroCamionDeChofer(cedula, idCamionExcluir = null) {
+    if (!cedula) return null;
+    return datos.camiones.find((c) => c.choferId === cedula && String(c.id) !== String(idCamionExcluir ?? "")) || null;
+}
+
+// Si se pasa idCuadrillaExcluir, cada funcionario devuelto trae además
+// _otraCuadrilla: {id, nombre} si ya está en OTRA cuadrilla (o en cualquier
+// cuadrilla, si no se pasa id) -- para que el formulario de alta/edición de
+// cuadrillas pueda separar visualmente "sin cuadrilla" de "ya asignado a otra".
+export function obtenerOperariosDisponibles(idCuadrillaExcluir = null) {
+    return datos.funcionarios
+        .filter((f) => f.rol === "Operario de cuadrilla" && f.estado === "activo")
+        .map((f) => ({ ...f, _otraCuadrilla: otraCuadrillaDeOperarioExcluyendo(f.id, idCuadrillaExcluir) }));
+}
+
+export function obtenerJefesDisponibles(idCuadrillaExcluir = null) {
+    return datos.funcionarios
+        .filter((f) => f.rol === "Jefe de Cuadrilla" && f.estado === "activo")
+        .map((f) => ({ ...f, _otraCuadrilla: otraCuadrillaPorCampo("jefeId", f.id, idCuadrillaExcluir) }));
+}
+
+export function obtenerChoferesDisponibles(idCuadrillaExcluir = null) {
+    return datos.funcionarios
+        .filter((f) => f.rol === "Chofer" && f.estado === "activo")
+        .map((f) => ({ ...f, _otraCuadrilla: otraCuadrillaPorCampo("choferId", f.id, idCuadrillaExcluir) }));
 }
 
 export function obtenerOtrasCuadrillas(idCuadrillaActual) {
@@ -740,9 +790,15 @@ export function opcionesRutasParaAsignar() {
     );
 }
 
-export function opcionesChoferParaCamion() {
+// Si se pasa idCamionExcluir (el camión que se está editando), no se marca
+// como conflicto que el chofer ya conduzca ESE MISMO camión.
+export function opcionesChoferParaCamion(idCamionExcluir = null) {
     return [{ value: "", label: "Sin asignar" }].concat(
-        obtenerChoferesDisponibles().map((f) => ({ value: f.id, label: `${f.nombre} ${f.apellido}` }))
+        obtenerChoferesDisponibles().map((f) => {
+            const otroCamion = obtenerOtroCamionDeChofer(f.id, idCamionExcluir);
+            const etiquetaConflicto = otroCamion ? ` (ya conduce ${otroCamion.matricula || "otro camión"})` : "";
+            return { value: f.id, label: `${f.nombre} ${f.apellido}${etiquetaConflicto}` };
+        })
     );
 }
 
@@ -1566,15 +1622,17 @@ export const configEdicionFuncionarios = {
     ]
 };
 
-export function obtenerConfigEdicion(modulo) {
+// id: el registro que se está editando (si aplica) -- para camiones, así el
+// propio camión no se marca a sí mismo como "conflicto" en su propio select de chofer.
+export function obtenerConfigEdicion(modulo, id = null) {
     if (modulo === "incidencias") return null;
     if (modulo === "funcionarios") return configEdicionFuncionarios;
-    if (modulo === "camiones") return configEdicionCamiones();
+    if (modulo === "camiones") return configEdicionCamiones(id);
     return formulariosAlta[modulo] || null;
 }
 
-function campoChoferCamion() {
-    return { nombre: "choferId", etiqueta: "Chofer asignado", tipo: "select", requerido: false, ancho: "completo", opciones: opcionesChoferParaCamion() };
+function campoChoferCamion(idCamionExcluir = null) {
+    return { nombre: "choferId", etiqueta: "Chofer asignado", tipo: "select", requerido: false, ancho: "completo", opciones: opcionesChoferParaCamion(idCamionExcluir) };
 }
 
 function configAltaCamiones() {
@@ -1584,10 +1642,10 @@ function configAltaCamiones() {
     };
 }
 
-function configEdicionCamiones() {
+function configEdicionCamiones(idCamionExcluir = null) {
     return {
         tituloEdicion: "Editar camión",
-        campos: [...formulariosAlta.camiones.campos, campoChoferCamion()]
+        campos: [...formulariosAlta.camiones.campos, campoChoferCamion(idCamionExcluir)]
     };
 }
 
