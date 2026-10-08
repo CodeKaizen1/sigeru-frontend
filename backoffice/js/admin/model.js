@@ -1137,7 +1137,9 @@ export async function rechazarSolicitud(idSolicitud) {
 // Mi cuenta
 //
 
-export const usuarioActual = (() => {
+// "let", no "const": recuperarUsuarioActual() (más abajo) la reasigna
+// cuando esta copia local no está pero la sesión del servidor sí.
+export let usuarioActual = (() => {
     const guardado = sessionStorage.getItem("sigeru_sesion_v1");
     if (!guardado) return null;
 
@@ -1147,6 +1149,25 @@ export const usuarioActual = (() => {
         return null;
     }
 })();
+
+// Hallazgo reportado por el profesor (08/10/2026): los 4 paneles decidían
+// "Acceso no autorizado" mirando solo usuarioActual de arriba, que es una
+// copia de conveniencia en sessionStorage -- por-pestaña, no compartida
+// entre pestañas (a diferencia de la cookie PHPSESSID, que sí lo es). Pegar
+// la URL de un panel en una pestaña nueva encontraba esa copia vacía y
+// mostraba el error aunque la sesión real siguiera activa. Esta función es
+// el gate real que los 4 paneles deberían usar: si no hay copia local, le
+// pregunta al servidor antes de decidir.
+export async function recuperarUsuarioActual() {
+    if (usuarioActual) return usuarioActual;
+
+    const { ok, datos } = await llamarUsuarios("sesionActual", "GET");
+    if (!ok || !datos || !datos.exito) return null;
+
+    usuarioActual = datos.usuario;
+    sessionStorage.setItem("sigeru_sesion_v1", JSON.stringify(usuarioActual));
+    return usuarioActual;
+}
 
 export async function obtenerPerfilPropio() {
     if (!usuarioActual) return null;

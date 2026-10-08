@@ -3,13 +3,15 @@
 // ni asigna la ruta (eso es exclusivo del Administrador). Sí puede marcar inicio/fin de ruta
 // y reportar o resolver incidencias.
 
-import * as Model from "./admin/model.js?v=28";
+import * as Model from "./admin/model.js?v=29";
 import * as NotificacionesUI from "./admin/notificaciones-ui.js?v=2";
 import * as CuentaUI from "./admin/cuenta-ui.js?v=4";
 import { confirmar, avisar } from "./admin/confirmar-ui.js?v=3";
 import { pedirTexto } from "./admin/asignar-ui.js?v=1";
 
-const usuario = Model.usuarioActual;
+// "let", no "const": iniciarPanel() la resuelve de verdad con
+// Model.recuperarUsuarioActual() antes del primer render().
+let usuario = Model.usuarioActual;
 const contenido = document.getElementById("contenidoPanel");
 
 // Tipos de incidencia de contenedor, más "ruta" para inconvenientes que no son del contenedor
@@ -488,6 +490,7 @@ async function iniciarCuenta() {
 }
 
 async function iniciarPanel() {
+    usuario = await Model.recuperarUsuarioActual();
     await render();
     await actualizarNotificaciones();
     await iniciarCuenta();

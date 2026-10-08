@@ -1,7 +1,7 @@
 // CONTROLADOR: escucha clicks/submits del panel, pide datos al Modelo y actualiza la Vista.
 // También guarda el estado propio de la pantalla (módulo abierto, registro en edición).
 
-import * as Model from "./model.js?v=28";
+import * as Model from "./model.js?v=29";
 import * as View from "./view.js?v=26";
 import * as NotificacionesUI from "./notificaciones-ui.js?v=2";
 import * as CuentaUI from "./cuenta-ui.js?v=4";
@@ -792,7 +792,13 @@ function iniciarEventos() {
 }
 
 export async function initAdmin() {
-    if (Model.usuarioActual && Model.usuarioActual.rol === "administrador") {
+    // recuperarUsuarioActual() consulta al servidor si esta pestaña no tiene
+    // la copia local (pegar la URL en una pestaña nueva, por ejemplo) --
+    // antes se miraba solo Model.usuarioActual y se mostraba "Acceso no
+    // autorizado" aunque la sesión del servidor siguiera activa.
+    const usuario = await Model.recuperarUsuarioActual();
+
+    if (usuario && usuario.rol === "administrador") {
         iniciarEventos();
         await cambiarModulo("resumen");
         await iniciarCuenta();

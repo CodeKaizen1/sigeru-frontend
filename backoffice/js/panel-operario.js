@@ -5,12 +5,14 @@
 // Nota: la tarjeta "Mi turno" muestra "—" para todos porque ese dato (turnoOperarioDeCuadrilla)
 // no está expuesto todavía por Model.obtenerRegistroPorId("funcionarios", ...).
 
-import * as Model from "./admin/model.js?v=28";
+import * as Model from "./admin/model.js?v=29";
 import * as NotificacionesUI from "./admin/notificaciones-ui.js?v=2";
 import * as CuentaUI from "./admin/cuenta-ui.js?v=4";
 import { confirmar } from "./admin/confirmar-ui.js?v=3";
 
-const usuario = Model.usuarioActual;
+// "let", no "const": iniciarPanel() la resuelve de verdad con
+// Model.recuperarUsuarioActual() antes del primer render().
+let usuario = Model.usuarioActual;
 const contenido = document.getElementById("contenidoPanel");
 
 function claseEstadoRuta(estado) {
@@ -185,6 +187,7 @@ async function iniciarCuenta() {
 }
 
 async function iniciarPanel() {
+    usuario = await Model.recuperarUsuarioActual();
     await render();
     await actualizarNotificaciones();
     await iniciarCuenta();
