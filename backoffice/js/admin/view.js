@@ -41,14 +41,15 @@ export function crearDetalleItem(titulo, valor) {
 }
 
 // Arma <option> a partir de una lista; textoBusqueda (opcional) define el texto filtrable por activarBuscador().
-function crearOpciones(lista, idSeleccionado, etiqueta, textoBusqueda) {
+function crearOpciones(lista, idSeleccionado, etiqueta, textoBusqueda, estadoFn) {
     return lista.map((item) => {
         const atributoBusqueda = textoBusqueda
             ? ` data-busqueda="${escapeHtml(normalizarBusqueda(textoBusqueda(item)))}"`
             : "";
+        const atributoEstado = estadoFn ? ` data-estado="${escapeHtml(estadoFn(item))}"` : "";
 
         return `
-        <option value="${item.id}"${atributoBusqueda} ${item.id === idSeleccionado ? "selected" : ""}>${escapeHtml(etiqueta(item))}</option>
+        <option value="${item.id}"${atributoBusqueda}${atributoEstado} ${item.id === idSeleccionado ? "selected" : ""}>${escapeHtml(etiqueta(item))}</option>
     `;
     }).join("");
 }
@@ -75,6 +76,34 @@ export function activarBuscador(inputId, itemsSelector) {
             item.style.display = coincide ? "" : "none";
         });
     });
+}
+
+// Mismo buscador de arriba, combinado con un <select> que filtra por
+// data-estado ("libre"/"asignado") -- para separar en Jefe/Chofer/Operarios
+// de la cuadrilla a quién está libre de quién ya está asignado a otra, sin
+// mezclarlos en una sola lista. Los dos filtros se aplican juntos (un item
+// solo queda visible si pasa el texto Y el estado elegido).
+export function activarBuscadorConFiltroEstado(inputId, selectId, itemsSelector) {
+    const input = document.getElementById(inputId);
+    const select = document.getElementById(selectId);
+    if (!input || !select) return;
+
+    input.addEventListener("keydown", (evento) => {
+        if (evento.key === "Enter") evento.preventDefault();
+    });
+
+    function aplicarFiltros() {
+        const texto = normalizarBusqueda(input.value);
+        const estado = select.value;
+        document.querySelectorAll(itemsSelector).forEach((item) => {
+            const coincideTexto = !texto || (item.dataset.busqueda || "").includes(texto);
+            const coincideEstado = !estado || item.dataset.estado === estado;
+            item.style.display = (coincideTexto && coincideEstado) ? "" : "none";
+        });
+    }
+
+    input.addEventListener("input", aplicarFiltros);
+    select.addEventListener("change", aplicarFiltros);
 }
 
 //
@@ -1035,60 +1064,57 @@ export function renderDetalle(modulo, registro, datosExtra = {}, configEdicion =
 // Modal de alta
 //
 
+// Fila de filtros compartida por Jefe/Chofer/Operarios: buscador de texto +
+// desplegable "Todos/Libres/Ya asignados" (ver activarBuscadorConFiltroEstado
+// en controller.js). Reemplaza al agrupado fijo de antes -- la idea es que el
+// admin filtre a los libres cuando quiere asignar, en vez de tener que
+// revisar una lista mezclada o separada en bloques.
+function filaFiltroAsignacion(inputId, selectId) {
+    return `
+        <div class="fila-filtros-asignacion">
+            <input type="text" id="${inputId}" class="input-buscador" placeholder="Buscar por nombre o cédula..." autocomplete="off">
+            <select id="${selectId}" class="select-filtro-estado">
+                <option value="">Todos</option>
+                <option value="libre">Libres</option>
+                <option value="asignado">Ya asignados</option>
+            </select>
+        </div>
+    `;
+}
+
 // Campos compartidos por el alta y la edición de Cuadrillas.
 function construirCamposCuadrillaHtml({ jefes, choferes, rutas, operarios }, cuadrillaRaw = null) {
     const textoBusquedaFuncionario = (f) => `${f.nombre} ${f.apellido} ${f.cedula || ""}`;
 
     // Model ya anota cada funcionario con _otraCuadrilla ({id, nombre}) cuando
-    // ya pertenece a OTRA cuadrilla -- separamos la lista en dos grupos para
-    // que se note a simple vista quién está libre y quién requeriría
-    // reasignarlo (ver manejarFormularioSubmit/manejarEdicionCuadrillaEnDetalleSubmit,
-    // que piden confirmación antes de guardar si se elige a alguien del segundo grupo).
+    // ya pertenece a OTRA cuadrilla -- se usa para el filtro de arriba
+    // (data-estado) y para aclarar en la propia opción/checkbox a cuál (ver
+    // manejarFormularioSubmit/manejarEdicionCuadrillaEnDetalleSubmit, que
+    // piden confirmación antes de guardar si se elige a alguien "asignado").
     const etiquetaConConflicto = (f) => `${f.nombre} ${f.apellido}` + (f._otraCuadrilla ? ` — ya en "${f._otraCuadrilla.nombre}"` : "");
-    const partirPorConflicto = (lista) => ({
-        libres: lista.filter((f) => !f._otraCuadrilla),
-        conConflicto: lista.filter((f) => f._otraCuadrilla)
-    });
+    const estadoConflicto = (f) => f._otraCuadrilla ? "asignado" : "libre";
 
-    const opcionesAgrupadas = (lista, idSeleccionado) => {
-        const partidos = partirPorConflicto(lista);
-        const libresHtml = partidos.libres.length
-            ? `<optgroup label="Sin cuadrilla asignada">${crearOpciones(partidos.libres, idSeleccionado, etiquetaConConflicto, textoBusquedaFuncionario)}</optgroup>`
-            : "";
-        const conConflictoHtml = partidos.conConflicto.length
-            ? `<optgroup label="Ya asignados a otra cuadrilla">${crearOpciones(partidos.conConflicto, idSeleccionado, etiquetaConConflicto, textoBusquedaFuncionario)}</optgroup>`
-            : "";
-        return libresHtml + conConflictoHtml;
-    };
-
-    const opcionesJefe = opcionesAgrupadas(jefes, cuadrillaRaw?.jefeId ?? null);
-    const opcionesChofer = opcionesAgrupadas(choferes, cuadrillaRaw?.choferId ?? null);
+    const opcionesJefe = crearOpciones(jefes, cuadrillaRaw?.jefeId ?? null, etiquetaConConflicto, textoBusquedaFuncionario, estadoConflicto);
+    const opcionesChofer = crearOpciones(choferes, cuadrillaRaw?.choferId ?? null, etiquetaConConflicto, textoBusquedaFuncionario, estadoConflicto);
     const opcionesRuta = crearOpciones(rutas, cuadrillaRaw?.rutaId ?? null, (r) => `${r.zona} — ${r.horario}`);
     const operariosDeEstaCuadrilla = cuadrillaRaw?.operarios ?? [];
 
     const operarioCheckboxHtml = (f) => `
-        <label class="checkbox-operario" data-busqueda="${escapeHtml(normalizarBusqueda(textoBusquedaFuncionario(f)))}">
+        <label class="checkbox-operario" data-busqueda="${escapeHtml(normalizarBusqueda(textoBusquedaFuncionario(f)))}" data-estado="${estadoConflicto(f)}">
             <input type="checkbox" name="operarios" value="${f.id}" ${operariosDeEstaCuadrilla.includes(f.id) ? "checked" : ""}>
             ${escapeHtml(etiquetaConConflicto(f))}
         </label>
     `;
 
-    const operariosPartidos = partirPorConflicto(operarios);
     const operariosHtml = operarios.length
-        ? `
-            ${operariosPartidos.libres.map(operarioCheckboxHtml).join("")}
-            ${operariosPartidos.conConflicto.length ? `
-                <p class="detail-nota lista-checkbox-operarios-separador">Ya asignados a otra cuadrilla:</p>
-                ${operariosPartidos.conConflicto.map(operarioCheckboxHtml).join("")}
-            ` : ""}
-        `
+        ? operarios.map(operarioCheckboxHtml).join("")
         : `<p class="detail-empty">No hay operarios disponibles.</p>`;
 
     // El camión no se elige acá: sigue al chofer asignado (se empareja desde el módulo Camiones).
     return `
         <div class="grupo-formulario">
             <label for="campoCuadrillaJefe">Jefe de cuadrilla</label>
-            <input type="text" id="buscarCuadrillaJefe" class="input-buscador" placeholder="Buscar por nombre o cédula..." autocomplete="off">
+            ${filaFiltroAsignacion("buscarCuadrillaJefe", "filtroCuadrillaJefe")}
             <select id="campoCuadrillaJefe" name="jefeId">
                 <option value="">Sin asignar</option>
                 ${opcionesJefe}
@@ -1097,7 +1123,7 @@ function construirCamposCuadrillaHtml({ jefes, choferes, rutas, operarios }, cua
 
         <div class="grupo-formulario">
             <label for="campoCuadrillaChofer">Chofer</label>
-            <input type="text" id="buscarCuadrillaChofer" class="input-buscador" placeholder="Buscar por nombre o cédula..." autocomplete="off">
+            ${filaFiltroAsignacion("buscarCuadrillaChofer", "filtroCuadrillaChofer")}
             <select id="campoCuadrillaChofer" name="choferId">
                 <option value="">Sin asignar</option>
                 ${opcionesChofer}
@@ -1114,7 +1140,7 @@ function construirCamposCuadrillaHtml({ jefes, choferes, rutas, operarios }, cua
 
         <div class="grupo-formulario grupo-formulario-completo">
             <label>Operarios</label>
-            <input type="text" id="buscarCuadrillaOperarios" class="input-buscador" placeholder="Buscar por nombre o cédula..." autocomplete="off">
+            ${filaFiltroAsignacion("buscarCuadrillaOperarios", "filtroCuadrillaOperarios")}
             <div class="lista-checkbox-operarios">${operariosHtml}</div>
         </div>
 

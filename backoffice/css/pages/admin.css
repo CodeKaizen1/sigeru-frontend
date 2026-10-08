@@ -860,12 +860,35 @@
 /*
    Buscador por nombre/cédula sobre un select o un checklist con muchas
    opciones (Jefe/Chofer/Operarios en el alta y edición de cuadrilla) - ver
-   activarBuscador() en view.js. Hereda el estilo de .grupo-formulario input
-   de components.css, solo le suma un margen para no pegarse con lo de abajo.
+   activarBuscador()/activarBuscadorConFiltroEstado() en view.js. Hereda el
+   estilo de .grupo-formulario input de components.css, solo le suma un
+   margen para no pegarse con lo de abajo.
 */
 
 .input-buscador {
     margin-bottom: 8px;
+}
+
+/*
+   Fila del buscador + el desplegable "Todos/Libres/Ya asignados" que lo
+   acompaña (filaFiltroAsignacion() en view.js) - van uno al lado del otro,
+   el buscador ocupa el espacio que sobra.
+*/
+
+.fila-filtros-asignacion {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.fila-filtros-asignacion .input-buscador {
+    flex: 1;
+    margin-bottom: 0;
+    min-width: 0;
+}
+
+.select-filtro-estado {
+    flex: 0 0 auto;
 }
 
 /*
