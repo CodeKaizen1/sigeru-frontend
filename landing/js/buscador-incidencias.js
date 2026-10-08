@@ -3,6 +3,15 @@
 
 const API_GESTION_BUSCADOR = "../../api-gestion/index.php";
 
+// Por defecto solo se muestran las primeras incidencias de cada columna
+// (pedido de Matías: la lista completa quedaba larguísima) -- "Ver todas"
+// destapa el resto, y buscar siempre busca sobre el total, no solo sobre
+// lo que está visible.
+const LIMITE_INCIDENCIAS_VISIBLES = 5;
+
+let verTodasEnCurso = false;
+let verTodasResueltas = false;
+
 // El endpoint de incidencia acepta POST sin sesión (lo necesita el formulario
 // público), así que lo que vuelve en la respuesta no se puede asumir seguro:
 // alguien puede mandar HTML directo con curl/Postman sin pasar por el
@@ -31,6 +40,14 @@ function formatearFechaReporte(fechaMysql) {
     const fechaTexto = fecha.toLocaleDateString("es-UY");
     const horaTexto = fecha.toLocaleTimeString("es-UY", { hour: "2-digit", minute: "2-digit" });
     return `Reportada el ${fechaTexto} a las ${horaTexto}`;
+}
+
+// ms desde época para poder ordenar -- Infinity si la fecha viene vacía o
+// rota, para que esas queden al final en vez de arriba de todo.
+function marcaDeTiempo(fechaMysql) {
+    if (!fechaMysql) return -Infinity;
+    const fecha = new Date(fechaMysql.replace(" ", "T"));
+    return isNaN(fecha.getTime()) ? -Infinity : fecha.getTime();
 }
 
 function claseEstadoIncidencia(estado) {
@@ -78,14 +95,35 @@ function pintarListado(contenedorId, incidencias, mensajeVacio) {
     contenedor.innerHTML = incidencias.map(crearTarjetaIncidencia).join("");
 }
 
+// Actualiza un botón "Ver todas (N)" / "Ver menos": se oculta si no hace
+// falta (no hay más que el límite por defecto).
+function actualizarBotonVerTodas(boton, total, verTodas) {
+    if (!boton) return;
+
+    if (total <= LIMITE_INCIDENCIAS_VISIBLES) {
+        boton.hidden = true;
+        return;
+    }
+
+    boton.hidden = false;
+    boton.textContent = verTodas ? "Ver menos" : `Ver todas (${total})`;
+}
+
 // Copia en memoria de la última lista pedida al servidor.
 let incidenciasCache = [];
 
 function pintarResultados() {
     const texto = normalizarBusquedaIncidencia(document.getElementById("buscarIncidencia")?.value || "");
 
-    const enCurso = incidenciasCache.filter((inc) => inc.estadoIncidencia !== "resuelta" && coincideBusqueda(inc, texto));
-    const resueltas = incidenciasCache.filter((inc) => inc.estadoIncidencia === "resuelta" && coincideBusqueda(inc, texto));
+    const ordenadas = [...incidenciasCache].sort((a, b) => marcaDeTiempo(b.fechaReporte) - marcaDeTiempo(a.fechaReporte));
+
+    const enCursoTotal = ordenadas.filter((inc) => inc.estadoIncidencia !== "resuelta" && coincideBusqueda(inc, texto));
+    const resueltasTotal = ordenadas.filter((inc) => inc.estadoIncidencia === "resuelta" && coincideBusqueda(inc, texto));
+
+    // Mientras se busca se muestran todas las coincidencias -- el límite por
+    // defecto es solo para la vista inicial, sin texto escrito.
+    const enCurso = (!texto && !verTodasEnCurso) ? enCursoTotal.slice(0, LIMITE_INCIDENCIAS_VISIBLES) : enCursoTotal;
+    const resueltas = (!texto && !verTodasResueltas) ? resueltasTotal.slice(0, LIMITE_INCIDENCIAS_VISIBLES) : resueltasTotal;
 
     pintarListado(
         "resultadosIncidenciasEnCurso",
@@ -98,6 +136,18 @@ function pintarResultados() {
         resueltas,
         texto ? "No se encontraron incidencias resueltas con esa búsqueda." : "Todavía no hay incidencias resueltas."
     );
+
+    const botonEnCurso = document.getElementById("verTodasEnCurso");
+    const botonResueltas = document.getElementById("verTodasResueltas");
+
+    if (texto) {
+        // Buscando ya se ve todo lo que coincide: el botón no aporta nada.
+        if (botonEnCurso) botonEnCurso.hidden = true;
+        if (botonResueltas) botonResueltas.hidden = true;
+    } else {
+        actualizarBotonVerTodas(botonEnCurso, enCursoTotal.length, verTodasEnCurso);
+        actualizarBotonVerTodas(botonResueltas, resueltasTotal.length, verTodasResueltas);
+    }
 }
 
 // Global a propósito: la llama app.js al guardar un aviso nuevo, sin recargar la página.
@@ -126,5 +176,21 @@ document.addEventListener("DOMContentLoaded", () => {
     const buscador = document.getElementById("buscarIncidencia");
     if (buscador) {
         buscador.addEventListener("input", pintarResultados);
+    }
+
+    const botonEnCurso = document.getElementById("verTodasEnCurso");
+    if (botonEnCurso) {
+        botonEnCurso.addEventListener("click", () => {
+            verTodasEnCurso = !verTodasEnCurso;
+            pintarResultados();
+        });
+    }
+
+    const botonResueltas = document.getElementById("verTodasResueltas");
+    if (botonResueltas) {
+        botonResueltas.addEventListener("click", () => {
+            verTodasResueltas = !verTodasResueltas;
+            pintarResultados();
+        });
     }
 });
