@@ -56,6 +56,71 @@ async function copiarAlPortapapeles(texto) {
     }
 }
 
+// Progreso de recolección de hoy ("qué contenedores ya levantó el chofer en
+// esta ruta"): a pedido de Matías, para que no tenga que ir scrolleando una
+// lista larga ni acordarse en qué parada se había quedado -- la próxima
+// pendiente siempre se muestra arriba, grande, y las ya levantadas se
+// colapsan. Se guarda en localStorage del propio celular (NO en la base: no
+// hace falta que el Jefe/Administrador vean parada por parada, solo si la
+// ruta está iniciada/finalizada, que eso sí viene de la base vía
+// ruta.estadoRuta) y se reinicia solo al marcar "Inicio" o "Fin" de ruta.
+function claveRecolectados(idRuta) {
+    return `sigeru_recolectados_ruta_${idRuta}`;
+}
+
+function obtenerRecolectados(idRuta) {
+    try {
+        const crudo = localStorage.getItem(claveRecolectados(idRuta));
+        return new Set(crudo ? JSON.parse(crudo) : []);
+    } catch (error) {
+        // localStorage bloqueado (navegación privada, storage lleno, etc.):
+        // seguimos sin romper nada, simplemente no persiste entre recargas.
+        return new Set();
+    }
+}
+
+function guardarRecolectados(idRuta, set) {
+    try {
+        localStorage.setItem(claveRecolectados(idRuta), JSON.stringify([...set]));
+    } catch (error) {
+        // Ídem arriba.
+    }
+}
+
+function limpiarRecolectados(idRuta) {
+    try {
+        localStorage.removeItem(claveRecolectados(idRuta));
+    } catch (error) {
+        // Ídem arriba.
+    }
+}
+
+// Una fila de parada: "destacada" es la próxima pendiente (tarjeta grande,
+// arriba de todo); accionHtml es el botón de la derecha ("Ya la levanté" o
+// "Deshacer", según si ya está recolectada o no).
+function filaParadaHtml({ contenedor, numero }, { destacada = false, recolectada = false, accionHtml }) {
+    const clases = ["parada-ruta"];
+    if (destacada) clases.push("parada-proxima");
+    if (recolectada) clases.push("recolectada");
+
+    return `
+        <div class="${clases.join(" ")}">
+            <div class="parada-ruta-info">
+                ${destacada ? `<span class="parada-proxima-etiqueta">Próxima parada</span>` : ""}
+                <span class="parada-ruta-numero">${numero}. Contenedor #${contenedor.idContenedor}</span>
+                <span class="data-sub">${contenedor.ubicacionContenedor || "Sin dirección cargada"}</span>
+            </div>
+            <div class="parada-ruta-acciones">
+                ${recolectada ? "" : `
+                    <a class="btn-secundario" href="${enlaceMapa(contenedor)}" target="_blank" rel="noopener">Abrir en Maps</a>
+                    <button type="button" class="btn-secundario" data-copiar-id="${contenedor.idContenedor}">Copiar dirección</button>
+                `}
+                ${accionHtml}
+            </div>
+        </div>
+    `;
+}
+
 // "let", no "const": iniciarPanel() la resuelve de verdad con
 // Model.recuperarUsuarioActual() antes del primer render().
 let usuario = Model.usuarioActual;
@@ -137,21 +202,53 @@ async function render() {
     // Direcciones de los contenedores de la zona de la ruta, para ir
     // recorriéndolas o pasarlas a un GPS externo (Google Maps, Waze, etc).
     const paradasRuta = await Model.obtenerContenedoresDeRutaDeCuadrilla(cuadrilla.id);
+    const idRutaActual = cuadrilla.ruta ? cuadrilla.ruta.id : null;
+    const recolectados = idRutaActual ? obtenerRecolectados(idRutaActual) : new Set();
 
-    const paradasRutaHtml = paradasRuta.length
-        ? paradasRuta.map((contenedor, indice) => `
-            <div class="parada-ruta">
-                <div class="parada-ruta-info">
-                    <span class="parada-ruta-numero">${indice + 1}. Contenedor #${contenedor.idContenedor}</span>
-                    <span class="data-sub">${contenedor.ubicacionContenedor || "Sin dirección cargada"}</span>
-                </div>
-                <div class="parada-ruta-acciones">
-                    <a class="btn-secundario" href="${enlaceMapa(contenedor)}" target="_blank" rel="noopener">Abrir en Maps</a>
-                    <button type="button" class="btn-secundario" data-copiar-indice="${indice}">Copiar dirección</button>
-                </div>
+    // El número de cada parada es el de ORDEN ORIGINAL (alfabético por
+    // dirección), no se recalcula al ir marcando -- así "la 7" sigue siendo
+    // la 7 aunque ya hayan levantado la 1 a la 6, y no se confunde al chofer.
+    const paradasConNumero = paradasRuta.map((contenedor, indice) => ({ contenedor, numero: indice + 1 }));
+    // idContenedor se compara siempre como String(...) en este proyecto (ver
+    // model.js: PDO lo devuelve como texto), nunca como número.
+    const pendientes = paradasConNumero.filter(({ contenedor }) => !recolectados.has(String(contenedor.idContenedor)));
+    const hechas = paradasConNumero.filter(({ contenedor }) => recolectados.has(String(contenedor.idContenedor)));
+    const [proxima, ...restoPendientes] = pendientes;
+
+    const botonRecolectar = (idContenedor) => `<button type="button" class="btn-exito" data-recolectar-id="${idContenedor}">✅ Ya la levanté</button>`;
+    const botonDeshacer = (idContenedor) => `<button type="button" class="btn-secundario" data-deshacer-id="${idContenedor}">Deshacer</button>`;
+
+    let paradasRutaHtml;
+    if (!paradasRuta.length) {
+        paradasRutaHtml = `<p class="detail-empty">No hay contenedores cargados todavía en tu ruta.</p>`;
+    } else {
+        const porcentaje = Math.round((hechas.length / paradasRuta.length) * 100);
+        const barraProgresoHtml = `
+            <div class="progreso-ruta">
+                <div class="progreso-ruta-barra"><div class="progreso-ruta-barra-relleno" style="width: ${porcentaje}%"></div></div>
+                <span class="progreso-ruta-texto">${hechas.length} de ${paradasRuta.length} levantados</span>
             </div>
-        `).join("")
-        : `<p class="detail-empty">No hay contenedores cargados todavía en tu ruta.</p>`;
+        `;
+
+        const proximaHtml = proxima
+            ? filaParadaHtml(proxima, { destacada: true, accionHtml: botonRecolectar(proxima.contenedor.idContenedor) })
+            : `<p class="recolectados-ruta-todas-hechas">🎉 Ya levantaste todos los contenedores de tu ruta de hoy.</p>`;
+
+        const restoHtml = restoPendientes.length
+            ? `<div class="paradas-ruta-lista">${restoPendientes.map((p) => filaParadaHtml(p, { accionHtml: botonRecolectar(p.contenedor.idContenedor) })).join("")}</div>`
+            : "";
+
+        const hechasHtml = hechas.length
+            ? `
+                <details class="recolectados-detalle">
+                    <summary>Ya levantados (${hechas.length})</summary>
+                    <div class="paradas-ruta-lista">${hechas.map((p) => filaParadaHtml(p, { recolectada: true, accionHtml: botonDeshacer(p.contenedor.idContenedor) })).join("")}</div>
+                </details>
+            `
+            : "";
+
+        paradasRutaHtml = `${barraProgresoHtml}${proximaHtml}${restoHtml}${hechasHtml}`;
+    }
 
     contenido.innerHTML = `
         <section class="admin-resumen">
@@ -219,9 +316,9 @@ async function render() {
                         ${paradasRuta.length ? `<button type="button" class="btn-secundario" id="btnCopiarTodasDirecciones">Copiar todas</button>` : ""}
                     </div>
                     <p class="detail-nota">
-                        Direcciones de los contenedores en la zona de tu ruta, ordenadas alfabéticamente. Podés abrirlas en Maps o copiarlas para pasarlas a un GPS externo.
+                        Direcciones de los contenedores de tu ruta, ordenadas alfabéticamente. Marcá cada una como "Ya la levanté" a medida que las vas recolectando -- la próxima te va a aparecer arriba sola, sin tener que scrollear. Podés abrirlas en Maps o copiarlas para pasarlas a un GPS externo.
                     </p>
-                    <div class="paradas-ruta-lista">${paradasRutaHtml}</div>
+                    <div class="paradas-ruta-contenido">${paradasRutaHtml}</div>
                 </section>
 
                 <section class="detail-panel">
@@ -256,9 +353,9 @@ async function render() {
         </div>
     `;
 
-    contenido.querySelectorAll("[data-copiar-indice]").forEach((boton) => {
+    contenido.querySelectorAll("[data-copiar-id]").forEach((boton) => {
         boton.addEventListener("click", async () => {
-            const contenedorElegido = paradasRuta[Number(boton.dataset.copiarIndice)];
+            const contenedorElegido = paradasRuta.find((c) => String(c.idContenedor) === boton.dataset.copiarId);
             if (!contenedorElegido) return;
 
             const copiado = await copiarAlPortapapeles(contenedorElegido.ubicacionContenedor || "");
@@ -266,11 +363,36 @@ async function render() {
         });
     });
 
+    // Marcar/deshacer una parada como recolectada hoy -- ver obtenerRecolectados
+    // más arriba. Se vuelve a renderizar todo para que la "próxima parada" se
+    // actualice sola, sin que el chofer tenga que hacer nada más.
+    contenido.querySelectorAll("[data-recolectar-id]").forEach((boton) => {
+        boton.addEventListener("click", async () => {
+            if (!idRutaActual) return;
+            const actuales = obtenerRecolectados(idRutaActual);
+            actuales.add(boton.dataset.recolectarId);
+            guardarRecolectados(idRutaActual, actuales);
+            await render();
+        });
+    });
+
+    contenido.querySelectorAll("[data-deshacer-id]").forEach((boton) => {
+        boton.addEventListener("click", async () => {
+            if (!idRutaActual) return;
+            const actuales = obtenerRecolectados(idRutaActual);
+            actuales.delete(boton.dataset.deshacerId);
+            guardarRecolectados(idRutaActual, actuales);
+            await render();
+        });
+    });
+
+    // "Copiar todas" solo copia lo que falta levantar (no lo ya recolectado) --
+    // tiene más sentido si se está pasando a un GPS externo a mitad de ruta.
     const botonCopiarTodas = document.getElementById("btnCopiarTodasDirecciones");
     if (botonCopiarTodas) {
         botonCopiarTodas.addEventListener("click", async () => {
-            const texto = paradasRuta
-                .map((contenedor, indice) => `${indice + 1}. ${contenedor.ubicacionContenedor || "Sin dirección cargada"}`)
+            const texto = pendientes
+                .map(({ contenedor, numero }) => `${numero}. ${contenedor.ubicacionContenedor || "Sin dirección cargada"}`)
                 .join("\n");
 
             const copiado = await copiarAlPortapapeles(texto);
@@ -281,6 +403,9 @@ async function render() {
     const botonIniciar = contenido.querySelector("[data-iniciar-ruta]");
     if (botonIniciar) {
         botonIniciar.addEventListener("click", async () => {
+            // Arranca el checklist de hoy en blanco -- si quedó algo marcado de
+            // una ruta anterior sin haber tocado "Fin", no se arrastra.
+            limpiarRecolectados(botonIniciar.dataset.iniciarRuta);
             await Model.iniciarRuta(botonIniciar.dataset.iniciarRuta);
             await render();
         });
@@ -290,6 +415,7 @@ async function render() {
     if (botonFinalizar) {
         botonFinalizar.addEventListener("click", async () => {
             await Model.finalizarRuta(botonFinalizar.dataset.finalizarRuta);
+            limpiarRecolectados(botonFinalizar.dataset.finalizarRuta);
             await render();
         });
     }

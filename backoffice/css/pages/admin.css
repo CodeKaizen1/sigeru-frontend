@@ -381,6 +381,118 @@
 }
 
 /*
+   PROGRESO DE RECOLECCIÓN + PRÓXIMA PARADA (panel del Chofer, 09/10/2026)
+   Ver panel-chofer.js: el chofer marca cada contenedor como "Ya la
+   levanté" y la próxima pendiente se destaca arriba de todo, sin tener
+   que scrollear una lista larga ni acordarse en qué parada iba.
+*/
+
+.progreso-ruta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.progreso-ruta-texto {
+    font-size: 13px;
+    font-weight: bold;
+    color: #082b4f;
+    white-space: nowrap;
+}
+
+.progreso-ruta-barra {
+    flex: 1;
+    height: 8px;
+    border-radius: 999px;
+    background: #eceff3;
+    overflow: hidden;
+}
+
+.progreso-ruta-barra-relleno {
+    height: 100%;
+    border-radius: 999px;
+    background: #137a3a;
+    transition: width 0.3s ease;
+}
+
+.parada-proxima {
+    border: 2px solid #082b4f;
+    background: #eaf1fb;
+    margin-bottom: 10px;
+}
+
+.parada-proxima .parada-ruta-numero {
+    font-size: 16px;
+}
+
+.parada-proxima-etiqueta {
+    display: block;
+    background: #082b4f;
+    color: white;
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 3px 9px;
+    border-radius: 999px;
+    width: fit-content;
+    margin-bottom: 2px;
+}
+
+.parada-ruta.recolectada {
+    opacity: 0.6;
+}
+
+.parada-ruta.recolectada .parada-ruta-numero,
+.parada-ruta.recolectada .data-sub {
+    text-decoration: line-through;
+}
+
+.recolectados-ruta-todas-hechas {
+    text-align: center;
+    padding: 18px 12px;
+    color: #137a3a;
+    font-weight: bold;
+}
+
+.recolectados-detalle {
+    margin-top: 10px;
+}
+
+.recolectados-detalle summary {
+    cursor: pointer;
+    font-weight: bold;
+    color: #082b4f;
+    padding: 8px 0;
+}
+
+.recolectados-detalle .paradas-ruta-lista {
+    margin-top: 8px;
+}
+
+.btn-exito {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    font-weight: 700;
+    border-radius: 12px;
+    padding: 13px 18px;
+    font-size: 0.95rem;
+    border: 1.5px solid #137a3a;
+    background: #137a3a;
+    color: white;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.btn-exito:hover {
+    background: #0f6230;
+}
+
+/*
    HERRAMIENTAS
  */
 
