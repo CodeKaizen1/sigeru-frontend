@@ -95,23 +95,40 @@ function limpiarRecolectados(idRuta) {
     }
 }
 
-// Una fila de parada: "destacada" es la próxima pendiente (tarjeta grande,
-// arriba de todo); accionHtml es el botón de la derecha ("Ya la levanté" o
-// "Deshacer", según si ya está recolectada o no).
-function filaParadaHtml({ contenedor, numero }, { destacada = false, recolectada = false, accionHtml }) {
+// Una fila de parada. "estado" decide qué control de acción aparece a la
+// derecha:
+//   - "proxima": es la única parada que se puede marcar -- a propósito no
+//     se deja marcar ninguna otra pendiente (si no, nada impedía saltearse
+//     una e ir marcando las de más adelante, dejando contenedores sin
+//     levantar sin que se note). Usa un checkbox discreto, no un botón de
+//     color, para no competir visualmente con Maps/Copiar.
+//   - "pendiente": sin acción de marcar -- solo información (Maps/Copiar).
+//   - "hecha": ya recolectada, con botón de Deshacer por si se equivocó.
+function filaParadaHtml({ contenedor, numero }, estado) {
     const clases = ["parada-ruta"];
-    if (destacada) clases.push("parada-proxima");
-    if (recolectada) clases.push("recolectada");
+    if (estado === "proxima") clases.push("parada-proxima");
+    if (estado === "hecha") clases.push("recolectada");
+
+    const accionHtml = estado === "proxima"
+        ? `
+            <button type="button" class="checkbox-parada" data-recolectar-id="${contenedor.idContenedor}" aria-label="Marcar como recolectada">
+                <span class="checkbox-parada-circulo"></span>
+                <span>Marcar recolectada</span>
+            </button>
+        `
+        : estado === "hecha"
+            ? `<button type="button" class="btn-secundario" data-deshacer-id="${contenedor.idContenedor}">Deshacer</button>`
+            : "";
 
     return `
-        <div class="${clases.join(" ")}">
+        <div class="${clases.join(" ")}" data-fila-contenedor="${contenedor.idContenedor}">
             <div class="parada-ruta-info">
-                ${destacada ? `<span class="parada-proxima-etiqueta">Próxima parada</span>` : ""}
+                ${estado === "proxima" ? `<span class="parada-proxima-etiqueta">Próxima parada</span>` : ""}
                 <span class="parada-ruta-numero">${numero}. Contenedor #${contenedor.idContenedor}</span>
                 <span class="data-sub">${contenedor.ubicacionContenedor || "Sin dirección cargada"}</span>
             </div>
             <div class="parada-ruta-acciones">
-                ${recolectada ? "" : `
+                ${estado === "hecha" ? "" : `
                     <a class="btn-secundario" href="${enlaceMapa(contenedor)}" target="_blank" rel="noopener">Abrir en Maps</a>
                     <button type="button" class="btn-secundario" data-copiar-id="${contenedor.idContenedor}">Copiar dirección</button>
                 `}
@@ -215,14 +232,6 @@ async function render() {
     const hechas = paradasConNumero.filter(({ contenedor }) => recolectados.has(String(contenedor.idContenedor)));
     const [proxima, ...restoPendientes] = pendientes;
 
-    // El botón sólido ("btn-exito") queda reservado para la Próxima parada --
-    // repetido en cada fila de la lista quedaba muy cargado visualmente. En
-    // el resto de las pendientes se usa una versión más discreta (mismo peso
-    // que "Abrir en Maps"/"Copiar dirección", solo con el borde verde).
-    const botonRecolectar = (idContenedor) => `<button type="button" class="btn-exito" data-recolectar-id="${idContenedor}">✅ Ya la levanté</button>`;
-    const botonRecolectarDiscreto = (idContenedor) => `<button type="button" class="btn-exito-discreto" data-recolectar-id="${idContenedor}">✓ Ya la levanté</button>`;
-    const botonDeshacer = (idContenedor) => `<button type="button" class="btn-secundario" data-deshacer-id="${idContenedor}">Deshacer</button>`;
-
     let paradasRutaHtml;
     if (!paradasRuta.length) {
         paradasRutaHtml = `<p class="detail-empty">No hay contenedores cargados todavía en tu ruta.</p>`;
@@ -236,18 +245,22 @@ async function render() {
         `;
 
         const proximaHtml = proxima
-            ? filaParadaHtml(proxima, { destacada: true, accionHtml: botonRecolectar(proxima.contenedor.idContenedor) })
+            ? filaParadaHtml(proxima, "proxima")
             : `<p class="recolectados-ruta-todas-hechas">🎉 Ya levantaste todos los contenedores de tu ruta de hoy.</p>`;
 
+        // Las pendientes que NO son la próxima solo muestran información
+        // (sin checkbox): no se puede marcar una parada salteándose la
+        // anterior, así no quedan contenedores sin levantar "escondidos"
+        // entre los que sí se marcaron.
         const restoHtml = restoPendientes.length
-            ? `<div class="paradas-ruta-lista">${restoPendientes.map((p) => filaParadaHtml(p, { accionHtml: botonRecolectarDiscreto(p.contenedor.idContenedor) })).join("")}</div>`
+            ? `<div class="paradas-ruta-lista">${restoPendientes.map((p) => filaParadaHtml(p, "pendiente")).join("")}</div>`
             : "";
 
         const hechasHtml = hechas.length
             ? `
                 <details class="recolectados-detalle">
                     <summary>Ya levantados (${hechas.length})</summary>
-                    <div class="paradas-ruta-lista">${hechas.map((p) => filaParadaHtml(p, { recolectada: true, accionHtml: botonDeshacer(p.contenedor.idContenedor) })).join("")}</div>
+                    <div class="paradas-ruta-lista">${hechas.map((p) => filaParadaHtml(p, "hecha")).join("")}</div>
                 </details>
             `
             : "";
@@ -321,7 +334,7 @@ async function render() {
                         ${paradasRuta.length ? `<button type="button" class="btn-secundario" id="btnCopiarTodasDirecciones">Copiar todas</button>` : ""}
                     </div>
                     <p class="detail-nota">
-                        Direcciones de los contenedores de tu ruta, ordenadas alfabéticamente. Marcá cada una como "Ya la levanté" a medida que las vas recolectando -- la próxima te va a aparecer arriba sola, sin tener que scrollear. Podés abrirlas en Maps o copiarlas para pasarlas a un GPS externo.
+                        Direcciones de los contenedores de tu ruta, ordenadas alfabéticamente. Marcá la próxima parada como recolectada a medida que la levantás -- la que sigue va a aparecer arriba sola. Podés abrirlas en Maps o copiarlas para pasarlas a un GPS externo.
                     </p>
                     <div class="paradas-ruta-contenido">${paradasRutaHtml}</div>
                 </section>
@@ -368,31 +381,26 @@ async function render() {
         });
     });
 
-    // Marcar/deshacer una parada como recolectada hoy -- ver obtenerRecolectados
-    // más arriba. Se vuelve a renderizar todo para que la "próxima parada" se
-    // actualice sola, sin que el chofer tenga que hacer nada más. Además se
-    // avisa con el banner de notificaciones (NO con avisar(), que es un
-    // popup que hay que cerrar a mano -- acá se toca este botón muchas veces
-    // seguidas, un popup por cada toque sería al pedo) para que quede claro
-    // que el toque sí hizo algo: antes la única señal era el numerito chico
-    // de "Ya levantados (X)", fácil de no notar.
+    // Marcar una parada como recolectada hoy -- ver obtenerRecolectados más
+    // arriba. Antes de volver a renderizar todo (lo que saca la fila de acá
+    // para abajo, a la sección colapsada), se la marca visualmente EN EL
+    // LUGAR -- el checkbox se rellena y la dirección se tacha, con una
+    // pequeña demora -- para que el chofer vea con sus propios ojos que ESA
+    // parada puntual quedó marcada, en vez de depender de un aviso aparte en
+    // otra parte de la pantalla.
     contenido.querySelectorAll("[data-recolectar-id]").forEach((boton) => {
         boton.addEventListener("click", async () => {
             if (!idRutaActual) return;
-            const contenedorMarcado = paradasRuta.find((c) => String(c.idContenedor) === boton.dataset.recolectarId);
+
+            const fila = boton.closest("[data-fila-contenedor]");
+            if (fila) fila.classList.add("marcando");
+            boton.disabled = true;
+
+            await new Promise((resolve) => setTimeout(resolve, 500));
 
             const actuales = obtenerRecolectados(idRutaActual);
             actuales.add(boton.dataset.recolectarId);
             guardarRecolectados(idRutaActual, actuales);
-
-            const faltan = paradasRuta.length - actuales.size;
-            const direccion = contenedorMarcado ? contenedorMarcado.ubicacionContenedor : null;
-            NotificacionesUI.mostrarBanner(
-                faltan > 0
-                    ? `✅ Recolectado${direccion ? `: ${direccion}` : ""}. Faltan ${faltan} parada${faltan === 1 ? "" : "s"}.`
-                    : `✅ Recolectado${direccion ? `: ${direccion}` : ""}. ¡Terminaste tu ruta de hoy!`
-            );
-
             await render();
         });
     });

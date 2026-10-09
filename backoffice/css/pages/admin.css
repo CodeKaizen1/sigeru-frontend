@@ -471,51 +471,63 @@
     margin-top: 8px;
 }
 
-.btn-exito {
+/* Checkbox de "marcar recolectada": a propósito NO es un botón de color
+   (ver versiones anteriores descartadas, .btn-exito/.btn-exito-discreto) --
+   un checkbox discreto con su etiqueta en texto normal, mismo lenguaje
+   visual que un casillero de lista de tareas. Solo aparece en la Próxima
+   parada (es la única que se puede marcar). */
+.checkbox-parada {
     display: inline-flex;
-    justify-content: center;
     align-items: center;
     gap: 8px;
-    text-decoration: none;
-    font-weight: 700;
-    border-radius: 12px;
-    padding: 13px 18px;
-    font-size: 0.95rem;
-    border: 1.5px solid #137a3a;
-    background: #137a3a;
+    background: none;
+    border: none;
+    padding: 6px 2px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #344559;
+    cursor: pointer;
+}
+
+.checkbox-parada-circulo {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid #9aa9bb;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     color: white;
-    cursor: pointer;
-    transition: 0.2s ease;
+    font-size: 13px;
+    font-weight: bold;
+    line-height: 1;
+    transition: background-color 0.25s ease, border-color 0.25s ease;
 }
 
-.btn-exito:hover {
-    background: #0f6230;
+.checkbox-parada:hover .checkbox-parada-circulo {
+    border-color: #137a3a;
 }
 
-/* Versión discreta: mismo peso visual que .btn-secundario (borde fino,
-   fondo blanco), solo que en verde -- para el resto de la lista de
-   pendientes, donde el botón sólido repetido en cada fila quedaba
-   demasiado cargado. El sólido (.btn-exito) queda solo para la tarjeta
-   de "Próxima parada". */
-.btn-exito-discreto {
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
-    gap: 8px;
-    text-decoration: none;
-    font-weight: 700;
-    border-radius: 12px;
-    padding: 13px 18px;
-    font-size: 0.95rem;
-    border: 1.5px solid #137a3a;
-    background: white;
-    color: #137a3a;
-    cursor: pointer;
-    transition: 0.2s ease;
+/* Al tocar el checkbox se agrega esta clase a la FILA (no solo al botón) un
+   instante antes de sacarla de la lista -- así el chofer ve, en el lugar
+   exacto donde tocó, que esa parada puntual quedó marcada (el círculo se
+   rellena y la dirección se tacha) en vez de depender de un aviso en otra
+   parte de la pantalla. */
+.parada-ruta.marcando .checkbox-parada-circulo {
+    background: #137a3a;
+    border-color: #137a3a;
 }
 
-.btn-exito-discreto:hover {
-    background: #eafbf0;
+.parada-ruta.marcando .checkbox-parada-circulo::after {
+    content: "✓";
+}
+
+.parada-ruta.marcando .parada-ruta-numero,
+.parada-ruta.marcando .data-sub {
+    text-decoration: line-through;
+    opacity: 0.55;
+    transition: opacity 0.25s ease;
 }
 
 /*
