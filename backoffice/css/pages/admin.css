@@ -492,6 +492,32 @@
     background: #0f6230;
 }
 
+/* Versión discreta: mismo peso visual que .btn-secundario (borde fino,
+   fondo blanco), solo que en verde -- para el resto de la lista de
+   pendientes, donde el botón sólido repetido en cada fila quedaba
+   demasiado cargado. El sólido (.btn-exito) queda solo para la tarjeta
+   de "Próxima parada". */
+.btn-exito-discreto {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    font-weight: 700;
+    border-radius: 12px;
+    padding: 13px 18px;
+    font-size: 0.95rem;
+    border: 1.5px solid #137a3a;
+    background: white;
+    color: #137a3a;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.btn-exito-discreto:hover {
+    background: #eafbf0;
+}
+
 /*
    HERRAMIENTAS
  */

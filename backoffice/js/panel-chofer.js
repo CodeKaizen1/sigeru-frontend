@@ -215,7 +215,12 @@ async function render() {
     const hechas = paradasConNumero.filter(({ contenedor }) => recolectados.has(String(contenedor.idContenedor)));
     const [proxima, ...restoPendientes] = pendientes;
 
+    // El botón sólido ("btn-exito") queda reservado para la Próxima parada --
+    // repetido en cada fila de la lista quedaba muy cargado visualmente. En
+    // el resto de las pendientes se usa una versión más discreta (mismo peso
+    // que "Abrir en Maps"/"Copiar dirección", solo con el borde verde).
     const botonRecolectar = (idContenedor) => `<button type="button" class="btn-exito" data-recolectar-id="${idContenedor}">✅ Ya la levanté</button>`;
+    const botonRecolectarDiscreto = (idContenedor) => `<button type="button" class="btn-exito-discreto" data-recolectar-id="${idContenedor}">✓ Ya la levanté</button>`;
     const botonDeshacer = (idContenedor) => `<button type="button" class="btn-secundario" data-deshacer-id="${idContenedor}">Deshacer</button>`;
 
     let paradasRutaHtml;
@@ -235,7 +240,7 @@ async function render() {
             : `<p class="recolectados-ruta-todas-hechas">🎉 Ya levantaste todos los contenedores de tu ruta de hoy.</p>`;
 
         const restoHtml = restoPendientes.length
-            ? `<div class="paradas-ruta-lista">${restoPendientes.map((p) => filaParadaHtml(p, { accionHtml: botonRecolectar(p.contenedor.idContenedor) })).join("")}</div>`
+            ? `<div class="paradas-ruta-lista">${restoPendientes.map((p) => filaParadaHtml(p, { accionHtml: botonRecolectarDiscreto(p.contenedor.idContenedor) })).join("")}</div>`
             : "";
 
         const hechasHtml = hechas.length
@@ -365,13 +370,29 @@ async function render() {
 
     // Marcar/deshacer una parada como recolectada hoy -- ver obtenerRecolectados
     // más arriba. Se vuelve a renderizar todo para que la "próxima parada" se
-    // actualice sola, sin que el chofer tenga que hacer nada más.
+    // actualice sola, sin que el chofer tenga que hacer nada más. Además se
+    // avisa con el banner de notificaciones (NO con avisar(), que es un
+    // popup que hay que cerrar a mano -- acá se toca este botón muchas veces
+    // seguidas, un popup por cada toque sería al pedo) para que quede claro
+    // que el toque sí hizo algo: antes la única señal era el numerito chico
+    // de "Ya levantados (X)", fácil de no notar.
     contenido.querySelectorAll("[data-recolectar-id]").forEach((boton) => {
         boton.addEventListener("click", async () => {
             if (!idRutaActual) return;
+            const contenedorMarcado = paradasRuta.find((c) => String(c.idContenedor) === boton.dataset.recolectarId);
+
             const actuales = obtenerRecolectados(idRutaActual);
             actuales.add(boton.dataset.recolectarId);
             guardarRecolectados(idRutaActual, actuales);
+
+            const faltan = paradasRuta.length - actuales.size;
+            const direccion = contenedorMarcado ? contenedorMarcado.ubicacionContenedor : null;
+            NotificacionesUI.mostrarBanner(
+                faltan > 0
+                    ? `✅ Recolectado${direccion ? `: ${direccion}` : ""}. Faltan ${faltan} parada${faltan === 1 ? "" : "s"}.`
+                    : `✅ Recolectado${direccion ? `: ${direccion}` : ""}. ¡Terminaste tu ruta de hoy!`
+            );
+
             await render();
         });
     });
