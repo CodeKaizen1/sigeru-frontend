@@ -578,8 +578,8 @@ function crearFila(modulo, registro) {
             <button class="data-row" data-id="${registro.id}" type="button">
                 <span class="data-id">${registro.id}</span>
                 <span>
-                    <span class="data-main">${escapeHtml(registro.zona)}</span>
-                    <span class="data-sub">${escapeHtml(registro.horario)} — ${escapeHtml(registro._cuadrillaResumen)}</span>
+                    <span class="data-main">${escapeHtml(registro.nombre || registro.zona)}</span>
+                    <span class="data-sub">${registro.nombre ? `${escapeHtml(registro.zona)} — ` : ""}${escapeHtml(registro.horario)} — ${escapeHtml(registro._cuadrillaResumen)}</span>
                 </span>
                 <span class="estado estado-${claseEstado(registro.estadoAdmin)}">${escapeHtml(registro.estadoAdmin)}</span>
                 <span class="data-sub">${escapeHtml(registro.frecuencia)}</span>
@@ -833,7 +833,7 @@ export function renderDetalle(modulo, registro, datosExtra = {}, configEdicion =
             ? `Jefe: ${cuadrilla.jefe ? `${cuadrilla.jefe.nombre} ${cuadrilla.jefe.apellido}` : "sin jefe asignado"}`
             : "Sin cuadrilla asignada";
         const rutaTexto = cuadrilla && cuadrilla.ruta
-            ? `${cuadrilla.ruta.zona} — ${cuadrilla.ruta.horario}`
+            ? `${cuadrilla.ruta.nombre || cuadrilla.ruta.zona} — ${cuadrilla.ruta.horario}`
             : "Sin ruta asignada";
 
         contenidoHtml = `
@@ -876,7 +876,7 @@ export function renderDetalle(modulo, registro, datosExtra = {}, configEdicion =
         const camionTexto = registro.camion
             ? `${registro.camion.marca} ${registro.camion.modelo} (${registro.camion.matricula})`
             : "Sin camión asignado";
-        const rutaTexto = registro.ruta ? `${registro.ruta.zona} — ${registro.ruta.horario}` : "Sin asignar";
+        const rutaTexto = registro.ruta ? `${registro.ruta.nombre || registro.ruta.zona} — ${registro.ruta.horario}` : "Sin asignar";
 
         // Solo lectura acá; la edición se hace en un popup aparte (ver renderFormularioEdicionCuadrillaEnDetalle).
         const operariosHtml = registro.operarios.length
@@ -922,10 +922,11 @@ export function renderDetalle(modulo, registro, datosExtra = {}, configEdicion =
             : "Sin cuadrilla asignada";
 
         contenidoHtml = `
-            <h3>${enEdicion ? escapeHtml(configEdicion.tituloEdicion) : escapeHtml(registro.zona)}</h3>
+            <h3>${enEdicion ? escapeHtml(configEdicion.tituloEdicion) : escapeHtml(registro.nombre || registro.zona)}</h3>
             ${enEdicion ? "" : `<p>${escapeHtml(registro.recorrido)}</p>`}
 
             <div class="${claseGrid}">
+                ${enEdicion ? "" : (registro.nombre ? crearDetalleItem("Zona / barrio", registro.zona) : "")}
                 ${enEdicion ? item("Zona", registro.zona, "zona") : ""}
                 ${enEdicion ? item("Recorrido", registro.recorrido, "recorrido") : ""}
                 ${crearDetalleItem("Estado", registro.estadoAdmin)}
@@ -1098,7 +1099,7 @@ function construirCamposCuadrillaHtml({ jefes, choferes, rutas, operarios }, cua
 
     const opcionesJefe = crearOpciones(jefes, cuadrillaRaw?.jefeId ?? null, etiquetaFuncionario, textoBusquedaFuncionario, estadoConflicto);
     const opcionesChofer = crearOpciones(choferes, cuadrillaRaw?.choferId ?? null, etiquetaFuncionario, textoBusquedaFuncionario, estadoConflicto);
-    const opcionesRuta = crearOpciones(rutas, cuadrillaRaw?.rutaId ?? null, (r) => `${r.zona} — ${r.horario}`);
+    const opcionesRuta = crearOpciones(rutas, cuadrillaRaw?.rutaId ?? null, (r) => `${r.nombre || r.zona} — ${r.horario}`);
     const operariosDeEstaCuadrilla = cuadrillaRaw?.operarios ?? [];
 
     const operarioCheckboxHtml = (f) => `

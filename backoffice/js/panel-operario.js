@@ -5,7 +5,7 @@
 // Nota: la tarjeta "Mi turno" muestra "—" para todos porque ese dato (turnoOperarioDeCuadrilla)
 // no está expuesto todavía por Model.obtenerRegistroPorId("funcionarios", ...).
 
-import * as Model from "./admin/model.js?v=33";
+import * as Model from "./admin/model.js?v=34";
 import * as NotificacionesUI from "./admin/notificaciones-ui.js?v=2";
 import * as CuentaUI from "./admin/cuenta-ui.js?v=4";
 import { confirmar } from "./admin/confirmar-ui.js?v=3";
@@ -85,7 +85,7 @@ async function render() {
 
             <article class="resumen-card">
                 <span>Ruta</span>
-                <strong>${cuadrilla.ruta ? cuadrilla.ruta.zona : "Sin asignar"}</strong>
+                <strong>${cuadrilla.ruta ? (cuadrilla.ruta.nombre || cuadrilla.ruta.zona) : "Sin asignar"}</strong>
             </article>
 
             <article class="resumen-card">

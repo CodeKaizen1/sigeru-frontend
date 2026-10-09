@@ -3,7 +3,7 @@
 // ni asigna la ruta (eso es exclusivo del Administrador). Sí puede marcar inicio/fin de ruta
 // y reportar o resolver incidencias.
 
-import * as Model from "./admin/model.js?v=33";
+import * as Model from "./admin/model.js?v=34";
 import * as NotificacionesUI from "./admin/notificaciones-ui.js?v=2";
 import * as CuentaUI from "./admin/cuenta-ui.js?v=4";
 import { confirmar, avisar } from "./admin/confirmar-ui.js?v=3";
@@ -137,7 +137,7 @@ async function render() {
 
             <article class="resumen-card">
                 <span>Ruta</span>
-                <strong>${cuadrilla.ruta ? cuadrilla.ruta.zona : "Sin asignar"}</strong>
+                <strong>${cuadrilla.ruta ? (cuadrilla.ruta.nombre || cuadrilla.ruta.zona) : "Sin asignar"}</strong>
             </article>
 
             <article class="resumen-card">
@@ -216,7 +216,7 @@ async function render() {
                         <div class="grupo-formulario autocomplete-combo">
                             <label for="buscadorContenedorIncidencia">Contenedor</label>
                             <input type="text" id="buscadorContenedorIncidencia" autocomplete="off"
-                                placeholder="${contenedoresDeRuta.length ? "Escribí para buscar en tu ruta" : "No hay contenedores en tu zona"}"
+                                placeholder="${contenedoresDeRuta.length ? "Escribí para buscar en tu ruta" : "No hay contenedores en tu ruta"}"
                                 ${contenedoresDeRuta.length ? "" : "disabled"}>
                             <input type="hidden" id="selectContenedorIncidencia">
                             <ul id="resultadosContenedorIncidencia" class="autocomplete-resultados" role="listbox" hidden></ul>

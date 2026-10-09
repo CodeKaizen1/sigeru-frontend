@@ -5,7 +5,7 @@
 // No usa el patrón de lista + detalle del panel administrador: el contenido es siempre "lo mío",
 // no un listado a filtrar.
 
-import * as Model from "./admin/model.js?v=33";
+import * as Model from "./admin/model.js?v=34";
 import * as NotificacionesUI from "./admin/notificaciones-ui.js?v=2";
 import * as CuentaUI from "./admin/cuenta-ui.js?v=4";
 import { confirmar, avisar } from "./admin/confirmar-ui.js?v=3";
@@ -151,7 +151,7 @@ async function render() {
                 </div>
             </div>
         `).join("")
-        : `<p class="detail-empty">No hay contenedores cargados todavía en la zona de tu ruta.</p>`;
+        : `<p class="detail-empty">No hay contenedores cargados todavía en tu ruta.</p>`;
 
     contenido.innerHTML = `
         <section class="admin-resumen">
@@ -167,7 +167,7 @@ async function render() {
 
             <article class="resumen-card">
                 <span>Ruta</span>
-                <strong>${cuadrilla.ruta ? cuadrilla.ruta.zona : "Sin asignar"}</strong>
+                <strong>${cuadrilla.ruta ? (cuadrilla.ruta.nombre || cuadrilla.ruta.zona) : "Sin asignar"}</strong>
             </article>
 
             <article class="resumen-card">

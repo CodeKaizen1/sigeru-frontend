@@ -355,17 +355,24 @@ export async function asignarCuadrillaAIncidencia(idIncidencia, idCuadrilla) {
     return incidencia;
 }
 
-// Contenedores del barrio de la ruta asignada a una cuadrilla, para que el
-// Jefe pueda elegir sobre cuál es la incidencia que está reportando (antes
-// se reportaba siempre con idContenedor null). Reusa el mismo buscador por
-// barrio que el mapa de la landing (ContenedorController::buscar) -- no
-// tiene sentido traer los ~11.130 contenedores completos solo para esto.
+// Contenedores de la ruta especifica asignada a una cuadrilla (para que el
+// Jefe pueda elegir sobre cual es la incidencia que esta reportando, y para
+// que chofer/jefe/operario vean las direcciones que LES TOCAN A ELLOS).
+// Antes se pedia por barrio completo (ContenedorController::buscar con
+// "barrio"), pero un barrio grande puede tener varias rutas reales
+// distintas (ej. Pocitos: 396 contenedores en 12 rutas) -- un chofer no
+// puede levantar todo el barrio, solo le corresponden los de SU ruta (ver
+// contenedor.idRuta, 01_code.sql seccion 11, y ContenedorController::
+// obtenerPorRuta). Si la ruta todavia no tiene ningun contenedor asignado
+// (dato viejo, de antes de este cambio) devuelve vacio en vez de volver a
+// traer todo el barrio -- es preferible mostrar "no hay nada cargado" a
+// volver al bug de mostrar contenedores que no son de esa ruta.
 export async function obtenerContenedoresDeRutaDeCuadrilla(idCuadrilla) {
     const cuadrilla = detalleCuadrilla(idCuadrilla);
-    const zona = cuadrilla && cuadrilla.ruta ? cuadrilla.ruta.zona : null;
-    if (!zona) return [];
+    const idRuta = cuadrilla && cuadrilla.ruta ? cuadrilla.ruta.id : null;
+    if (!idRuta) return [];
 
-    const { ok, datos: respuesta } = await llamarGestion("contenedor", "GET", undefined, null, { barrio: zona });
+    const { ok, datos: respuesta } = await llamarGestion("contenedor", "GET", undefined, null, { idRuta });
     return ok && Array.isArray(respuesta) ? respuesta : [];
 }
 
@@ -762,7 +769,7 @@ export function obtenerRutas() {
 // nuevo a la lista completa en vez de dejar el selector sin opciones.
 export function opcionesCuadrillaParaAsignar(zonaIncidencia) {
     const construirOpcion = (cuadrilla, ruta) => {
-        const etiquetaZona = ruta ? ` — ${ruta.zona}` : "";
+        const etiquetaZona = ruta ? ` — ${ruta.nombre || ruta.zona}` : "";
         const nombreJefe = cuadrilla.jefeId ? nombreFuncionario(cuadrilla.jefeId) : null;
         const etiquetaJefe = nombreJefe ? ` (jefe: ${nombreJefe})` : " (sin jefe asignado)";
         return { value: cuadrilla.id, label: `${cuadrilla.id}${etiquetaZona}${etiquetaJefe}` };
@@ -786,7 +793,7 @@ export function opcionesCuadrillaParaAsignar(zonaIncidencia) {
 
 export function opcionesRutasParaAsignar() {
     return [{ value: "", label: "Sin asignar" }].concat(
-        datos.rutas.map((ruta) => ({ value: ruta.id, label: `${ruta.zona} — ${ruta.horario}` }))
+        datos.rutas.map((ruta) => ({ value: ruta.id, label: `${ruta.nombre || ruta.zona} — ${ruta.horario}` }))
     );
 }
 
@@ -897,6 +904,16 @@ async function cargarRutas() {
         const matchMunicipio = (fila.recorridoRuta || "").match(MUNICIPIO_DESDE_RECORRIDO);
         return {
             id: String(fila.idRuta),
+            // nombreRuta (ej. "Pocitos 3") identifica una ruta puntual cuando
+            // su barrio tiene mas de una. OJO: a proposito NO cae de vuelta a
+            // la zona aca (ese fallback se aplica solo al MOSTRARLO, en los
+            // paneles de chofer/jefe/operario) -- si lo hiciera, guardarRuta()
+            // reenviaria ese texto "de relleno" como si fuera el nombre real
+            // guardado, y un jefe marcando inicio/fin de SU ruta (que solo
+            // puede tocar estado/horaInicio/horaFin, ver Utilidades.php
+            // soloCambianCamposPermitidos) se encontraria "cambiando" tambien
+            // nombreRuta sin querer y el backend le rechazaria el guardado.
+            nombre: fila.nombreRuta || "",
             zona: fila.zonaRuta || "",
             recorrido: fila.recorridoRuta || "",
             municipio: matchMunicipio ? `Municipio ${matchMunicipio[1]}` : "",
@@ -929,7 +946,15 @@ async function guardarRuta(ruta) {
         estadoRuta: ruta.estado,
         horaInicioRealRuta: ruta.horaInicioReal,
         horaFinRealRuta: ruta.horaFinReal,
-        estadoAdminRuta: ruta.estadoAdmin
+        estadoAdminRuta: ruta.estadoAdmin,
+        // Importante: aunque esta funcion solo cambie estado/horaInicio/Fin
+        // (marcar inicio/fin de ruta desde el panel del jefe), hay que
+        // re-enviar nombreRuta con su valor actual -- el backend valida que
+        // un jefe de cuadrilla SOLO pueda tocar esos 3 campos comparando TODA
+        // la fila (soloCambianCamposPermitidos en Utilidades.php), y si este
+        // campo faltara en el body lo interpretaria como "lo querés borrar"
+        // y rechazaria el guardado con 403.
+        nombreRuta: ruta.nombre
     }, ruta.id);
 
     return ok;
@@ -1474,6 +1499,7 @@ export const configuracionModulos = {
         ],
         columnasExport: [
             { campo: "id", etiqueta: "ID" },
+            { campo: "nombre", etiqueta: "Nombre de la ruta", valorVacio: "Sin nombre" },
             { campo: "zona", etiqueta: "Zona" },
             { campo: "municipio", etiqueta: "Municipio", valorVacio: "Sin datos" },
             { campo: "frecuencia", etiqueta: "Frecuencia" },
@@ -1560,6 +1586,7 @@ export const formulariosAlta = {
         titulo: "Nueva ruta",
         tituloEdicion: "Editar ruta",
         campos: [
+            { nombre: "nombre", etiqueta: "Nombre de la ruta", tipo: "text", requerido: false, ancho: "completo", placeholder: "Ej: Pocitos 9 (si el barrio ya tiene otras rutas, para distinguirla)" },
             { nombre: "zona", etiqueta: "Zona / barrio", tipo: "text", requerido: true, ancho: "completo", placeholder: "Ej: Pocitos" },
             { nombre: "recorrido", etiqueta: "Recorrido", tipo: "text", requerido: true, ancho: "completo", placeholder: "Ej: Av. Brasil - Bulevar España - Rambla" },
             { nombre: "frecuencia", etiqueta: "Frecuencia", tipo: "select", requerido: true, opciones: ["Diaria", "Interdiaria", "Semanal", "Irregular", "Sin datos"] },
@@ -1732,7 +1759,7 @@ function filasCuadrillas() {
         _operariosCantidad: cuadrilla.operarios.length,
         _rutaResumen: (() => {
             const ruta = datos.rutas.find((r) => r.id === cuadrilla.rutaId);
-            return ruta ? `${ruta.zona} (${ruta.horario})` : "Sin ruta asignada";
+            return ruta ? `${ruta.nombre || ruta.zona} (${ruta.horario})` : "Sin ruta asignada";
         })()
     }));
 }
@@ -1744,7 +1771,7 @@ function filasCamiones() {
             ...camion,
             _choferNombre: camion.choferId ? (nombreFuncionario(camion.choferId) || "Sin asignar") : "Sin asignar",
             _rutaResumen: cuadrilla && cuadrilla.ruta
-                ? `${cuadrilla.ruta.zona} (${cuadrilla.ruta.horario})`
+                ? `${cuadrilla.ruta.nombre || cuadrilla.ruta.zona} (${cuadrilla.ruta.horario})`
                 : "Sin ruta asignada"
         };
     });
@@ -1904,7 +1931,8 @@ export async function crearRegistro(modulo, valoresCampos) {
             estadoRuta: "sin iniciar",
             horaInicioRealRuta: null,
             horaFinRealRuta: null,
-            estadoAdminRuta: "activa"
+            estadoAdminRuta: "activa",
+            nombreRuta: valoresCampos.nombre || null
         });
         if (!ok) return null;
         await cargarRutas();
@@ -2101,7 +2129,8 @@ export async function alternarBaja(modulo, id) {
             estadoRuta: registro.estado,
             horaInicioRealRuta: registro.horaInicioReal,
             horaFinRealRuta: registro.horaFinReal,
-            estadoAdminRuta: nuevoEstado
+            estadoAdminRuta: nuevoEstado,
+            nombreRuta: registro.nombre || null
         }, id));
     } else if (modulo === "centrosDeAcopio" || modulo === "vertederos") {
         ok = await persistirInstalacion(modulo, { ...registro, estado: nuevoEstado });
