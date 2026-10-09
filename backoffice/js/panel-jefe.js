@@ -136,6 +136,11 @@ async function render() {
             </article>
 
             <article class="resumen-card">
+                <span>Ruta</span>
+                <strong>${cuadrilla.ruta ? cuadrilla.ruta.zona : "Sin asignar"}</strong>
+            </article>
+
+            <article class="resumen-card">
                 <span>Horario</span>
                 <strong>${cuadrilla.ruta ? cuadrilla.ruta.horario : "—"}</strong>
             </article>
