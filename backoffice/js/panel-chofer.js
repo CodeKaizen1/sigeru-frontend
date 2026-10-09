@@ -1,13 +1,60 @@
 // PANEL DEL CHOFER
-// Ve su cuadrilla, el estado de su camión, la ruta/horario asignados y las incidencias
-// abiertas en su ruta (con posibilidad de marcarlas resueltas). No usa el patrón de lista +
-// detalle del panel administrador: el contenido es siempre "lo mío", no un listado a filtrar.
+// Ve su cuadrilla, el estado de su camión, la ruta/horario asignados, las direcciones de los
+// contenedores de su ruta (para ir recorriéndolas o pasarlas a un GPS externo) y las incidencias
+// abiertas en su ruta (solo lectura -- resolverlas es del Jefe de Cuadrilla o el Administrador).
+// No usa el patrón de lista + detalle del panel administrador: el contenido es siempre "lo mío",
+// no un listado a filtrar.
 
 import * as Model from "./admin/model.js?v=33";
 import * as NotificacionesUI from "./admin/notificaciones-ui.js?v=2";
 import * as CuentaUI from "./admin/cuenta-ui.js?v=4";
-import { confirmar } from "./admin/confirmar-ui.js?v=3";
-import { pedirTexto } from "./admin/asignar-ui.js?v=1";
+import { confirmar, avisar } from "./admin/confirmar-ui.js?v=3";
+
+// El chofer no administra incidencias (eso es del Jefe de Cuadrilla y el
+// Administrador -- ver el permiso del lado del servidor en api-gestion/index.php,
+// "chofer y cualquier otro caso siguen siendo solo-lectura"), así que acá no
+// hace falta pedirTexto() para el popup de "marcar resuelta".
+
+// No hay un "orden de recorrido" real cargado en la base (los contenedores
+// de la zona vienen ordenados alfabéticamente por dirección, ver
+// ContenedorController::buscar) -- igual sirve como una lista fija y
+// predecible para ir tachando direcciones o pasarlas a un GPS externo.
+function enlaceMapa(contenedor) {
+    const tieneCoordenadas = contenedor.latitudContenedor !== null && contenedor.latitudContenedor !== undefined && contenedor.latitudContenedor !== ""
+        && contenedor.longitudContenedor !== null && contenedor.longitudContenedor !== undefined && contenedor.longitudContenedor !== "";
+
+    const destino = tieneCoordenadas
+        ? `${contenedor.latitudContenedor},${contenedor.longitudContenedor}`
+        : encodeURIComponent(contenedor.ubicacionContenedor || "");
+
+    return `https://www.google.com/maps/dir/?api=1&destination=${destino}&travelmode=driving`;
+}
+
+async function copiarAlPortapapeles(texto) {
+    try {
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(texto);
+            return true;
+        }
+    } catch (error) {
+        // Sigue al fallback de abajo (navegadores viejos o contexto no seguro).
+    }
+
+    try {
+        const textarea = document.createElement("textarea");
+        textarea.value = texto;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
 
 // "let", no "const": iniciarPanel() la resuelve de verdad con
 // Model.recuperarUsuarioActual() antes del primer render().
@@ -74,6 +121,8 @@ async function render() {
         ? cuadrilla.operarios.map((f) => `<li>${f.nombre} ${f.apellido}</li>`).join("")
         : "<li>Sin operarios asignados</li>";
 
+    // Solo informativo -- el chofer no puede marcar incidencias como resueltas
+    // (eso lo hacen el Jefe de Cuadrilla o el Administrador).
     const incidenciasHtml = cuadrilla.incidencias.length
         ? cuadrilla.incidencias.map((inc) => `
             <div class="resumen-incidencia">
@@ -81,10 +130,28 @@ async function render() {
                     <span class="resumen-incidencia-id">${inc.id} — ${inc.tipo}</span>
                     <span class="data-sub">${inc.zona} · ${inc.descripcion}</span>
                 </div>
-                <button type="button" class="btn-secundario" data-resolver="${inc.id}">Marcar resuelta</button>
             </div>
         `).join("")
         : `<p class="detail-empty">No hay incidencias abiertas en tu ruta.</p>`;
+
+    // Direcciones de los contenedores de la zona de la ruta, para ir
+    // recorriéndolas o pasarlas a un GPS externo (Google Maps, Waze, etc).
+    const paradasRuta = await Model.obtenerContenedoresDeRutaDeCuadrilla(cuadrilla.id);
+
+    const paradasRutaHtml = paradasRuta.length
+        ? paradasRuta.map((contenedor, indice) => `
+            <div class="parada-ruta">
+                <div class="parada-ruta-info">
+                    <span class="parada-ruta-numero">${indice + 1}. Contenedor #${contenedor.idContenedor}</span>
+                    <span class="data-sub">${contenedor.ubicacionContenedor || "Sin dirección cargada"}</span>
+                </div>
+                <div class="parada-ruta-acciones">
+                    <a class="btn-secundario" href="${enlaceMapa(contenedor)}" target="_blank" rel="noopener">Abrir en Maps</a>
+                    <button type="button" class="btn-secundario" data-copiar-indice="${indice}">Copiar dirección</button>
+                </div>
+            </div>
+        `).join("")
+        : `<p class="detail-empty">No hay contenedores cargados todavía en la zona de tu ruta.</p>`;
 
     contenido.innerHTML = `
         <section class="admin-resumen">
@@ -147,6 +214,17 @@ async function render() {
                 ` : ""}
 
                 <section class="detail-panel">
+                    <div class="detail-panel-encabezado">
+                        <h3>Direcciones de mi ruta</h3>
+                        ${paradasRuta.length ? `<button type="button" class="btn-secundario" id="btnCopiarTodasDirecciones">Copiar todas</button>` : ""}
+                    </div>
+                    <p class="detail-nota">
+                        Direcciones de los contenedores en la zona de tu ruta, ordenadas alfabéticamente. Podés abrirlas en Maps o copiarlas para pasarlas a un GPS externo.
+                    </p>
+                    <div class="paradas-ruta-lista">${paradasRutaHtml}</div>
+                </section>
+
+                <section class="detail-panel">
                     <h3>Mi camión</h3>
                     ${cuadrilla.camion ? `
                         <div class="detail-grid">
@@ -178,20 +256,27 @@ async function render() {
         </div>
     `;
 
-    contenido.querySelectorAll("[data-resolver]").forEach((boton) => {
+    contenido.querySelectorAll("[data-copiar-indice]").forEach((boton) => {
         boton.addEventListener("click", async () => {
-            const detalle = await pedirTexto(
-                `Marcar resuelta — ${boton.dataset.resolver}`,
-                "Qué se hizo para resolverla",
-                { placeholder: "Contá brevemente qué se hizo para resolver esta incidencia", requerido: true }
-            );
+            const contenedorElegido = paradasRuta[Number(boton.dataset.copiarIndice)];
+            if (!contenedorElegido) return;
 
-            if (detalle === null) return;
-
-            await Model.marcarIncidenciaResuelta(boton.dataset.resolver, detalle);
-            await render();
+            const copiado = await copiarAlPortapapeles(contenedorElegido.ubicacionContenedor || "");
+            await avisar(copiado ? "Dirección copiada al portapapeles." : "No se pudo copiar la dirección.");
         });
     });
+
+    const botonCopiarTodas = document.getElementById("btnCopiarTodasDirecciones");
+    if (botonCopiarTodas) {
+        botonCopiarTodas.addEventListener("click", async () => {
+            const texto = paradasRuta
+                .map((contenedor, indice) => `${indice + 1}. ${contenedor.ubicacionContenedor || "Sin dirección cargada"}`)
+                .join("\n");
+
+            const copiado = await copiarAlPortapapeles(texto);
+            await avisar(copiado ? "Direcciones copiadas al portapapeles." : "No se pudieron copiar las direcciones.");
+        });
+    }
 
     const botonIniciar = contenido.querySelector("[data-iniciar-ruta]");
     if (botonIniciar) {
