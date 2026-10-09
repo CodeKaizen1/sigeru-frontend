@@ -1628,6 +1628,7 @@ export function obtenerConfigEdicion(modulo, id = null) {
     if (modulo === "incidencias") return null;
     if (modulo === "funcionarios") return configEdicionFuncionarios;
     if (modulo === "camiones") return configEdicionCamiones(id);
+    if (modulo === "contenedores") return configEdicionContenedores(id);
     return formulariosAlta[modulo] || null;
 }
 
@@ -1649,8 +1650,54 @@ function configEdicionCamiones(idCamionExcluir = null) {
     };
 }
 
+// Barrio/Municipio del contenedor ya están cargados en la base (se ven en
+// el buscador del mapa y en los filtros del listado, ver obtenerFiltrosExtra
+// más abajo) -- en vez de texto libre, se ofrecen como <select> con los
+// valores que ya existen, para evitar variantes del mismo barrio escritas
+// distinto ("Pocitos" vs "pocitos "). Si el contenedor que se edita tiene un
+// valor que no está en esa lista (cargado a mano antes, con otra variante),
+// se agrega igual como opción para no perderlo ni cambiarlo solo por abrir
+// el formulario.
+function opcionesValorExistente(campo, etiquetaVacio, valorActual) {
+    const valores = valoresUnicos("contenedores", campo);
+    if (valorActual && !valores.includes(valorActual)) valores.push(valorActual);
+    valores.sort((a, b) => a.localeCompare(b, "es"));
+
+    return [{ value: "", label: etiquetaVacio }].concat(
+        valores.map((valor) => ({ value: valor, label: valor }))
+    );
+}
+
+function camposContenedorConSelectsDinamicos(registro = null) {
+    return formulariosAlta.contenedores.campos.map((campo) => {
+        if (campo.nombre === "zona") {
+            return { ...campo, tipo: "select", opciones: opcionesValorExistente("zona", "Sin datos", registro?.zona) };
+        }
+        if (campo.nombre === "municipio") {
+            return { ...campo, tipo: "select", opciones: opcionesValorExistente("municipio", "Sin datos", registro?.municipio) };
+        }
+        return campo;
+    });
+}
+
+function configAltaContenedores() {
+    return {
+        titulo: formulariosAlta.contenedores.titulo,
+        campos: camposContenedorConSelectsDinamicos()
+    };
+}
+
+function configEdicionContenedores(id = null) {
+    const registro = id ? obtenerRegistroPorId("contenedores", id) : null;
+    return {
+        tituloEdicion: formulariosAlta.contenedores.tituloEdicion,
+        campos: camposContenedorConSelectsDinamicos(registro)
+    };
+}
+
 export function obtenerConfigAlta(modulo) {
     if (modulo === "camiones") return configAltaCamiones();
+    if (modulo === "contenedores") return configAltaContenedores();
     return formulariosAlta[modulo] || null;
 }
 

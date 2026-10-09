@@ -1,7 +1,7 @@
 // CONTROLADOR: escucha clicks/submits del panel, pide datos al Modelo y actualiza la Vista.
 // También guarda el estado propio de la pantalla (módulo abierto, registro en edición).
 
-import * as Model from "./model.js?v=32";
+import * as Model from "./model.js?v=33";
 import * as View from "./view.js?v=31";
 import * as NotificacionesUI from "./notificaciones-ui.js?v=2";
 import * as CuentaUI from "./cuenta-ui.js?v=4";
