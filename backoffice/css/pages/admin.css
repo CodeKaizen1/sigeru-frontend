@@ -741,6 +741,20 @@
     display: block;
 }
 
+/* Fila de Cuadrillas (ver crearFila()): el resumen de ruta (ej. "Ciudad Vieja 1
+   (22:00 - 06:00 (lunes, miercoles y jueves))") es el único dato de la fila
+   cuya longitud varía mucho de una cuadrilla a otra, y al envolverse en varias
+   líneas hacía que cada fila tuviera una altura distinta. Se trunca a una
+   sola línea con "..." - el texto completo queda disponible al pasar el
+   mouse (atributo title). */
+.data-sub-truncado {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
 .estado {
     justify-self: start;
     padding: 7px 12px;
@@ -1128,6 +1142,20 @@
 .checkbox-operario input {
     width: auto;
     accent-color: #0d3d86;
+}
+
+/* Contador junto al label "Operarios" (ver activarLimiteOperarios() en
+   controller.js) - una cuadrilla no puede tener más de 3 operarios (además
+   del jefe y el chofer, 5 personas en total). */
+.contador-operarios {
+    font-weight: 400;
+    color: #5d6b7a;
+    font-size: 0.85rem;
+}
+
+.checkbox-operario:has(input:disabled) {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 /*

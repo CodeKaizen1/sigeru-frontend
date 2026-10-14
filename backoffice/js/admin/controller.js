@@ -2,7 +2,7 @@
 // También guarda el estado propio de la pantalla (módulo abierto, registro en edición).
 
 import * as Model from "./model.js?v=34";
-import * as View from "./view.js?v=33";
+import * as View from "./view.js?v=34";
 import * as NotificacionesUI from "./notificaciones-ui.js?v=2";
 import * as CuentaUI from "./cuenta-ui.js?v=4";
 import * as ExportarExcel from "./exportar-excel.js?v=1";
@@ -640,6 +640,30 @@ function activarBuscadoresCuadrilla() {
     View.activarBuscadorConFiltroEstado("buscarCuadrillaJefe", "filtroCuadrillaJefe", "#campoCuadrillaJefe option[data-busqueda]");
     View.activarBuscadorConFiltroEstado("buscarCuadrillaChofer", "filtroCuadrillaChofer", "#campoCuadrillaChofer option[data-busqueda]");
     View.activarBuscadorConFiltroEstado("buscarCuadrillaOperarios", "filtroCuadrillaOperarios", ".checkbox-operario");
+    activarLimiteOperarios();
+}
+
+// Una cuadrilla no puede tener más de 5 personas en total (jefe + chofer +
+// hasta 3 operarios) - jefe y chofer ya son selects de uno solo, así que acá
+// solo falta topear los operarios. Al llegar a 3 tildados deshabilita el
+// resto del checklist para que no se pueda sumar un cuarto; no desmarca nada
+// si una cuadrilla ya venía con más operarios de antes (dato viejo), solo
+// impide agregar más hasta que se baje de 3.
+function activarLimiteOperarios() {
+    const checkboxes = Array.from(document.querySelectorAll('input[name="operarios"]'));
+    const contador = document.querySelector("[data-contador-operarios]");
+    if (!checkboxes.length) return;
+
+    function actualizar() {
+        const marcados = checkboxes.filter((casilla) => casilla.checked).length;
+        checkboxes.forEach((casilla) => {
+            casilla.disabled = !casilla.checked && marcados >= 3;
+        });
+        if (contador) contador.textContent = `${marcados}/3`;
+    }
+
+    checkboxes.forEach((casilla) => casilla.addEventListener("change", actualizar));
+    actualizar();
 }
 
 async function manejarFormularioSubmit(evento) {

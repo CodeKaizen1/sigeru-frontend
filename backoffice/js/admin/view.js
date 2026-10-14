@@ -565,7 +565,7 @@ function crearFila(modulo, registro) {
                         <span class="data-sub">Chofer: ${escapeHtml(registro._choferNombre)}</span>
                     </span>
                     <span class="data-sub">${registro._operariosCantidad} operario(s)</span>
-                    <span class="data-sub">${escapeHtml(registro._rutaResumen)}</span>
+                    <span class="data-sub data-sub-truncado" title="${escapeHtml(registro._rutaResumen)}">${escapeHtml(registro._rutaResumen)}</span>
                 </button>
                 <button type="button" class="btn-fila-rapido" data-asignar-fila="${registro.id}">
                     Asignar
@@ -1143,7 +1143,7 @@ function construirCamposCuadrillaHtml({ jefes, choferes, rutas, operarios }, cua
         </div>
 
         <div class="grupo-formulario grupo-formulario-completo">
-            <label>Operarios</label>
+            <label>Operarios <span class="contador-operarios" data-contador-operarios>${operariosDeEstaCuadrilla.length}/3</span></label>
             ${filaFiltroAsignacion("buscarCuadrillaOperarios", "filtroCuadrillaOperarios")}
             <div class="lista-checkbox-operarios">${operariosHtml}</div>
         </div>
