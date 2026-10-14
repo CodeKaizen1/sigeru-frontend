@@ -42,23 +42,22 @@ export function crearDetalleItem(titulo, valor) {
 
 // Arma <option> a partir de una lista; textoBusqueda (opcional) define el texto
 // filtrable por activarBuscador(). Si el item trae _otraCuadrilla (ver
-// Model.obtenerJefesDisponibles/obtenerChoferesDisponibles), la opción queda
-// resaltada en amarillo y con "— cuadrilla X" al final - mismo número de
-// cuadrilla que ya se usa en la etiqueta de Operarios (ver
-// construirCamposCuadrillaHtml), simplemente no hay forma de recortar el
-// resaltado a una sola palabra dentro de un <option>: solo admite colorear la
-// opción entera, no una porción del texto.
+// Model.obtenerJefesDisponibles/obtenerChoferesDisponibles), la opción suma
+// "— cuadrilla X" al final - mismo número de cuadrilla que ya se usa en la
+// etiqueta de Operarios (ver construirCamposCuadrillaHtml). Se probó resaltar
+// además la opción en amarillo, pero quedaba raro dentro de un <select>
+// nativo (su render ya depende del navegador/SO, no del resto del sitio) -
+// a pedido de Matías (14/10) se dejó solo el texto, sin color.
 function crearOpciones(lista, idSeleccionado, etiqueta, textoBusqueda) {
     return lista.map((item) => {
         const atributoBusqueda = textoBusqueda
             ? ` data-busqueda="${escapeHtml(normalizarBusqueda(textoBusqueda(item)))}"`
             : "";
         const otraCuadrilla = item._otraCuadrilla;
-        const claseAsignado = otraCuadrilla ? ` class="opcion-asignada"` : "";
         const sufijoCuadrilla = otraCuadrilla ? ` — cuadrilla ${escapeHtml(otraCuadrilla.id)}` : "";
 
         return `
-        <option value="${item.id}"${atributoBusqueda}${claseAsignado} ${item.id === idSeleccionado ? "selected" : ""}>${escapeHtml(etiqueta(item))}${sufijoCuadrilla}</option>
+        <option value="${item.id}"${atributoBusqueda} ${item.id === idSeleccionado ? "selected" : ""}>${escapeHtml(etiqueta(item))}${sufijoCuadrilla}</option>
     `;
     }).join("");
 }

@@ -1092,21 +1092,13 @@
 }
 
 /*
-   Quién ya está en otra cuadrilla (Jefe/Chofer/Operarios en el alta y
-   edición de cuadrilla - ver crearOpciones()/operarioCheckboxHtml() en
-   view.js) - antes había que filtrar "Libres/Ya asignados" para enterarse;
-   ahora se ve directo en la propia opción/checkbox. .opcion-asignada resalta
-   la opción entera dentro del <select> (un <option> no admite colorear solo
-   una parte del texto); .etiqueta-asignado es la misma información, pero
-   como una etiqueta recortada junto al nombre en el checklist de Operarios,
-   que sí admite marcado HTML normal.
+   Quién ya está en otra cuadrilla, en el checklist de Operarios (alta y
+   edición de cuadrilla - ver operarioCheckboxHtml() en view.js) - antes había
+   que filtrar "Libres/Ya asignados" para enterarse, ahora se ve directo acá
+   al lado del nombre. En Jefe/Chofer (son <select>) la misma info se agrega
+   como texto plano ("— cuadrilla X") sin resaltado: se probó un fondo
+   amarillo en la opción, pero quedaba raro dentro de un <select> nativo.
 */
-
-.opcion-asignada {
-    background-color: #fdf0da;
-    color: #946200;
-    font-weight: 700;
-}
 
 .etiqueta-asignado {
     display: inline-block;
