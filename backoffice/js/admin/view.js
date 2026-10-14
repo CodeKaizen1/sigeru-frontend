@@ -498,6 +498,7 @@ function crearFila(modulo, registro) {
                     <span>
                         <span class="data-main">${escapeHtml(registro.tipo)}</span>
                         <span class="data-sub">${escapeHtml(registro.zona)}</span>
+                        <span class="data-sub data-sub-direccion">${escapeHtml(registro.contenedor)}</span>
                     </span>
                     <span class="estado estado-${claseEstado(registro.estado)}">${escapeHtml(registro.estado)}</span>
                     <span class="data-sub">${escapeHtml(registro.fecha)}</span>

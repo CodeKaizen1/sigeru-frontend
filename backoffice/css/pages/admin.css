@@ -536,7 +536,7 @@
 
 .module-tools {
     display: grid;
-    grid-template-columns: 1fr 220px auto auto;
+    grid-template-columns: 1fr 220px 170px auto auto;
     gap: 14px;
 }
 
@@ -733,6 +733,12 @@
 .data-sub {
     color: #5d6b7a;
     font-size: 14px;
+}
+
+/* Dirección del contenedor en la fila de Incidencias (además del barrio en
+   .data-sub de arriba) - en su propia línea para no correr pegada a la zona. */
+.data-sub-direccion {
+    display: block;
 }
 
 .estado {

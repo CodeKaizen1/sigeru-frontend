@@ -2,7 +2,7 @@
 // También guarda el estado propio de la pantalla (módulo abierto, registro en edición).
 
 import * as Model from "./model.js?v=34";
-import * as View from "./view.js?v=32";
+import * as View from "./view.js?v=33";
 import * as NotificacionesUI from "./notificaciones-ui.js?v=2";
 import * as CuentaUI from "./cuenta-ui.js?v=4";
 import * as ExportarExcel from "./exportar-excel.js?v=1";
@@ -16,8 +16,9 @@ let idEnEdicion = null;
 // solo pinta lo que le llega). Necesario desde que se cargaron los ~11.130
 // contenedores oficiales de la IMM: antes renderListaRegistros() pintaba
 // TODO el listado filtrado de una, y con esa cantidad de filas el panel se
-// congelaba. 50 por página es arbitrario pero cómodo para navegar.
-const REGISTROS_POR_PAGINA = 50;
+// congelaba. Elegible por el usuario (#pageSizeSelect, 10/25/50) para no
+// imponer un único tamaño de página en listados grandes; arranca en 10.
+let registrosPorPagina = 10;
 let paginaActual = 1;
 
 // Punto 9 de la Fase 2 (auditoría 08/10/2026): escribir en el buscador
@@ -283,14 +284,14 @@ async function mostrarModulo() {
 
     const registrosFiltrados = await registrosDelModuloActual();
 
-    const totalPaginas = Math.max(1, Math.ceil(registrosFiltrados.length / REGISTROS_POR_PAGINA));
+    const totalPaginas = Math.max(1, Math.ceil(registrosFiltrados.length / registrosPorPagina));
     // Si el filtro cambió el total y paginaActual quedó apuntando a una
     // página que ya no existe (ej: estabas en la página 4 de "funcional" y
     // cambiaste a un filtro con solo 1 página), se recorta a la última válida.
     if (paginaActual > totalPaginas) paginaActual = totalPaginas;
 
-    const inicio = (paginaActual - 1) * REGISTROS_POR_PAGINA;
-    const registros = registrosFiltrados.slice(inicio, inicio + REGISTROS_POR_PAGINA);
+    const inicio = (paginaActual - 1) * registrosPorPagina;
+    const registros = registrosFiltrados.slice(inicio, inicio + registrosPorPagina);
 
     const lista = View.renderListaRegistros(moduloActual, registros);
     const paginador = View.renderPaginador(paginaActual, totalPaginas);
@@ -861,6 +862,14 @@ function iniciarEventos() {
 
     document.getElementById("searchInput").addEventListener("input", mostrarModuloDesdeFiltroDebounced);
     document.getElementById("stateFilter").addEventListener("change", mostrarModuloDesdeFiltro);
+
+    // Cantidad de registros por página (10/25/50, arranca en 10) - al cambiarla
+    // se vuelve a la página 1, igual que un cambio de filtro, para no quedar
+    // apuntando a un rango de la paginación anterior que ya no corresponde.
+    document.getElementById("pageSizeSelect").addEventListener("change", (evento) => {
+        registrosPorPagina = Number(evento.target.value) || 10;
+        mostrarModuloDesdeFiltro();
+    });
 
     document.getElementById("newRecordBtn").addEventListener("click", abrirFormularioAlta);
     document.getElementById("formAlta").addEventListener("submit", manejarFormularioSubmit);

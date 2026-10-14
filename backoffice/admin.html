@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/layout.css">
     <link rel="stylesheet" href="css/components.css">
-    <link rel="stylesheet" href="css/pages/admin.css?v=35">
+    <link rel="stylesheet" href="css/pages/admin.css?v=36">
 </head>
 <body>
 
@@ -74,6 +74,12 @@
                     <option value="todos">Todos los estados</option>
                 </select>
 
+                <select id="pageSizeSelect" aria-label="Cantidad de registros por página" title="Cantidad de registros por página">
+                    <option value="10">10 por página</option>
+                    <option value="25">25 por página</option>
+                    <option value="50">50 por página</option>
+                </select>
+
                 <button type="button" id="exportBtn" class="btn-secundario">Exportar</button>
 
                 <button type="button" id="newRecordBtn" class="btn-principal">Nuevo</button>
@@ -130,7 +136,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <!-- Chart.js vendorizado localmente (vendor/chartjs/), para los gráficos de la pantalla de Resumen. Cdnjs estaba bloqueado en la red de Matías (ERR: "Chart is not defined"). -->
     <script src="vendor/chartjs/chart.umd.js"></script>
-    <script type="module" src="js/admin/main.js?v=46"></script>
+    <script type="module" src="js/admin/main.js?v=47"></script>
     <script type="module" src="js/salir.js?v=4"></script>
 </body>
 </html>
