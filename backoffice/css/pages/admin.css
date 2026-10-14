@@ -1083,9 +1083,8 @@
 /*
    Buscador por nombre/cédula sobre un select o un checklist con muchas
    opciones (Jefe/Chofer/Operarios en el alta y edición de cuadrilla) - ver
-   activarBuscador()/activarBuscadorConFiltroEstado() en view.js. Hereda el
-   estilo de .grupo-formulario input de components.css, solo le suma un
-   margen para no pegarse con lo de abajo.
+   activarBuscador() en view.js. Hereda el estilo de .grupo-formulario input
+   de components.css, solo le suma un margen para no pegarse con lo de abajo.
 */
 
 .input-buscador {
@@ -1093,21 +1092,32 @@
 }
 
 /*
-   Buscador + el desplegable "Todos/Libres/Ya asignados" que lo acompaña
-   (filaFiltroAsignacion() en view.js). Apilados uno debajo del otro en vez
-   de lado a lado: en el modal de edición de cuadrilla, Jefe/Chofer ocupan
-   cada uno la mitad del ancho (.form-grid a 2 columnas), muy poco espacio
-   para dos controles en la misma fila sin que el select de ancho fijo le
-   coma todo el lugar al buscador (ver .grupo-formulario select más arriba,
-   que ya fuerza width: 100%).
+   Quién ya está en otra cuadrilla (Jefe/Chofer/Operarios en el alta y
+   edición de cuadrilla - ver crearOpciones()/operarioCheckboxHtml() en
+   view.js) - antes había que filtrar "Libres/Ya asignados" para enterarse;
+   ahora se ve directo en la propia opción/checkbox. .opcion-asignada resalta
+   la opción entera dentro del <select> (un <option> no admite colorear solo
+   una parte del texto); .etiqueta-asignado es la misma información, pero
+   como una etiqueta recortada junto al nombre en el checklist de Operarios,
+   que sí admite marcado HTML normal.
 */
 
-.fila-filtros-asignacion .input-buscador {
-    margin-bottom: 6px;
+.opcion-asignada {
+    background-color: #fdf0da;
+    color: #946200;
+    font-weight: 700;
 }
 
-.select-filtro-estado {
-    margin-bottom: 6px;
+.etiqueta-asignado {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: #fdf0da;
+    color: #946200;
+    font-size: 11px;
+    font-weight: 700;
+    vertical-align: middle;
 }
 
 /*

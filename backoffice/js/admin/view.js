@@ -40,16 +40,25 @@ export function crearDetalleItem(titulo, valor) {
     `;
 }
 
-// Arma <option> a partir de una lista; textoBusqueda (opcional) define el texto filtrable por activarBuscador().
-function crearOpciones(lista, idSeleccionado, etiqueta, textoBusqueda, estadoFn) {
+// Arma <option> a partir de una lista; textoBusqueda (opcional) define el texto
+// filtrable por activarBuscador(). Si el item trae _otraCuadrilla (ver
+// Model.obtenerJefesDisponibles/obtenerChoferesDisponibles), la opción queda
+// resaltada en amarillo y con "— cuadrilla X" al final - mismo número de
+// cuadrilla que ya se usa en la etiqueta de Operarios (ver
+// construirCamposCuadrillaHtml), simplemente no hay forma de recortar el
+// resaltado a una sola palabra dentro de un <option>: solo admite colorear la
+// opción entera, no una porción del texto.
+function crearOpciones(lista, idSeleccionado, etiqueta, textoBusqueda) {
     return lista.map((item) => {
         const atributoBusqueda = textoBusqueda
             ? ` data-busqueda="${escapeHtml(normalizarBusqueda(textoBusqueda(item)))}"`
             : "";
-        const atributoEstado = estadoFn ? ` data-estado="${escapeHtml(estadoFn(item))}"` : "";
+        const otraCuadrilla = item._otraCuadrilla;
+        const claseAsignado = otraCuadrilla ? ` class="opcion-asignada"` : "";
+        const sufijoCuadrilla = otraCuadrilla ? ` — cuadrilla ${escapeHtml(otraCuadrilla.id)}` : "";
 
         return `
-        <option value="${item.id}"${atributoBusqueda}${atributoEstado} ${item.id === idSeleccionado ? "selected" : ""}>${escapeHtml(etiqueta(item))}</option>
+        <option value="${item.id}"${atributoBusqueda}${claseAsignado} ${item.id === idSeleccionado ? "selected" : ""}>${escapeHtml(etiqueta(item))}${sufijoCuadrilla}</option>
     `;
     }).join("");
 }
@@ -76,34 +85,6 @@ export function activarBuscador(inputId, itemsSelector) {
             item.style.display = coincide ? "" : "none";
         });
     });
-}
-
-// Mismo buscador de arriba, combinado con un <select> que filtra por
-// data-estado ("libre"/"asignado") -- para separar en Jefe/Chofer/Operarios
-// de la cuadrilla a quién está libre de quién ya está asignado a otra, sin
-// mezclarlos en una sola lista. Los dos filtros se aplican juntos (un item
-// solo queda visible si pasa el texto Y el estado elegido).
-export function activarBuscadorConFiltroEstado(inputId, selectId, itemsSelector) {
-    const input = document.getElementById(inputId);
-    const select = document.getElementById(selectId);
-    if (!input || !select) return;
-
-    input.addEventListener("keydown", (evento) => {
-        if (evento.key === "Enter") evento.preventDefault();
-    });
-
-    function aplicarFiltros() {
-        const texto = normalizarBusqueda(input.value);
-        const estado = select.value;
-        document.querySelectorAll(itemsSelector).forEach((item) => {
-            const coincideTexto = !texto || (item.dataset.busqueda || "").includes(texto);
-            const coincideEstado = !estado || item.dataset.estado === estado;
-            item.style.display = (coincideTexto && coincideEstado) ? "" : "none";
-        });
-    }
-
-    input.addEventListener("input", aplicarFiltros);
-    select.addEventListener("change", aplicarFiltros);
 }
 
 //
@@ -1066,22 +1047,16 @@ export function renderDetalle(modulo, registro, datosExtra = {}, configEdicion =
 // Modal de alta
 //
 
-// Fila de filtros compartida por Jefe/Chofer/Operarios: buscador de texto +
-// desplegable "Todos/Libres/Ya asignados" (ver activarBuscadorConFiltroEstado
-// en controller.js). Reemplaza al agrupado fijo de antes -- la idea es que el
-// admin filtre a los libres cuando quiere asignar, en vez de tener que
-// revisar una lista mezclada o separada en bloques.
-function filaFiltroAsignacion(inputId, selectId) {
-    return `
-        <div class="fila-filtros-asignacion">
-            <input type="text" id="${inputId}" class="input-buscador" placeholder="Buscar por nombre o cédula..." autocomplete="off">
-            <select id="${selectId}" class="select-filtro-estado">
-                <option value="">Todos</option>
-                <option value="libre">Libres</option>
-                <option value="asignado">Ya asignados</option>
-            </select>
-        </div>
-    `;
+// Buscador de texto para Jefe/Chofer/Operarios (ver activarBuscador() en
+// view.js, enganchado desde activarBuscadoresCuadrilla() en controller.js).
+// Antes esto traía además un desplegable "Todos/Libres/Ya asignados" -- se
+// sacó (pedido de Matías 14/10) porque entre buscador + filtro + select/
+// checklist quedaban demasiados controles para algo tan chico como elegir
+// jefe/chofer/operarios; quién ya está en otra cuadrilla ahora se ve directo
+// en la propia opción/checkbox (ver crearOpciones() y operarioCheckboxHtml
+// más abajo) en vez de tener que filtrar para encontrarlo.
+function filaBuscador(inputId) {
+    return `<input type="text" id="${inputId}" class="input-buscador" placeholder="Buscar por nombre o cédula..." autocomplete="off">`;
 }
 
 // Campos compartidos por el alta y la edición de Cuadrillas.
@@ -1089,26 +1064,33 @@ function construirCamposCuadrillaHtml({ jefes, choferes, rutas, operarios }, cua
     const textoBusquedaFuncionario = (f) => `${f.nombre} ${f.apellido} ${f.cedula || ""}`;
 
     // Model ya anota cada funcionario con _otraCuadrilla ({id, nombre}) cuando
-    // ya pertenece a OTRA cuadrilla -- se usa solo para el filtro de arriba
-    // (data-estado: "libre"/"asignado"), no se muestra en la propia opción/
-    // checkbox (el nombre de la otra cuadrilla puede traer códigos internos
-    // feos tipo "(E_DU_RM_CL_111)" que no aportan nada acá). El aviso real
-    // es la confirmación al guardar (ver manejarFormularioSubmit/
-    // manejarEdicionCuadrillaEnDetalleSubmit) si se elige a alguien "asignado".
+    // ya pertenece a OTRA cuadrilla. Se muestra siempre, no solo al filtrar:
+    // en Jefe/Chofer, crearOpciones() resalta la opción y le agrega "— cuadrilla
+    // X"; en Operarios, el checkbox de abajo le agrega la misma etiqueta. A
+    // propósito se usa el número de cuadrilla (_otraCuadrilla.id), nunca
+    // _otraCuadrilla.nombre -- ese puede traer códigos internos feos tipo
+    // "(E_DU_RM_CL_111)" que no aportan nada acá. Elegir a alguien "ya
+    // asignado" sigue sin estar bloqueado: el aviso real es la confirmación
+    // al guardar (ver manejarFormularioSubmit/manejarEdicionCuadrillaEnDetalleSubmit).
     const etiquetaFuncionario = (f) => `${f.nombre} ${f.apellido}`;
-    const estadoConflicto = (f) => f._otraCuadrilla ? "asignado" : "libre";
 
-    const opcionesJefe = crearOpciones(jefes, cuadrillaRaw?.jefeId ?? null, etiquetaFuncionario, textoBusquedaFuncionario, estadoConflicto);
-    const opcionesChofer = crearOpciones(choferes, cuadrillaRaw?.choferId ?? null, etiquetaFuncionario, textoBusquedaFuncionario, estadoConflicto);
+    const opcionesJefe = crearOpciones(jefes, cuadrillaRaw?.jefeId ?? null, etiquetaFuncionario, textoBusquedaFuncionario);
+    const opcionesChofer = crearOpciones(choferes, cuadrillaRaw?.choferId ?? null, etiquetaFuncionario, textoBusquedaFuncionario);
     const opcionesRuta = crearOpciones(rutas, cuadrillaRaw?.rutaId ?? null, (r) => `${r.nombre || r.zona} — ${r.horario}`);
     const operariosDeEstaCuadrilla = cuadrillaRaw?.operarios ?? [];
 
-    const operarioCheckboxHtml = (f) => `
-        <label class="checkbox-operario" data-busqueda="${escapeHtml(normalizarBusqueda(textoBusquedaFuncionario(f)))}" data-estado="${estadoConflicto(f)}">
+    const operarioCheckboxHtml = (f) => {
+        const etiquetaCuadrilla = f._otraCuadrilla
+            ? `<span class="etiqueta-asignado">cuadrilla ${escapeHtml(f._otraCuadrilla.id)}</span>`
+            : "";
+
+        return `
+        <label class="checkbox-operario" data-busqueda="${escapeHtml(normalizarBusqueda(textoBusquedaFuncionario(f)))}">
             <input type="checkbox" name="operarios" value="${f.id}" ${operariosDeEstaCuadrilla.includes(f.id) ? "checked" : ""}>
-            ${escapeHtml(etiquetaFuncionario(f))}
+            ${escapeHtml(etiquetaFuncionario(f))}${etiquetaCuadrilla}
         </label>
     `;
+    };
 
     const operariosHtml = operarios.length
         ? operarios.map(operarioCheckboxHtml).join("")
@@ -1118,7 +1100,7 @@ function construirCamposCuadrillaHtml({ jefes, choferes, rutas, operarios }, cua
     return `
         <div class="grupo-formulario">
             <label for="campoCuadrillaJefe">Jefe de cuadrilla</label>
-            ${filaFiltroAsignacion("buscarCuadrillaJefe", "filtroCuadrillaJefe")}
+            ${filaBuscador("buscarCuadrillaJefe")}
             <select id="campoCuadrillaJefe" name="jefeId">
                 <option value="">Sin asignar</option>
                 ${opcionesJefe}
@@ -1127,7 +1109,7 @@ function construirCamposCuadrillaHtml({ jefes, choferes, rutas, operarios }, cua
 
         <div class="grupo-formulario">
             <label for="campoCuadrillaChofer">Chofer</label>
-            ${filaFiltroAsignacion("buscarCuadrillaChofer", "filtroCuadrillaChofer")}
+            ${filaBuscador("buscarCuadrillaChofer")}
             <select id="campoCuadrillaChofer" name="choferId">
                 <option value="">Sin asignar</option>
                 ${opcionesChofer}
@@ -1144,7 +1126,7 @@ function construirCamposCuadrillaHtml({ jefes, choferes, rutas, operarios }, cua
 
         <div class="grupo-formulario grupo-formulario-completo">
             <label>Operarios <span class="contador-operarios" data-contador-operarios>${operariosDeEstaCuadrilla.length}/3</span></label>
-            ${filaFiltroAsignacion("buscarCuadrillaOperarios", "filtroCuadrillaOperarios")}
+            ${filaBuscador("buscarCuadrillaOperarios")}
             <div class="lista-checkbox-operarios">${operariosHtml}</div>
         </div>
 

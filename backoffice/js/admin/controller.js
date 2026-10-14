@@ -2,7 +2,7 @@
 // También guarda el estado propio de la pantalla (módulo abierto, registro en edición).
 
 import * as Model from "./model.js?v=34";
-import * as View from "./view.js?v=34";
+import * as View from "./view.js?v=35";
 import * as NotificacionesUI from "./notificaciones-ui.js?v=2";
 import * as CuentaUI from "./cuenta-ui.js?v=4";
 import * as ExportarExcel from "./exportar-excel.js?v=1";
@@ -637,9 +637,9 @@ function abrirFormularioAlta() {
 // Buscador por nombre/cédula en los selects de Jefe/Chofer y el checklist de Operarios.
 // El selector apunta solo a las opciones con data-busqueda, así "Sin asignar" nunca se oculta.
 function activarBuscadoresCuadrilla() {
-    View.activarBuscadorConFiltroEstado("buscarCuadrillaJefe", "filtroCuadrillaJefe", "#campoCuadrillaJefe option[data-busqueda]");
-    View.activarBuscadorConFiltroEstado("buscarCuadrillaChofer", "filtroCuadrillaChofer", "#campoCuadrillaChofer option[data-busqueda]");
-    View.activarBuscadorConFiltroEstado("buscarCuadrillaOperarios", "filtroCuadrillaOperarios", ".checkbox-operario");
+    View.activarBuscador("buscarCuadrillaJefe", "#campoCuadrillaJefe option[data-busqueda]");
+    View.activarBuscador("buscarCuadrillaChofer", "#campoCuadrillaChofer option[data-busqueda]");
+    View.activarBuscador("buscarCuadrillaOperarios", ".checkbox-operario");
     activarLimiteOperarios();
 }
 
