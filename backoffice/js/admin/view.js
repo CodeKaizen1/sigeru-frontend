@@ -1159,6 +1159,132 @@ export function renderFormularioEdicionCuadrillaEnDetalle(cuadrillaRaw, datos) {
     return document.getElementById("detailEditForm");
 }
 
+// "Nueva ruta" (14/10/2026): a diferencia del resto de los módulos (campos
+// fijos, ver formulariosAlta.rutas en model.js), el alta de una ruta pide
+// además elegir un barrio y asignarle sus contenedores -- mismo patrón que
+// el formulario de Cuadrillas de arriba (formulario propio en vez del
+// genérico de más abajo), por eso vive acá y no en construirCamposHtml().
+// Ver claude/rutas_por_contenedor_09_10_2026.md para el contexto completo.
+function construirCamposRutaHtml({ barrios }) {
+    const opcionesBarrio = barrios.map((barrio) => `<option value="${escapeHtml(barrio)}">${escapeHtml(barrio)}</option>`).join("");
+
+    return `
+        <div class="grupo-formulario grupo-formulario-completo">
+            <label for="campoRutaNombre">Nombre de la ruta</label>
+            <input type="text" id="campoRutaNombre" name="nombre" placeholder="Ej: Pocitos 9 (si el barrio ya tiene otras rutas, para distinguirla)">
+        </div>
+
+        <div class="grupo-formulario">
+            <label for="campoRutaBarrio">Barrio</label>
+            <select id="campoRutaBarrio" name="zona" required>
+                <option value="">Elegí un barrio...</option>
+                ${opcionesBarrio}
+            </select>
+        </div>
+
+        <div class="grupo-formulario">
+            <label for="campoRutaMunicipio">Municipio</label>
+            <input type="text" id="campoRutaMunicipio" name="municipio" placeholder="Se completa solo al elegir el barrio" disabled>
+        </div>
+
+        <div class="grupo-formulario grupo-formulario-completo">
+            <label for="campoRutaRecorrido">Recorrido</label>
+            <input type="text" id="campoRutaRecorrido" name="recorrido" placeholder="Ej: Av. Brasil - Bulevar España - Rambla" required>
+        </div>
+
+        <div class="grupo-formulario">
+            <label for="campoRutaFrecuencia">Frecuencia</label>
+            <select id="campoRutaFrecuencia" name="frecuencia" required>
+                <option value="Diaria">Diaria</option>
+                <option value="Interdiaria">Interdiaria</option>
+                <option value="Semanal">Semanal</option>
+                <option value="Irregular">Irregular</option>
+                <option value="Sin datos">Sin datos</option>
+            </select>
+        </div>
+
+        <div class="grupo-formulario">
+            <label for="campoRutaHorario">Horario</label>
+            <input type="text" id="campoRutaHorario" name="horario" placeholder="Ej: 08:00 a 14:00" required>
+        </div>
+
+        <div class="grupo-formulario grupo-formulario-completo">
+            <label>
+                Contenedores de esta ruta
+                <span class="contador-operarios" id="contadorContenedoresRuta"></span>
+            </label>
+
+            <div id="zonaRutaSinElegir" class="detail-empty" style="margin-top:6px;">
+                Elegí un barrio para ver sus contenedores.
+            </div>
+
+            <div id="bloqueContenedoresRuta" style="display:none;">
+                <input type="text" id="buscarContenedoresRuta" class="input-buscador" placeholder="Buscar por dirección..." autocomplete="off">
+                <div class="lista-checkbox-operarios" id="listaContenedoresRuta"></div>
+                <p id="avisoMinimoRuta" class="detail-nota" style="margin-top:6px;"></p>
+
+                <button type="button" class="btn-secundario" id="btnSugerirOrdenRuta" style="margin-top:8px;" disabled>
+                    Sugerir orden de recolección
+                </button>
+
+                <div id="bloqueOrdenSugeridoRuta" style="display:none; margin-top:10px;">
+                    <p class="detail-nota" style="margin-bottom:6px;">
+                        Orden sugerido por cercanía (línea recta, no por calles reales) — completa
+                        "Recorrido" arriba si estaba vacío, se puede editar si hace falta.
+                    </p>
+                    <ol id="listaOrdenSugeridoRuta" style="margin:0; padding-left:20px; font-size:14px;"></ol>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Arma el modal de alta de ruta (barrio + municipio autocompletado + checklist de contenedores).
+export function renderFormularioAltaRuta(datos) {
+    document.getElementById("modalTitulo").textContent = "Nueva ruta";
+    document.getElementById("modalFormFields").innerHTML = construirCamposRutaHtml(datos);
+}
+
+// Pinta el checklist de contenedores de UN barrio (al elegirlo en "Nueva
+// ruta", ver activarFormularioRuta() en controller.js). Mismo patrón que
+// operarioCheckboxHtml de arriba: quien ya está en OTRA ruta se ve con una
+// etiqueta al lado de la dirección (Model.obtenerContenedoresDeBarrio ya
+// anota cada contenedor con _otraRuta), en vez de bloquear la opción --
+// elegirlo igual está permitido, se lo reasigna a la ruta nueva al guardar.
+export function renderContenedoresRuta(contenedores) {
+    const lista = document.getElementById("listaContenedoresRuta");
+    if (!lista) return;
+
+    lista.innerHTML = contenedores.length
+        ? contenedores.map((c) => {
+            const etiqueta = c._otraRuta
+                ? `<span class="etiqueta-asignado">${escapeHtml(c._otraRuta.nombre)}</span>`
+                : "";
+
+            return `
+                <label class="checkbox-operario" data-busqueda="${escapeHtml(normalizarBusqueda(c.ubicacionContenedor || ""))}">
+                    <input type="checkbox" name="contenedores" value="${c.idContenedor}">
+                    ${escapeHtml(c.ubicacionContenedor || "(sin dirección)")}${etiqueta}
+                </label>
+            `;
+        }).join("")
+        : `<p class="detail-empty">Este barrio no tiene contenedores cargados.</p>`;
+}
+
+// Lista numerada del orden de recolección sugerido ("Sugerir orden de
+// recolección", botón manual -- ver sugerirOrdenRuta() en controller.js).
+export function renderOrdenSugeridoRuta(contenedoresEnOrden) {
+    document.getElementById("listaOrdenSugeridoRuta").innerHTML = contenedoresEnOrden
+        .map((c) => `<li>${escapeHtml(c.ubicacionContenedor || "(sin dirección)")}</li>`)
+        .join("");
+    document.getElementById("bloqueOrdenSugeridoRuta").style.display = "";
+}
+
+export function ocultarOrdenSugeridoRuta() {
+    document.getElementById("bloqueOrdenSugeridoRuta").style.display = "none";
+    document.getElementById("listaOrdenSugeridoRuta").innerHTML = "";
+}
+
 // Arma los campos de un formulario genérico (alta o edición) a partir de la config del módulo.
 function construirCamposHtml(config, modo, valoresIniciales) {
     return config.campos.map((campo) => {

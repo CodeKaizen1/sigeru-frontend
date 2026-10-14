@@ -1,8 +1,8 @@
 // CONTROLADOR: escucha clicks/submits del panel, pide datos al Modelo y actualiza la Vista.
 // También guarda el estado propio de la pantalla (módulo abierto, registro en edición).
 
-import * as Model from "./model.js?v=34";
-import * as View from "./view.js?v=36";
+import * as Model from "./model.js?v=35";
+import * as View from "./view.js?v=37";
 import * as NotificacionesUI from "./notificaciones-ui.js?v=2";
 import * as CuentaUI from "./cuenta-ui.js?v=4";
 import * as ExportarExcel from "./exportar-excel.js?v=1";
@@ -612,7 +612,7 @@ async function mostrarDetalle(id) {
 
 // Alta de registros nuevos (usa el modal genérico #formModal).
 
-function abrirFormularioAlta() {
+async function abrirFormularioAlta() {
     // Cuadrillas usa un formulario propio (jefe/chofer/camión y varios operarios de una);
     // la ruta se asigna después, desde el detalle ya creado.
     if (moduloActual === "cuadrillas") {
@@ -624,6 +624,17 @@ function abrirFormularioAlta() {
         });
         View.abrirModal();
         activarBuscadoresCuadrilla();
+        return;
+    }
+
+    // Rutas también usa un formulario propio: a diferencia del resto de los
+    // módulos, "Nueva ruta" pide elegir un barrio y asignarle contenedores
+    // (ver claude/rutas_por_contenedor_09_10_2026.md), no solo los campos
+    // fijos de formulariosAlta.rutas.
+    if (moduloActual === "rutas") {
+        View.renderFormularioAltaRuta({ barrios: await Model.obtenerBarriosDisponibles() });
+        View.abrirModal();
+        activarFormularioRuta();
         return;
     }
 
@@ -666,6 +677,198 @@ function activarLimiteOperarios() {
     actualizar();
 }
 
+// "Nueva ruta" (14/10/2026): elegir barrio + asignarle sus contenedores,
+// con un mínimo por ruta y un orden de recolección sugerido opcional. Ver
+// claude/rutas_por_contenedor_09_10_2026.md para el porqué de todo esto, y
+// View.construirCamposRutaHtml (view.js) para el HTML que esto engancha.
+//
+// Mínimo pedido por Matías (14/10): 25 contenedores por ruta (coincide con
+// el piso realista investigado en claude/investigacion_contenedores_por_ruta.md),
+// pero ajustado hacia abajo si el barrio elegido no llega a esa cantidad
+// (hay barrios chicos, ver Casabó-Pajas Blancas en esa misma investigación) --
+// nunca deja una ruta imposible de crear.
+const MINIMO_CONTENEDORES_RUTA = 25;
+
+// Contenedores del barrio elegido (con latitud/longitud/_otraRuta, tal cual
+// los devuelve Model.obtenerContenedoresDeBarrio) y el orden sugerido más
+// reciente, si el admin lo pidió -- estado propio de este formulario,
+// se reinicia cada vez que se abre "Nueva ruta" o cambia el barrio.
+let contenedoresDelBarrioRuta = [];
+let ordenSugeridoContenedoresRuta = null;
+
+function minimoContenedoresParaBarrio(total) {
+    return Math.min(MINIMO_CONTENEDORES_RUTA, total);
+}
+
+function botonGuardarRuta() {
+    return document.querySelector("#formAlta button[type=submit]");
+}
+
+function actualizarContadorContenedoresRuta() {
+    const total = contenedoresDelBarrioRuta.length;
+    const minimo = minimoContenedoresParaBarrio(total);
+    const marcados = document.querySelectorAll('#listaContenedoresRuta input[name="contenedores"]:checked').length;
+
+    document.getElementById("contadorContenedoresRuta").textContent = `${marcados}/${minimo} mínimo`;
+    document.getElementById("btnSugerirOrdenRuta").disabled = marcados < 2;
+
+    const aviso = document.getElementById("avisoMinimoRuta");
+    const btnGuardar = botonGuardarRuta();
+
+    if (marcados < minimo) {
+        const faltan = minimo - marcados;
+        aviso.textContent = total < MINIMO_CONTENEDORES_RUTA
+            ? `Este barrio tiene ${total} contenedores en total — hay que asignarlos todos (mínimo ajustado porque no llega a ${MINIMO_CONTENEDORES_RUTA}). Faltan ${faltan}.`
+            : `Faltan ${faltan} para llegar al mínimo de ${minimo} contenedores por ruta.`;
+        aviso.style.color = "#a33";
+        if (btnGuardar) btnGuardar.disabled = true;
+    } else {
+        aviso.textContent = `Listo — ${marcados} contenedores seleccionados.`;
+        aviso.style.color = "#2f7a4d";
+        if (btnGuardar) btnGuardar.disabled = false;
+    }
+}
+
+// Contenedores tildados en el checklist, en el orden en que aparecen ahí
+// (alfabético por dirección, el mismo orden que ya devuelve
+// ContenedorController::buscar) -- es el que se guarda si el admin no pidió
+// "Sugerir orden de recolección".
+function contenedoresSeleccionadosRuta() {
+    const idsMarcados = Array.from(
+        document.querySelectorAll('#listaContenedoresRuta input[name="contenedores"]:checked')
+    ).map((input) => input.value);
+
+    return idsMarcados
+        .map((id) => contenedoresDelBarrioRuta.find((c) => String(c.idContenedor) === String(id)))
+        .filter(Boolean);
+}
+
+// Vecino más cercano: aproximación por distancia en línea recta (latitud/
+// longitud), no por calles reales ni un servicio de ruteo externo -- mismo
+// tipo de criterio geométrico que ya usa 05_rutas_por_contenedor.sql para
+// repartir contenedores entre rutas. A propósito NO se usa un servicio de
+// ruteo real (Google Directions/OSRM/etc.): traería API key y/o costo, y
+// el resto del proyecto viene evitando eso (Leaflet + OpenStreetMap
+// self-hosteado sin API key, ver landing/js/mapa.js) -- conversación con
+// Matías, 14/10.
+function distanciaContenedores(a, b) {
+    const dx = Number(a.latitudContenedor) - Number(b.latitudContenedor);
+    const dy = Number(a.longitudContenedor) - Number(b.longitudContenedor);
+    return Math.sqrt(dx * dx + dy * dy);
+}
+
+function ordenVecinoMasCercano(contenedores) {
+    const restantes = contenedores.slice();
+    const orden = [restantes.shift()];
+
+    while (restantes.length) {
+        const actual = orden[orden.length - 1];
+        let mejorIdx = 0;
+        let mejorDist = Infinity;
+
+        restantes.forEach((c, idx) => {
+            const distancia = distanciaContenedores(actual, c);
+            if (distancia < mejorDist) {
+                mejorDist = distancia;
+                mejorIdx = idx;
+            }
+        });
+
+        orden.push(restantes.splice(mejorIdx, 1)[0]);
+    }
+
+    return orden;
+}
+
+// "Av. Brasil 1220" -> "Av. Brasil" (saca el número de puerta final).
+function nombreCalleContenedor(direccion) {
+    return (direccion || "").replace(/\s+\d+\s*$/, "").trim();
+}
+
+function calleDesdeOrdenRuta(orden) {
+    const calles = [];
+    orden.forEach((c) => {
+        const calle = nombreCalleContenedor(c.ubicacionContenedor);
+        if (calle && calles[calles.length - 1] !== calle) calles.push(calle);
+    });
+    return calles.join(" - ");
+}
+
+function sugerirOrdenRuta() {
+    const seleccionados = contenedoresSeleccionadosRuta();
+    if (seleccionados.length < 2) return;
+
+    const conCoordenadas = seleccionados.filter((c) => c.latitudContenedor != null && c.longitudContenedor != null);
+    if (conCoordenadas.length < 2) {
+        alert("Ninguno de los contenedores elegidos tiene coordenadas cargadas -- no se puede calcular un orden por cercanía.");
+        return;
+    }
+
+    ordenSugeridoContenedoresRuta = ordenVecinoMasCercano(conCoordenadas);
+    View.renderOrdenSugeridoRuta(ordenSugeridoContenedoresRuta);
+
+    // Solo completa Recorrido si está vacío -- no pisa algo que el admin ya escribió a mano.
+    const campoRecorrido = document.getElementById("campoRutaRecorrido");
+    if (!campoRecorrido.value.trim()) {
+        campoRecorrido.value = calleDesdeOrdenRuta(ordenSugeridoContenedoresRuta);
+    }
+}
+
+function activarFormularioRuta() {
+    contenedoresDelBarrioRuta = [];
+    ordenSugeridoContenedoresRuta = null;
+
+    const selectBarrio = document.getElementById("campoRutaBarrio");
+    const campoMunicipio = document.getElementById("campoRutaMunicipio");
+    const zonaSinElegir = document.getElementById("zonaRutaSinElegir");
+    const bloqueContenedores = document.getElementById("bloqueContenedoresRuta");
+    const listaContenedores = document.getElementById("listaContenedoresRuta");
+
+    selectBarrio.addEventListener("change", async () => {
+        const barrio = selectBarrio.value;
+        ordenSugeridoContenedoresRuta = null;
+        View.ocultarOrdenSugeridoRuta();
+        document.getElementById("buscarContenedoresRuta").value = "";
+
+        if (!barrio) {
+            zonaSinElegir.style.display = "";
+            bloqueContenedores.style.display = "none";
+            campoMunicipio.value = "";
+            document.getElementById("contadorContenedoresRuta").textContent = "";
+            contenedoresDelBarrioRuta = [];
+            const btnGuardar = botonGuardarRuta();
+            if (btnGuardar) btnGuardar.disabled = false;
+            return;
+        }
+
+        contenedoresDelBarrioRuta = await Model.obtenerContenedoresDeBarrio(barrio);
+
+        // El municipio no lo tipea el admin: se saca de los propios
+        // contenedores del barrio (todos los de un mismo barrio deberían
+        // compartirlo) -- ver Model.crearRutaConContenedores, que hace lo
+        // mismo al guardar.
+        const primerConMunicipio = contenedoresDelBarrioRuta.find((c) => c.municipioContenedor);
+        campoMunicipio.value = primerConMunicipio ? primerConMunicipio.municipioContenedor : "";
+
+        zonaSinElegir.style.display = "none";
+        bloqueContenedores.style.display = "";
+        View.renderContenedoresRuta(contenedoresDelBarrioRuta);
+        actualizarContadorContenedoresRuta();
+    });
+
+    listaContenedores.addEventListener("change", (evento) => {
+        if (evento.target.name !== "contenedores") return;
+        // El orden sugerido queda desactualizado en cuanto cambia la
+        // selección -- hay que volver a pedirlo.
+        ordenSugeridoContenedoresRuta = null;
+        View.ocultarOrdenSugeridoRuta();
+        actualizarContadorContenedoresRuta();
+    });
+
+    document.getElementById("btnSugerirOrdenRuta").addEventListener("click", sugerirOrdenRuta);
+    View.activarBuscador("buscarContenedoresRuta", "#listaContenedoresRuta .checkbox-operario");
+}
+
 async function manejarFormularioSubmit(evento) {
     evento.preventDefault();
 
@@ -701,6 +904,40 @@ async function manejarFormularioSubmit(evento) {
 
         await mostrarModulo();
         await mostrarDetalleCuadrilla(nueva.id);
+        return;
+    }
+
+    // Alta de ruta: además de los campos de siempre, hay que validar el
+    // mínimo de contenedores y mandarlos ya en su orden final (sugerido o,
+    // si no se pidió, el del propio checklist).
+    if (moduloActual === "rutas") {
+        const formulario = evento.target;
+        const valoresCampos = {
+            nombre: formulario.elements["nombre"].value,
+            zona: formulario.elements["zona"].value,
+            recorrido: formulario.elements["recorrido"].value,
+            frecuencia: formulario.elements["frecuencia"].value,
+            horario: formulario.elements["horario"].value
+        };
+
+        const contenedoresFinal = ordenSugeridoContenedoresRuta || contenedoresSeleccionadosRuta();
+        const minimo = minimoContenedoresParaBarrio(contenedoresDelBarrioRuta.length);
+
+        // El botón Guardar ya queda deshabilitado mientras no se llega al
+        // mínimo (ver actualizarContadorContenedoresRuta), pero se valida
+        // de nuevo acá por si el envío se dispara de otra forma (Enter).
+        if (!valoresCampos.zona || contenedoresFinal.length < minimo) {
+            alert(`Hay que elegir un barrio y asignarle al menos ${minimo} contenedores a esta ruta.`);
+            return;
+        }
+
+        View.cerrarModal();
+
+        const nueva = await Model.crearRutaConContenedores(valoresCampos, contenedoresFinal);
+        if (!nueva) return;
+
+        await mostrarModulo();
+        await mostrarDetalle(nueva.id);
         return;
     }
 

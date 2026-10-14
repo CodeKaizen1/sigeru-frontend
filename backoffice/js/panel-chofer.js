@@ -5,7 +5,7 @@
 // No usa el patrón de lista + detalle del panel administrador: el contenido es siempre "lo mío",
 // no un listado a filtrar.
 
-import * as Model from "./admin/model.js?v=34";
+import * as Model from "./admin/model.js?v=35";
 import * as NotificacionesUI from "./admin/notificaciones-ui.js?v=2";
 import * as CuentaUI from "./admin/cuenta-ui.js?v=4";
 import { confirmar, avisar } from "./admin/confirmar-ui.js?v=3";
@@ -15,10 +15,16 @@ import { confirmar, avisar } from "./admin/confirmar-ui.js?v=3";
 // "chofer y cualquier otro caso siguen siendo solo-lectura"), así que acá no
 // hace falta pedirTexto() para el popup de "marcar resuelta".
 
-// No hay un "orden de recorrido" real cargado en la base (los contenedores
-// de la zona vienen ordenados alfabéticamente por dirección, ver
-// ContenedorController::buscar) -- igual sirve como una lista fija y
-// predecible para ir tachando direcciones o pasarlas a un GPS externo.
+// El orden de las paradas (numero de parada = indice en el array que
+// devuelve Model.obtenerContenedoresDeRutaDeCuadrilla) viene del backend
+// (ContenedorController::obtenerPorRuta, ORDER BY ordenRutaContenedor) --
+// desde el 14/10/2026 ese orden es el que el admin armo o sugirio al crear
+// la ruta (ver "Nueva ruta" en js/admin/{model,view,controller}.js), no
+// alfabetico por direccion. Un contenedor asignado antes de ese cambio
+// (sin ordenRutaContenedor todavia) simplemente aparece al final. Sigue
+// siendo una aproximacion por cercania en linea recta, no un ruteo real
+// por calles -- igual sirve como una lista fija y predecible para ir
+// tachando direcciones o pasarlas a un GPS externo.
 function enlaceMapa(contenedor) {
     const tieneCoordenadas = contenedor.latitudContenedor !== null && contenedor.latitudContenedor !== undefined && contenedor.latitudContenedor !== ""
         && contenedor.longitudContenedor !== null && contenedor.longitudContenedor !== undefined && contenedor.longitudContenedor !== "";

@@ -376,6 +376,117 @@ export async function obtenerContenedoresDeRutaDeCuadrilla(idCuadrilla) {
     return ok && Array.isArray(respuesta) ? respuesta : [];
 }
 
+// "Nueva ruta" (14/10/2026): elegir barrio y asignarle sus contenedores --
+// ver claude/rutas_por_contenedor_09_10_2026.md para el porque de que un
+// barrio pueda tener varias rutas, y 01_code.sql seccion 12 para las
+// columnas nuevas que esto usa (ruta.municipioRuta, contenedor.idRuta ya
+// existia, contenedor.ordenRutaContenedor).
+
+// Barrios disponibles para el <select> de "Nueva ruta": los mismos que ya
+// usa el buscador del mapa (ContenedorController::obtenerFiltrosDisponibles)
+// -- no hace falta pedir los ~11.130 contenedores completos solo para armar
+// esta lista.
+export async function obtenerBarriosDisponibles() {
+    const { ok, datos: respuesta } = await llamarGestion("contenedor", "GET", undefined, null, { accion: "filtros" });
+    return ok && respuesta && Array.isArray(respuesta.barrios) ? respuesta.barrios : [];
+}
+
+// Contenedores de UN barrio completo, para el checklist de asignacion de
+// "Nueva ruta" -- a diferencia de obtenerContenedoresDeRutaDeCuadrilla()
+// (que pide por idRuta, una ruta puntual ya armada), esto trae TODOS los
+// del barrio via ContenedorController::buscar(), para que el admin elija
+// cuales le tocan a la ruta nueva (y vea cuales ya estan en otra ruta).
+// Devuelve las filas tal cual las manda el backend, sin remapear nombres
+// de columna: se vuelven a mandar casi sin cambios en asignarContenedorARuta().
+// _otraRuta: {id, nombre} si el contenedor ya está asignado a OTRA ruta --
+// mismo patrón que _otraCuadrilla en obtenerJefesDisponibles/etc, para que
+// el checklist de "Nueva ruta" pueda mostrar esa etiqueta (ver
+// construirCamposRutaHtml en view.js). Asume que datos.rutas ya está
+// cargado -- cierto siempre que esto se llama desde el módulo Rutas, que ya
+// hizo obtenerRegistros("rutas") al entrar.
+function otraRutaDeContenedor(idRutaCruda) {
+    if (idRutaCruda === null || idRutaCruda === undefined || idRutaCruda === "") return null;
+
+    const ruta = datos.rutas.find((r) => r.id === String(idRutaCruda));
+    if (!ruta) return null;
+
+    return { id: ruta.id, nombre: ruta.nombre || ruta.zona };
+}
+
+export async function obtenerContenedoresDeBarrio(barrio) {
+    const { ok, datos: respuesta } = await llamarGestion("contenedor", "GET", undefined, null, { barrio });
+    if (!ok || !Array.isArray(respuesta)) return [];
+
+    return respuesta.map((c) => ({ ...c, _otraRuta: otraRutaDeContenedor(c.idRuta) }));
+}
+
+// Asigna UN contenedor (fila cruda de obtenerContenedoresDeBarrio) a una
+// ruta, en una posicion dada -- reenvia la fila completa porque
+// ContenedorController::modificar() hace un UPDATE de todas las columnas,
+// no un patch parcial.
+async function asignarContenedorARuta(contenedorCrudo, idRuta, orden) {
+    const { ok } = await llamarGestion("contenedor", "PUT", {
+        idContenedor: contenedorCrudo.idContenedor,
+        ubicacionContenedor: contenedorCrudo.ubicacionContenedor,
+        estadoContenedor: contenedorCrudo.estadoContenedor,
+        capacidadContenedor: contenedorCrudo.capacidadContenedor,
+        tipoResiduoContenedor: contenedorCrudo.tipoResiduoContenedor,
+        latitudContenedor: contenedorCrudo.latitudContenedor,
+        longitudContenedor: contenedorCrudo.longitudContenedor,
+        zonaContenedor: contenedorCrudo.zonaContenedor,
+        municipioContenedor: contenedorCrudo.municipioContenedor,
+        idRuta,
+        ordenRutaContenedor: orden
+    }, contenedorCrudo.idContenedor);
+
+    return ok;
+}
+
+// Crea la ruta y le asigna, en el mismo paso, los contenedores que el admin
+// tildó en "Nueva ruta". contenedoresOrdenados ya viene en el orden final a
+// guardar (el sugerido por cercanía si el admin lo pidió con "Sugerir orden
+// de recolección", o el orden en que estaban en el checklist si no) -- ese
+// orden es lo que después ve el chofer/jefe/operario en su panel (ver
+// ContenedorController::obtenerPorRuta, ORDER BY ordenRutaContenedor). El
+// municipio de la ruta se saca del primer contenedor que lo tenga cargado
+// (todos los de un mismo barrio deberían compartirlo).
+export async function crearRutaConContenedores(valoresCampos, contenedoresOrdenados) {
+    const primerConMunicipio = contenedoresOrdenados.find((c) => c.municipioContenedor);
+
+    const { ok } = await llamarRecoleccion("ruta", "POST", {
+        idRuta: null,
+        zonaRuta: valoresCampos.zona,
+        recorridoRuta: valoresCampos.recorrido,
+        frecuenciaDeRecoleccionRuta: valoresCampos.frecuencia,
+        horarioRuta: valoresCampos.horario,
+        estadoRuta: "sin iniciar",
+        horaInicioRealRuta: null,
+        horaFinRealRuta: null,
+        estadoAdminRuta: "activa",
+        nombreRuta: valoresCampos.nombre || null,
+        municipioRuta: primerConMunicipio ? primerConMunicipio.municipioContenedor : null
+    });
+    if (!ok) return null;
+
+    await cargarRutas();
+    const nueva = datos.rutas[datos.rutas.length - 1] || null;
+    if (!nueva) return null;
+
+    // for...of (no forEach) para esperar cada asignación en orden, igual
+    // que el alta de cuadrillas con sus operarios (ver manejarFormularioSubmit
+    // en controller.js).
+    let indice = 1;
+    for (const contenedor of contenedoresOrdenados) {
+        await asignarContenedorARuta(contenedor, Number(nueva.id), indice);
+        indice += 1;
+    }
+
+    await cargarContenedores();
+    recomputarResumenIncidenciasEnContenedores();
+
+    return nueva;
+}
+
 // Crea una incidencia reportada por el Jefe de Cuadrilla para su propia cuadrilla.
 export async function crearIncidenciaDesdeCuadrilla(idCuadrilla, { tipo, descripcion, idContenedor }) {
     const cuadrilla = detalleCuadrilla(idCuadrilla);
@@ -893,11 +1004,14 @@ async function cargarRutas() {
     const { ok, datos: filas } = await llamarRecoleccion("ruta", "GET");
     if (!ok || !Array.isArray(filas)) return;
 
-    // El municipio no es una columna propia de ruta todavia -- se deriva del
-    // texto de recorridoRuta, que para los circuitos reales de la IMM siempre
-    // trae "..., Municipio X)" (ver agregar_rutas_recoleccion.sql). Si una
-    // ruta no sigue ese formato (por ejemplo una cargada a mano desde el
-    // panel), simplemente queda sin municipio y no aparece en ese filtro.
+    // Municipio (14/10/2026, 01_code.sql seccion 12): ahora es una columna
+    // propia (ruta.municipioRuta), completada sola al elegir el barrio en
+    // "Nueva ruta" (ver crearRutaConContenedores). Las rutas viejas (de
+    // antes de esta columna) pueden no tenerla todavia -- para esas, se
+    // sigue derivando del texto de recorridoRuta como antes (los circuitos
+    // reales de la IMM siempre traen "..., Municipio X)", ver
+    // agregar_rutas_recoleccion.sql); una ruta cargada a mano sin ese
+    // formato ni la columna simplemente queda sin municipio.
     const MUNICIPIO_DESDE_RECORRIDO = /,\s*Municipio\s+([A-Za-zÁÉÍÓÚÑ]+)\)/;
 
     datos.rutas = filas.map((fila) => {
@@ -916,7 +1030,14 @@ async function cargarRutas() {
             nombre: fila.nombreRuta || "",
             zona: fila.zonaRuta || "",
             recorrido: fila.recorridoRuta || "",
-            municipio: matchMunicipio ? `Municipio ${matchMunicipio[1]}` : "",
+            // Acá SÍ se puede caer de vuelta al derivado de recorridoRuta
+            // (a diferencia de nombre arriba): guardarRuta() ya reenvía este
+            // valor tal cual en cada PUT (ver más abajo), así que si una
+            // ruta vieja no tiene la columna todavía, el primer guardado
+            // (por ejemplo un jefe marcando inicio/fin) la completa sola con
+            // el mismo valor que ya se mostraba -- no hay "relleno" que se
+            // termine guardando como si fuera otra cosa.
+            municipio: fila.municipioRuta || (matchMunicipio ? `Municipio ${matchMunicipio[1]}` : ""),
             frecuencia: fila.frecuenciaDeRecoleccionRuta || "",
             horario: fila.horarioRuta || "",
             estado: fila.estadoRuta || "sin iniciar",
@@ -949,12 +1070,14 @@ async function guardarRuta(ruta) {
         estadoAdminRuta: ruta.estadoAdmin,
         // Importante: aunque esta funcion solo cambie estado/horaInicio/Fin
         // (marcar inicio/fin de ruta desde el panel del jefe), hay que
-        // re-enviar nombreRuta con su valor actual -- el backend valida que
-        // un jefe de cuadrilla SOLO pueda tocar esos 3 campos comparando TODA
-        // la fila (soloCambianCamposPermitidos en Utilidades.php), y si este
-        // campo faltara en el body lo interpretaria como "lo querés borrar"
-        // y rechazaria el guardado con 403.
-        nombreRuta: ruta.nombre
+        // re-enviar nombreRuta/municipioRuta con su valor actual -- el
+        // backend valida que un jefe de cuadrilla SOLO pueda tocar esos 3
+        // campos comparando TODA la fila (soloCambianCamposPermitidos en
+        // Utilidades.php), y si cualquiera de estos faltara en el body lo
+        // interpretaria como "lo querés borrar" y rechazaria el guardado
+        // con 403.
+        nombreRuta: ruta.nombre,
+        municipioRuta: ruta.municipio || null
     }, ruta.id);
 
     return ok;
