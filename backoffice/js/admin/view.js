@@ -1165,6 +1165,13 @@ export function renderFormularioEdicionCuadrillaEnDetalle(cuadrillaRaw, datos) {
 // el formulario de Cuadrillas de arriba (formulario propio en vez del
 // genérico de más abajo), por eso vive acá y no en construirCamposHtml().
 // Ver claude/rutas_por_contenedor_09_10_2026.md para el contexto completo.
+//
+// Ajuste 14/10/2026 (2da vuelta): el orden de recolección ya NO se le
+// muestra a quien arma la ruta -- a esa persona solo le interesa elegir
+// barrio y contenedores. El orden se calcula solo (ver
+// actualizarRecorridoAutocompletado/ordenParaPersistir en controller.js) y
+// se guarda para que lo vea el chofer en su panel. Por eso ya no hay botón
+// "Sugerir orden" ni bloque de lista numerada acá.
 function construirCamposRutaHtml({ barrios }) {
     const opcionesBarrio = barrios.map((barrio) => `<option value="${escapeHtml(barrio)}">${escapeHtml(barrio)}</option>`).join("");
 
@@ -1220,20 +1227,8 @@ function construirCamposRutaHtml({ barrios }) {
 
             <div id="bloqueContenedoresRuta" style="display:none;">
                 <input type="text" id="buscarContenedoresRuta" class="input-buscador" placeholder="Buscar por dirección..." autocomplete="off">
-                <div class="lista-checkbox-operarios" id="listaContenedoresRuta"></div>
+                <div class="lista-checkbox-operarios lista-checkbox-operarios--grande" id="listaContenedoresRuta"></div>
                 <p id="avisoMinimoRuta" class="detail-nota" style="margin-top:6px;"></p>
-
-                <button type="button" class="btn-secundario" id="btnSugerirOrdenRuta" style="margin-top:8px;" disabled>
-                    Sugerir orden de recolección
-                </button>
-
-                <div id="bloqueOrdenSugeridoRuta" style="display:none; margin-top:10px;">
-                    <p class="detail-nota" style="margin-bottom:6px;">
-                        Orden sugerido por cercanía (línea recta, no por calles reales) — completa
-                        "Recorrido" arriba si estaba vacío, se puede editar si hace falta.
-                    </p>
-                    <ol id="listaOrdenSugeridoRuta" style="margin:0; padding-left:20px; font-size:14px;"></ol>
-                </div>
             </div>
         </div>
     `;
@@ -1269,20 +1264,6 @@ export function renderContenedoresRuta(contenedores) {
             `;
         }).join("")
         : `<p class="detail-empty">Este barrio no tiene contenedores cargados.</p>`;
-}
-
-// Lista numerada del orden de recolección sugerido ("Sugerir orden de
-// recolección", botón manual -- ver sugerirOrdenRuta() en controller.js).
-export function renderOrdenSugeridoRuta(contenedoresEnOrden) {
-    document.getElementById("listaOrdenSugeridoRuta").innerHTML = contenedoresEnOrden
-        .map((c) => `<li>${escapeHtml(c.ubicacionContenedor || "(sin dirección)")}</li>`)
-        .join("");
-    document.getElementById("bloqueOrdenSugeridoRuta").style.display = "";
-}
-
-export function ocultarOrdenSugeridoRuta() {
-    document.getElementById("bloqueOrdenSugeridoRuta").style.display = "none";
-    document.getElementById("listaOrdenSugeridoRuta").innerHTML = "";
 }
 
 // Arma los campos de un formulario genérico (alta o edición) a partir de la config del módulo.

@@ -1128,6 +1128,14 @@
     padding: 2px;
 }
 
+/* "Nueva ruta" (14/10, 2da vuelta): esta checklist puede tener bastantes
+   más contenedores para tildar que la de Operarios (hasta 40, ver
+   MAXIMO_CONTENEDORES_RUTA en controller.js) -- más alto que el resto para
+   que entren más filas sin scrollear tanto. */
+.lista-checkbox-operarios--grande {
+    max-height: 320px;
+}
+
 .checkbox-operario {
     display: flex;
     align-items: center;

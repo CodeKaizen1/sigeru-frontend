@@ -2,7 +2,7 @@
 // También guarda el estado propio de la pantalla (módulo abierto, registro en edición).
 
 import * as Model from "./model.js?v=35";
-import * as View from "./view.js?v=37";
+import * as View from "./view.js?v=38";
 import * as NotificacionesUI from "./notificaciones-ui.js?v=2";
 import * as CuentaUI from "./cuenta-ui.js?v=4";
 import * as ExportarExcel from "./exportar-excel.js?v=1";
@@ -689,12 +689,24 @@ function activarLimiteOperarios() {
 // nunca deja una ruta imposible de crear.
 const MINIMO_CONTENEDORES_RUTA = 25;
 
+// Máximo pedido por Matías (14/10, 2da vuelta): "usemos el máximo que tiene
+// la ruta con más contenedores". 05_rutas_por_contenedor.sql (el script que
+// reparte los contenedores reales entre rutas) reparte cada barrio "en
+// grupos de ~25 a 40 por ruta" a propósito -- y calculando el reparto más
+// parejo posible para los 62 barrios de ese script, el caso más alto
+// (Malvin Norte / Jacinto Vera) da 39 contenedores en la ruta más cargada.
+// 40 redondea ese tope real hacia arriba (mismo límite superior que ya usa
+// el propio script de datos).
+const MAXIMO_CONTENEDORES_RUTA = 40;
+
 // Contenedores del barrio elegido (con latitud/longitud/_otraRuta, tal cual
-// los devuelve Model.obtenerContenedoresDeBarrio) y el orden sugerido más
-// reciente, si el admin lo pidió -- estado propio de este formulario,
-// se reinicia cada vez que se abre "Nueva ruta" o cambia el barrio.
+// los devuelve Model.obtenerContenedoresDeBarrio) -- estado propio de este
+// formulario, se reinicia cada vez que se abre "Nueva ruta" o cambia el barrio.
 let contenedoresDelBarrioRuta = [];
-let ordenSugeridoContenedoresRuta = null;
+
+// Si el admin ya tocó el campo "Recorrido" a mano, dejamos de autocompletarlo
+// (ver actualizarRecorridoAutocompletado) -- se reinicia al elegir barrio.
+let recorridoEditadoManualmente = false;
 
 function minimoContenedoresParaBarrio(total) {
     return Math.min(MINIMO_CONTENEDORES_RUTA, total);
@@ -707,10 +719,17 @@ function botonGuardarRuta() {
 function actualizarContadorContenedoresRuta() {
     const total = contenedoresDelBarrioRuta.length;
     const minimo = minimoContenedoresParaBarrio(total);
-    const marcados = document.querySelectorAll('#listaContenedoresRuta input[name="contenedores"]:checked').length;
+    const casillas = document.querySelectorAll('#listaContenedoresRuta input[name="contenedores"]');
+    const marcados = Array.from(casillas).filter((input) => input.checked).length;
 
-    document.getElementById("contadorContenedoresRuta").textContent = `${marcados}/${minimo} mínimo`;
-    document.getElementById("btnSugerirOrdenRuta").disabled = marcados < 2;
+    document.getElementById("contadorContenedoresRuta").textContent = `${marcados}/${minimo} mínimo (máx. ${MAXIMO_CONTENEDORES_RUTA})`;
+
+    // Al llegar al máximo, se deshabilitan las casillas no tildadas en vez de
+    // dejar seguir sumando y recién avisar al guardar -- "no pueden ser
+    // infinitas" (Matías, 14/10, 2da vuelta).
+    casillas.forEach((input) => {
+        if (!input.checked) input.disabled = marcados >= MAXIMO_CONTENEDORES_RUTA;
+    });
 
     const aviso = document.getElementById("avisoMinimoRuta");
     const btnGuardar = botonGuardarRuta();
@@ -722,6 +741,10 @@ function actualizarContadorContenedoresRuta() {
             : `Faltan ${faltan} para llegar al mínimo de ${minimo} contenedores por ruta.`;
         aviso.style.color = "#a33";
         if (btnGuardar) btnGuardar.disabled = true;
+    } else if (marcados >= MAXIMO_CONTENEDORES_RUTA) {
+        aviso.textContent = `Llegaste al máximo de ${MAXIMO_CONTENEDORES_RUTA} contenedores por ruta.`;
+        aviso.style.color = "#2f7a4d";
+        if (btnGuardar) btnGuardar.disabled = false;
     } else {
         aviso.textContent = `Listo — ${marcados} contenedores seleccionados.`;
         aviso.style.color = "#2f7a4d";
@@ -731,8 +754,8 @@ function actualizarContadorContenedoresRuta() {
 
 // Contenedores tildados en el checklist, en el orden en que aparecen ahí
 // (alfabético por dirección, el mismo orden que ya devuelve
-// ContenedorController::buscar) -- es el que se guarda si el admin no pidió
-// "Sugerir orden de recolección".
+// ContenedorController::buscar) -- es la selección cruda, todavía sin pasar
+// por ordenParaPersistir().
 function contenedoresSeleccionadosRuta() {
     const idsMarcados = Array.from(
         document.querySelectorAll('#listaContenedoresRuta input[name="contenedores"]:checked')
@@ -794,40 +817,47 @@ function calleDesdeOrdenRuta(orden) {
     return calles.join(" - ");
 }
 
-function sugerirOrdenRuta() {
+// Orden final a persistir en contenedor.ordenRutaContenedor: vecino más
+// cercano para los que tienen coordenadas, y el resto (si algún contenedor
+// no tiene lat/lng cargada) al final en el orden en que se habían tildado --
+// nunca se pierde un contenedor seleccionado por no tener coordenadas.
+function ordenParaPersistir(seleccionados) {
+    const conCoordenadas = seleccionados.filter((c) => c.latitudContenedor != null && c.longitudContenedor != null);
+    const sinCoordenadas = seleccionados.filter((c) => !(c.latitudContenedor != null && c.longitudContenedor != null));
+
+    if (conCoordenadas.length < 2) return seleccionados;
+
+    return ordenVecinoMasCercano(conCoordenadas).concat(sinCoordenadas);
+}
+
+// Autocompleta "Recorrido" con las calles del orden de recolección calculado
+// -- en silencio, sin mostrarle el orden a quien arma la ruta (no le
+// interesa, solo elegir barrio y contenedores -- Matías, 14/10, 2da vuelta).
+// Se recalcula cada vez que cambia la selección, mientras el admin no haya
+// escrito nada a mano en ese campo todavía.
+function actualizarRecorridoAutocompletado() {
+    if (recorridoEditadoManualmente) return;
+
     const seleccionados = contenedoresSeleccionadosRuta();
     if (seleccionados.length < 2) return;
 
-    const conCoordenadas = seleccionados.filter((c) => c.latitudContenedor != null && c.longitudContenedor != null);
-    if (conCoordenadas.length < 2) {
-        alert("Ninguno de los contenedores elegidos tiene coordenadas cargadas -- no se puede calcular un orden por cercanía.");
-        return;
-    }
-
-    ordenSugeridoContenedoresRuta = ordenVecinoMasCercano(conCoordenadas);
-    View.renderOrdenSugeridoRuta(ordenSugeridoContenedoresRuta);
-
-    // Solo completa Recorrido si está vacío -- no pisa algo que el admin ya escribió a mano.
-    const campoRecorrido = document.getElementById("campoRutaRecorrido");
-    if (!campoRecorrido.value.trim()) {
-        campoRecorrido.value = calleDesdeOrdenRuta(ordenSugeridoContenedoresRuta);
-    }
+    document.getElementById("campoRutaRecorrido").value = calleDesdeOrdenRuta(ordenParaPersistir(seleccionados));
 }
 
 function activarFormularioRuta() {
     contenedoresDelBarrioRuta = [];
-    ordenSugeridoContenedoresRuta = null;
+    recorridoEditadoManualmente = false;
 
     const selectBarrio = document.getElementById("campoRutaBarrio");
     const campoMunicipio = document.getElementById("campoRutaMunicipio");
+    const campoRecorrido = document.getElementById("campoRutaRecorrido");
     const zonaSinElegir = document.getElementById("zonaRutaSinElegir");
     const bloqueContenedores = document.getElementById("bloqueContenedoresRuta");
     const listaContenedores = document.getElementById("listaContenedoresRuta");
 
     selectBarrio.addEventListener("change", async () => {
         const barrio = selectBarrio.value;
-        ordenSugeridoContenedoresRuta = null;
-        View.ocultarOrdenSugeridoRuta();
+        recorridoEditadoManualmente = false;
         document.getElementById("buscarContenedoresRuta").value = "";
 
         if (!barrio) {
@@ -858,14 +888,15 @@ function activarFormularioRuta() {
 
     listaContenedores.addEventListener("change", (evento) => {
         if (evento.target.name !== "contenedores") return;
-        // El orden sugerido queda desactualizado en cuanto cambia la
-        // selección -- hay que volver a pedirlo.
-        ordenSugeridoContenedoresRuta = null;
-        View.ocultarOrdenSugeridoRuta();
         actualizarContadorContenedoresRuta();
+        actualizarRecorridoAutocompletado();
     });
 
-    document.getElementById("btnSugerirOrdenRuta").addEventListener("click", sugerirOrdenRuta);
+    // En cuanto el admin toca este campo a mano, dejamos de pisarlo con el autocompletado.
+    campoRecorrido.addEventListener("input", () => {
+        recorridoEditadoManualmente = true;
+    });
+
     View.activarBuscador("buscarContenedoresRuta", "#listaContenedoresRuta .checkbox-operario");
 }
 
@@ -908,8 +939,8 @@ async function manejarFormularioSubmit(evento) {
     }
 
     // Alta de ruta: además de los campos de siempre, hay que validar el
-    // mínimo de contenedores y mandarlos ya en su orden final (sugerido o,
-    // si no se pidió, el del propio checklist).
+    // mínimo/máximo de contenedores y mandarlos ya en su orden final de
+    // recolección (se calcula acá, no se le mostró a quien arma la ruta).
     if (moduloActual === "rutas") {
         const formulario = evento.target;
         const valoresCampos = {
@@ -920,16 +951,28 @@ async function manejarFormularioSubmit(evento) {
             horario: formulario.elements["horario"].value
         };
 
-        const contenedoresFinal = ordenSugeridoContenedoresRuta || contenedoresSeleccionadosRuta();
+        const seleccionados = contenedoresSeleccionadosRuta();
         const minimo = minimoContenedoresParaBarrio(contenedoresDelBarrioRuta.length);
 
         // El botón Guardar ya queda deshabilitado mientras no se llega al
-        // mínimo (ver actualizarContadorContenedoresRuta), pero se valida
-        // de nuevo acá por si el envío se dispara de otra forma (Enter).
-        if (!valoresCampos.zona || contenedoresFinal.length < minimo) {
+        // mínimo, y las casillas se deshabilitan al llegar al máximo (ver
+        // actualizarContadorContenedoresRuta), pero se valida de nuevo acá
+        // por si el envío se dispara de otra forma (Enter).
+        if (!valoresCampos.zona || seleccionados.length < minimo) {
             alert(`Hay que elegir un barrio y asignarle al menos ${minimo} contenedores a esta ruta.`);
             return;
         }
+        if (seleccionados.length > MAXIMO_CONTENEDORES_RUTA) {
+            alert(`Una ruta no puede tener más de ${MAXIMO_CONTENEDORES_RUTA} contenedores -- desmarcá ${seleccionados.length - MAXIMO_CONTENEDORES_RUTA}.`);
+            return;
+        }
+
+        // Acá -- no antes -- se calcula el orden real de recolección que va
+        // a quedar guardado en contenedor.ordenRutaContenedor: a quien arma
+        // la ruta no le interesa verlo, solo elegir barrio y contenedores
+        // (Matías, 14/10, 2da vuelta); el chofer/jefe/operario lo ven
+        // reflejado como el orden de las paradas en su propio panel.
+        const contenedoresFinal = ordenParaPersistir(seleccionados);
 
         View.cerrarModal();
 
