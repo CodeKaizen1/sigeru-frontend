@@ -164,7 +164,7 @@ function distanciaEntrePuntos(a, b) {
     return Math.sqrt(dLat * dLat + dLng * dLng);
 }
 
-async function buscarEnNominatim(texto, limite) {
+async function buscarEnNominatim(texto, limite, caja) {
     try {
         const parametros = new URLSearchParams({
             q: `${texto}, Montevideo, Uruguay`,
@@ -172,6 +172,16 @@ async function buscarEnNominatim(texto, limite) {
             limit: String(limite),
             countrycodes: "uy"
         });
+
+        // `caja` (opcional): [minLon, maxLat, maxLon, minLat] -- acota la
+        // búsqueda a ese rectángulo (ver geocodificarDireccion más abajo,
+        // 4ta vuelta: sin esto, una avenida larga como "Rivera" devuelve
+        // tramos repartidos por toda la ciudad y ninguno es necesariamente
+        // el que cruza la otra calle buscada).
+        if (caja) {
+            parametros.set("viewbox", caja.join(","));
+            parametros.set("bounded", "1");
+        }
 
         const respuesta = await fetch(`${NOMINATIM_URL}?${parametros.toString()}`);
         const datos = await respuesta.json().catch(() => null);
@@ -189,6 +199,31 @@ function esperar(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// Rectángulo [minLon, maxLat, maxLon, minLat] de +/- `radioGrados` alrededor
+// de un punto, en el formato que espera el parámetro `viewbox` de Nominatim.
+function cajaAlrededorDe(punto, radioGrados) {
+    return [punto.lng - radioGrados, punto.lat + radioGrados, punto.lng + radioGrados, punto.lat - radioGrados];
+}
+
+function masCercanoA(ancla, candidatos) {
+    let mejor = candidatos[0];
+    let mejorDistancia = distanciaEntrePuntos(ancla, mejor);
+
+    for (const candidato of candidatos.slice(1)) {
+        const distancia = distanciaEntrePuntos(ancla, candidato);
+        if (distancia < mejorDistancia) {
+            mejorDistancia = distancia;
+            mejor = candidato;
+        }
+    }
+
+    return mejor;
+}
+
+// Radio de la caja de búsqueda acotada, en grados (~1.1 km) -- si no
+// aparece nada ahí adentro se prueba una vez más con el doble.
+const RADIO_CAJA_ESQUINA_GRADOS = 0.01;
+
 async function geocodificarDireccion(texto) {
     const partes = separarCalleYEsquina(texto);
 
@@ -197,32 +232,68 @@ async function geocodificarDireccion(texto) {
         return candidatos[0] || null;
     }
 
-    // "Calle1 y calle2": se geocodifica cada una por separado (secuencial,
-    // con espera entre medio -- ver ESPERA_ENTRE_PEDIDOS_NOMINATIM_MS) y se
-    // busca el par de tramos más cercano entre ambas listas de candidatos.
-    const candidatos1 = await buscarEnNominatim(partes[0], 8);
+    // "Calle1 y calle2": geocodificar cada calle por separado SIN acotar y
+    // quedarse con el par de candidatos más cercano entre las 2 listas
+    // suena razonable, pero falla con calles largas -- Nominatim solo
+    // devuelve un puñado de tramos "representativos" de una avenida larga
+    // (uno por barrio que atraviesa), y el tramo que realmente cruza la
+    // otra calle buscada puede no estar entre esos pocos (bug reportado
+    // por Matías con "Rivera y Rocafuerte": el tramo de Avenida Rivera más
+    // cercano que devolvía Nominatim en ese muestreo quedaba a más de 1 km
+    // de la esquina real con Rocafuerte, en el barrio equivocado).
+    //
+    // El arreglo (4ta vuelta, 15/10/2026): geocodificar primero la calle
+    // con MENOS resultados sin acotar (normalmente la más corta/específica
+    // de las 2 -- "Rocafuerte" da 1 solo tramo contra los 10 de "Rivera") y
+    // usar su mejor resultado como ancla. La OTRA calle se vuelve a buscar
+    // acotada (viewbox + bounded=1) a una caja de ~1 km alrededor de esa
+    // ancla, así Nominatim solo puede devolver el tramo que de verdad está
+    // cerca, no cualquier tramo del país con ese nombre.
+    const candidatos1 = await buscarEnNominatim(partes[0], 10);
     await esperar(ESPERA_ENTRE_PEDIDOS_NOMINATIM_MS);
-    const candidatos2 = await buscarEnNominatim(partes[1], 8);
+    const candidatos2 = await buscarEnNominatim(partes[1], 10);
 
     if (!candidatos1.length && !candidatos2.length) return null;
     if (!candidatos1.length) return candidatos2[0];
     if (!candidatos2.length) return candidatos1[0];
 
-    let mejorPar = null;
-    let mejorDistancia = Infinity;
+    const calle1EsAncla = candidatos1.length <= candidatos2.length;
+    const ancla = calle1EsAncla ? candidatos1[0] : candidatos2[0];
+    const otraCalle = calle1EsAncla ? partes[1] : partes[0];
 
-    for (const puntoA of candidatos1) {
-        for (const puntoB of candidatos2) {
-            const distancia = distanciaEntrePuntos(puntoA, puntoB);
-            if (distancia < mejorDistancia) {
-                mejorDistancia = distancia;
-                mejorPar = [puntoA, puntoB];
-            }
-        }
+    await esperar(ESPERA_ENTRE_PEDIDOS_NOMINATIM_MS);
+    let cercanos = await buscarEnNominatim(otraCalle, 5, cajaAlrededorDe(ancla, RADIO_CAJA_ESQUINA_GRADOS));
+
+    if (!cercanos.length) {
+        await esperar(ESPERA_ENTRE_PEDIDOS_NOMINATIM_MS);
+        cercanos = await buscarEnNominatim(otraCalle, 5, cajaAlrededorDe(ancla, RADIO_CAJA_ESQUINA_GRADOS * 2));
     }
 
-    const [puntoA, puntoB] = mejorPar;
-    return { lat: (puntoA.lat + puntoB.lat) / 2, lng: (puntoA.lng + puntoB.lng) / 2 };
+    if (!cercanos.length) {
+        // Ninguna variante de la otra calle apareció cerca del ancla (puede
+        // que las 2 calles no se crucen en realidad, o que falte ese tramo
+        // en OpenStreetMap) -- se cae al criterio anterior (el par más
+        // cercano de las listas SIN acotar) como mejor esfuerzo, en vez de
+        // no mostrar nada.
+        let mejorPar = null;
+        let mejorDistancia = Infinity;
+
+        for (const puntoA of candidatos1) {
+            for (const puntoB of candidatos2) {
+                const distancia = distanciaEntrePuntos(puntoA, puntoB);
+                if (distancia < mejorDistancia) {
+                    mejorDistancia = distancia;
+                    mejorPar = [puntoA, puntoB];
+                }
+            }
+        }
+
+        const [puntoA, puntoB] = mejorPar;
+        return { lat: (puntoA.lat + puntoB.lat) / 2, lng: (puntoA.lng + puntoB.lng) / 2 };
+    }
+
+    const masCercano = masCercanoA(ancla, cercanos);
+    return { lat: (ancla.lat + masCercano.lat) / 2, lng: (ancla.lng + masCercano.lng) / 2 };
 }
 
 // Marcador de la esquina buscada -- aparte de capaCluster (no es un
