@@ -16,6 +16,17 @@
     box-sizing: border-box;
 }
 
+/* Fase 6 puntos 20/38 (15/10): escala tipográfica compartida -- antes no
+   había ningún font-size propio en html/body (quedaba en los 16px por
+   default del navegador) y las letras se sentían chicas en general. Subir
+   la base acá escala TODO lo que ya está en rem en el resto del CSS (la
+   mayoría de los títulos y textos largos); los tamaños puntuales que
+   siguen en px (labels, botones, tablas de admin.css, etc.) se subieron
+   aparte, 1 a 1, en la misma pasada. */
+html {
+    font-size: 17px;
+}
+
 body {
     font-family: Arial, Helvetica, sans-serif;
     background-color: var(--light-bg);

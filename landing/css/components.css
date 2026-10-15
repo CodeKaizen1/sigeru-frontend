@@ -89,7 +89,7 @@ COMPONENTES GENERALES
     width: 100%;
     border: none;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 17px;
 }
 
 /*
@@ -128,7 +128,7 @@ FORMULARIOS (compartido entre auth y landing)
     padding: 13px 14px;
     border: 1px solid #c8d2df;
     border-radius: 10px;
-    font-size: 15px;
+    font-size: 16px;
     font-family: inherit;
     background-color: var(--white);
     color: var(--text-dark);

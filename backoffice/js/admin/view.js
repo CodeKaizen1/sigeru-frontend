@@ -354,16 +354,22 @@ let graficoInforme = null;
 // dentro de moduleList, igual que Resumen hace con sus gráficos -- se
 // reconstruye entero en cada cambio de filtro, controller.js reengancha los
 // listeners después de llamar a esto.
-export function renderInformeIncidencias({ filtros, zonas, tipos, informe }) {
+export function renderInformeIncidencias({ filtros, zonas, tipos, informe, filasPagina, tamanoPagina }) {
     const opcionesZona = zonas.map((zona) => `<option value="${escapeHtml(zona)}" ${zona === filtros.zona ? "selected" : ""}>${escapeHtml(zona)}</option>`).join("");
     const opcionesTipo = tipos.map((tipo) => `<option value="${escapeHtml(tipo)}" ${tipo === filtros.tipo ? "selected" : ""}>${escapeHtml(tipo)}</option>`).join("");
 
-    const LIMITE_FILAS_TABLA = 300;
-    const filasTabla = informe.filas.slice(0, LIMITE_FILAS_TABLA);
-    const filasOcultas = informe.filas.length - filasTabla.length;
+    // Punto 37 de la Fase 6: antes esto cortaba en las primeras 300 filas con
+    // una nota de "exportá a Excel para ver el resto". Ahora controller.js
+    // pagina de verdad (mismo paginador compartido que el resto de los
+    // módulos, ver View.renderPaginador) y acá solo se pinta la página que
+    // ya llega recortada en filasPagina.
+    const TAMANOS_PAGINA_INFORME = [10, 25, 50, 100];
+    const opcionesTamanoPagina = TAMANOS_PAGINA_INFORME
+        .map((tamano) => `<option value="${tamano}" ${tamano === tamanoPagina ? "selected" : ""}>${tamano} filas</option>`)
+        .join("");
 
-    const filasHtml = filasTabla.length
-        ? filasTabla.map((incidencia) => `
+    const filasHtml = filasPagina.length
+        ? filasPagina.map((incidencia) => `
             <tr>
                 <td>${incidencia.id}</td>
                 <td>${escapeHtml(incidencia.fecha)}</td>
@@ -399,6 +405,12 @@ export function renderInformeIncidencias({ filtros, zonas, tipos, informe }) {
                     <select id="informeTipo" data-informe-tipo>
                         <option value="">Todos los tipos</option>
                         ${opcionesTipo}
+                    </select>
+                </div>
+                <div class="grupo-formulario">
+                    <label for="informeTamanoPagina">Filas por página</label>
+                    <select id="informeTamanoPagina" data-informe-tamano-pagina>
+                        ${opcionesTamanoPagina}
                     </select>
                 </div>
                 <div class="informe-filtros-acciones">
@@ -448,11 +460,6 @@ export function renderInformeIncidencias({ filtros, zonas, tipos, informe }) {
                         ${filasHtml}
                     </tbody>
                 </table>
-                ${filasOcultas > 0 ? `
-                    <p class="detail-nota informe-tabla-nota">
-                        Mostrando las primeras ${LIMITE_FILAS_TABLA} de ${informe.filas.length} incidencias. Exportá a Excel para ver el listado completo.
-                    </p>
-                ` : ""}
             </div>
         </div>
     `;

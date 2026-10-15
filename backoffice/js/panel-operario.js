@@ -5,7 +5,7 @@
 // Nota: la tarjeta "Mi turno" muestra "—" para todos porque ese dato (turnoOperarioDeCuadrilla)
 // no está expuesto todavía por Model.obtenerRegistroPorId("funcionarios", ...).
 
-import * as Model from "./admin/model.js?v=37";
+import * as Model from "./admin/model.js?v=38";
 import * as NotificacionesUI from "./admin/notificaciones-ui.js?v=2";
 import * as CuentaUI from "./admin/cuenta-ui.js?v=4";
 import { confirmar } from "./admin/confirmar-ui.js?v=3";

@@ -310,10 +310,21 @@ function cuerpoIncidencia(incidencia, cambios = {}) {
     };
 }
 
-// Cambia el estado de una incidencia. Al pasar a "resuelta" exige el detalle de resolución (devuelve "RESOLUCION_REQUERIDA" si falta).
-export async function cambiarEstadoIncidencia(idIncidencia, nuevoEstado, resolucionDetalle = "") {
+// Cambia el estado de una incidencia. Al pasar a "resuelta" exige el detalle
+// de resolución (devuelve "RESOLUCION_REQUERIDA" si falta). Punto 36 de la
+// Fase 6: al REABRIR una incidencia ya resuelta (resuelta -> abierta/en
+// curso) también se exige un motivo (devuelve "JUSTIFICACION_REQUERIDA" si
+// falta) -- y, a diferencia de antes, ya no se pierde el texto de la
+// resolución original: el motivo de la reapertura se agrega al final del
+// mismo campo resolucionIncidencia con fecha, en vez de machacarlo con null
+// (se eligió reusar el campo existente en vez de sumar uno nuevo a la tabla,
+// para no tocar el esquema a esta altura -- ver la pregunta abierta en
+// plan_pasos_correccion_auditoria_08_10_2026.md, punto 36).
+export async function cambiarEstadoIncidencia(idIncidencia, nuevoEstado, resolucionDetalle = "", motivoReapertura = "") {
     const incidencia = obtenerRegistroPorId("incidencias", idIncidencia);
     if (!incidencia) return null;
+
+    const seEstaReabriendo = incidencia.estado === "resuelta" && nuevoEstado !== "resuelta";
 
     let resolucion = null;
     let fechaResolucion = null;
@@ -323,6 +334,18 @@ export async function cambiarEstadoIncidencia(idIncidencia, nuevoEstado, resoluc
         if (!detalle) return "RESOLUCION_REQUERIDA";
         resolucion = detalle;
         fechaResolucion = new Date().toISOString();
+    } else if (seEstaReabriendo) {
+        const motivo = (motivoReapertura || "").trim();
+        if (!motivo) return "JUSTIFICACION_REQUERIDA";
+
+        const fechaTexto = formatearFechaCorta(new Date().toISOString());
+        resolucion = incidencia.resolucion
+            ? `${incidencia.resolucion}\n\n[Reabierta el ${fechaTexto}] ${motivo}`
+            : `[Reabierta el ${fechaTexto}] ${motivo}`;
+        // La fecha de resolución original se deja como estaba -- el estado
+        // ya deja en claro que ahora mismo no está resuelta, y así no se
+        // pierde cuándo se había resuelto la primera vez.
+        fechaResolucion = incidencia.fechaResolucion;
     }
 
     const { ok } = await llamarGestion("incidencia", "PUT", cuerpoIncidencia(incidencia, {

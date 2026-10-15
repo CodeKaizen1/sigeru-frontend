@@ -37,16 +37,16 @@
     display: grid;
     place-items: center;
     font-weight: bold;
-    font-size: 20px;
+    font-size: 22px;
 }
 
 .admin-brand h1 {
-    font-size: 24px;
+    font-size: 26px;
     margin-bottom: 4px;
 }
 
 .admin-brand p {
-    font-size: 14px;
+    font-size: 15px;
     color: rgba(255, 255, 255, 0.75);
 }
 
@@ -132,12 +132,12 @@
     font-weight: bold;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    font-size: 13px;
+    font-size: 14px;
     margin-bottom: 8px;
 }
 
 .module-header h2 {
-    font-size: 32px;
+    font-size: 34px;
     color: #082b4f;
     margin-bottom: 10px;
 }
@@ -171,7 +171,7 @@
 }
 
 .resumen-card strong {
-    font-size: 36px;
+    font-size: 38px;
     color: #082b4f;
 }
 
@@ -197,7 +197,7 @@
 }
 
 .grafico-card h3 {
-    font-size: 15px;
+    font-size: 16px;
     color: #082b4f;
     margin-bottom: 14px;
 }
@@ -245,7 +245,7 @@
     border-radius: 14px;
     background: white;
     color: #082b4f;
-    font-size: 15px;
+    font-size: 16px;
 }
 
 .informe-filtros-acciones {
@@ -272,7 +272,7 @@
 .informe-tabla {
     width: 100%;
     border-collapse: collapse;
-    font-size: 14px;
+    font-size: 15px;
 }
 
 .informe-tabla th,
@@ -286,7 +286,7 @@
 .informe-tabla th {
     color: #5d6b7a;
     font-weight: 600;
-    font-size: 13px;
+    font-size: 14px;
 }
 
 .informe-tabla td:last-child,
@@ -337,7 +337,7 @@
 .resumen-incidencia-id {
     color: #082b4f;
     font-weight: bold;
-    font-size: 14px;
+    font-size: 15px;
 }
 
 /*
@@ -371,7 +371,7 @@
 .parada-ruta-numero {
     color: #082b4f;
     font-weight: bold;
-    font-size: 14px;
+    font-size: 15px;
 }
 
 .parada-ruta-acciones {
@@ -395,7 +395,7 @@
 }
 
 .progreso-ruta-texto {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: bold;
     color: #082b4f;
     white-space: nowrap;
@@ -423,14 +423,14 @@
 }
 
 .parada-proxima .parada-ruta-numero {
-    font-size: 16px;
+    font-size: 17px;
 }
 
 .parada-proxima-etiqueta {
     display: block;
     background: #082b4f;
     color: white;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: bold;
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -499,7 +499,7 @@
     align-items: center;
     justify-content: center;
     color: white;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: bold;
     line-height: 1;
     transition: background-color 0.25s ease, border-color 0.25s ease;
@@ -548,7 +548,7 @@
     border-radius: 14px;
     background: white;
     color: #082b4f;
-    font-size: 15px;
+    font-size: 16px;
 }
 
 .module-tools .btn-principal,
@@ -581,7 +581,7 @@
     border-radius: 14px;
     background: white;
     color: #082b4f;
-    font-size: 15px;
+    font-size: 16px;
 }
 
 /*
@@ -711,7 +711,7 @@
     background: white;
     color: #0d5ea6;
     font-weight: bold;
-    font-size: 13px;
+    font-size: 14px;
     white-space: nowrap;
     cursor: pointer;
 }
@@ -732,7 +732,7 @@
 
 .data-sub {
     color: #5d6b7a;
-    font-size: 14px;
+    font-size: 15px;
 }
 
 /* Dirección del contenedor en la fila de Incidencias (además del barrio en
@@ -760,7 +760,7 @@
     padding: 7px 12px;
     border-radius: 999px;
     font-weight: bold;
-    font-size: 13px;
+    font-size: 14px;
 }
 
 .estado-abierta,
@@ -818,7 +818,7 @@
 
 .detail-panel h3 {
     color: #082b4f;
-    font-size: 22px;
+    font-size: 24px;
     margin-bottom: 8px;
 }
 
@@ -855,7 +855,7 @@
 .detail-item span {
     display: block;
     color: #6b7a89;
-    font-size: 13px;
+    font-size: 14px;
     margin-bottom: 4px;
 }
 
@@ -871,7 +871,7 @@
 .detail-item-editable label {
     display: block;
     color: #6b7a89;
-    font-size: 13px;
+    font-size: 14px;
     margin-bottom: 4px;
 }
 
@@ -929,7 +929,7 @@
 
 .detail-asignacion h4 {
     color: #082b4f;
-    font-size: 15px;
+    font-size: 16px;
     margin-bottom: 14px;
 }
 
@@ -938,7 +938,7 @@
 }
 
 .detail-nota {
-    font-size: 13px;
+    font-size: 14px;
     font-style: italic;
     color: #6b7a89 !important;
     background: #f6f9fc;
@@ -1014,7 +1014,7 @@
 .maquina-card-tipo {
     color: #082b4f;
     font-weight: bold;
-    font-size: 14px;
+    font-size: 15px;
 }
 
 .maquina-card-acciones {
@@ -1029,13 +1029,13 @@
     border-radius: 10px;
     background: white;
     color: #082b4f;
-    font-size: 13px;
+    font-size: 14px;
     font-family: inherit;
 }
 
 .maquina-card-acciones .btn-chico {
     padding: 7px 14px;
-    font-size: 13px;
+    font-size: 14px;
 }
 
 .maquina-vacio {
@@ -1072,12 +1072,12 @@
 .operario-card-nombre {
     color: #082b4f;
     font-weight: bold;
-    font-size: 14px;
+    font-size: 15px;
 }
 
 .operario-card .btn-chico {
     padding: 7px 14px;
-    font-size: 13px;
+    font-size: 14px;
 }
 
 /*
@@ -1107,7 +1107,7 @@
     border-radius: 999px;
     background: #fdf0da;
     color: #946200;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
     vertical-align: middle;
 }
@@ -1144,7 +1144,7 @@
     padding: 10px 12px;
     border-radius: 10px;
     color: #082b4f;
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 600;
     cursor: pointer;
 }
@@ -1190,7 +1190,7 @@
 
 .control-ruta h3 {
     color: #082b4f;
-    font-size: 22px;
+    font-size: 24px;
     margin-bottom: 8px;
 }
 
@@ -1217,13 +1217,13 @@
 .control-ruta-horario span {
     display: block;
     color: #6b7a89;
-    font-size: 13px;
+    font-size: 14px;
     margin-bottom: 4px;
 }
 
 .control-ruta-horario strong {
     color: #082b4f;
-    font-size: 16px;
+    font-size: 17px;
 }
 
 /*
@@ -1285,7 +1285,7 @@
     width: 34px;
     height: 34px;
     border-radius: 10px;
-    font-size: 16px;
+    font-size: 17px;
     cursor: pointer;
 }
 
@@ -1345,7 +1345,7 @@
 .modal-asignacion-error {
     display: block;
     color: #b42318;
-    font-size: 13px;
+    font-size: 14px;
     margin-top: 6px;
 }
 
@@ -1381,7 +1381,7 @@
     background: #0a5ea8;
     color: white;
     font-weight: 700;
-    font-size: 13px;
+    font-size: 14px;
     border: 2px solid white;
     box-shadow: 0 2px 6px rgba(8, 43, 79, 0.4);
 }
@@ -1420,7 +1420,7 @@
     border: none;
     background: #eef3f8;
     color: #0d5ea6;
-    font-size: 20px;
+    font-size: 22px;
     cursor: pointer;
     display: grid;
     place-items: center;
@@ -1441,7 +1441,7 @@
     border-radius: 999px;
     background: #d0342c;
     color: white;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: bold;
     display: grid;
     place-items: center;
@@ -1493,21 +1493,21 @@
 
 .notificacion-item p {
     color: #24313f;
-    font-size: 14px;
+    font-size: 15px;
     line-height: 1.4;
     margin-bottom: 4px;
 }
 
 .notificacion-item span {
     color: #8393a3;
-    font-size: 12px;
+    font-size: 13px;
 }
 
 .notificaciones-vacio {
     padding: 24px 10px;
     text-align: center;
     color: #8393a3;
-    font-size: 14px;
+    font-size: 15px;
 }
 
 .notificacion-banner {
@@ -1537,11 +1537,11 @@
 }
 
 .notificacion-banner-icono {
-    font-size: 20px;
+    font-size: 22px;
 }
 
 .notificacion-banner p {
-    font-size: 14px;
+    font-size: 15px;
     line-height: 1.4;
 }
 
@@ -1566,7 +1566,7 @@
     border: none;
     background: #eef3f8;
     color: #082b4f;
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 700;
     cursor: pointer;
     transition: 0.2s;
@@ -1584,7 +1584,7 @@
     color: white;
     display: grid;
     place-items: center;
-    font-size: 15px;
+    font-size: 16px;
 }
 
 .cuenta-desplegable {
@@ -1608,12 +1608,12 @@
 .cuenta-desplegable-titulo strong {
     display: block;
     color: #082b4f;
-    font-size: 15px;
+    font-size: 16px;
 }
 
 .cuenta-desplegable-titulo span {
     color: #8393a3;
-    font-size: 13px;
+    font-size: 14px;
 }
 
 /* Cada dato (correo, teléfono, contraseña) es una "sección" propia:
@@ -1645,12 +1645,12 @@
 }
 
 .cuenta-seccion-etiqueta {
-    font-size: 12px;
+    font-size: 13px;
     color: #8393a3;
 }
 
 .cuenta-seccion-valor {
-    font-size: 14px;
+    font-size: 15px;
     color: #082b4f;
     font-weight: 700;
     overflow: hidden;
@@ -1661,7 +1661,7 @@
 .cuenta-seccion-vista .btn-chico {
     flex-shrink: 0;
     padding: 7px 14px;
-    font-size: 13px;
+    font-size: 14px;
 }
 
 .cuenta-seccion-form {
@@ -1681,7 +1681,7 @@
 .cuenta-aviso {
     padding: 10px 12px;
     border-radius: 10px;
-    font-size: 13px;
+    font-size: 14px;
     line-height: 1.4;
     margin-top: 14px;
     background: #eaf4ff;

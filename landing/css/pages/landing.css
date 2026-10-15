@@ -604,6 +604,13 @@
     max-width: 440px;
 }
 
+/* Fase 6 punto 41 (15/10): la columna de texto quedaba con bastante aire
+   de más contra la tarjeta del formulario, a la derecha -- párrafo extra
+   después de los 3 mini-pasos, mismo ancho/estilo que section-copy. */
+.report-copy-extra {
+    margin-top: 32px;
+}
+
 .report-mini-step {
     display: flex;
     align-items: flex-start;
@@ -1057,7 +1064,7 @@
 .incidencia-publica-fecha-resolucion {
     display: block;
     color: #137a3a;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     margin-top: 4px;
 }

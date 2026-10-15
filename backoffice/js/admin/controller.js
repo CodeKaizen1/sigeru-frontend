@@ -1,8 +1,8 @@
 // CONTROLADOR: escucha clicks/submits del panel, pide datos al Modelo y actualiza la Vista.
 // También guarda el estado propio de la pantalla (módulo abierto, registro en edición).
 
-import * as Model from "./model.js?v=37";
-import * as View from "./view.js?v=40";
+import * as Model from "./model.js?v=38";
+import * as View from "./view.js?v=41";
 import * as NotificacionesUI from "./notificaciones-ui.js?v=2";
 import * as CuentaUI from "./cuenta-ui.js?v=4";
 import * as ExportarExcel from "./exportar-excel.js?v=1";
@@ -115,6 +115,7 @@ async function cambiarModulo(nombreModulo) {
         await mostrarResumen();
     } else if (nombreModulo === "informes") {
         filtrosInforme = { desde: "", hasta: "", zona: "", tipo: "" };
+        paginaInforme = 1;
         await mostrarInformes();
     } else {
         await mostrarModulo();
@@ -201,19 +202,83 @@ async function mostrarResumen() {
 // sobrevivir a los reenganches cada vez que cambia un filtro.
 let filtrosInforme = { desde: "", hasta: "", zona: "", tipo: "" };
 
+// Paginado propio del informe (punto 37 de la Fase 6): antes esto cortaba
+// en las primeras 300 filas con una nota de "exportá a Excel para ver el
+// resto". Reutiliza el mismo paginador compartido (#paginador, ver
+// View.renderPaginador) que ya usa mostrarModulo() para el resto de los
+// módulos, pero con su propio enganche de Anterior/Siguiente/Ir-a-página:
+// no se reusa el bloque de mostrarModulo() para no arriesgar una regresión
+// en los otros 9 módulos que dependen de él.
+let paginaInforme = 1;
+let registrosPorPaginaInforme = 10;
+
 async function mostrarInformes() {
     await Model.obtenerRegistros("informes");
 
     const informe = Model.generarInformeIncidencias(filtrosInforme);
 
+    const totalPaginasInforme = Math.max(1, Math.ceil(informe.filas.length / registrosPorPaginaInforme));
+    if (paginaInforme > totalPaginasInforme) paginaInforme = totalPaginasInforme;
+
+    const inicio = (paginaInforme - 1) * registrosPorPaginaInforme;
+    const filasPagina = informe.filas.slice(inicio, inicio + registrosPorPaginaInforme);
+
     View.renderInformeIncidencias({
         filtros: filtrosInforme,
         zonas: Model.opcionesZonaInformeIncidencias(),
         tipos: Model.opcionesTipoInformeIncidencias(),
-        informe
+        informe,
+        filasPagina,
+        tamanoPagina: registrosPorPaginaInforme
     });
 
     engancharControlesInforme();
+
+    const paginador = View.renderPaginador(paginaInforme, totalPaginasInforme);
+
+    if (paginador) {
+        const botonAnterior = paginador.querySelector("[data-pagina-anterior]");
+        const botonSiguiente = paginador.querySelector("[data-pagina-siguiente]");
+
+        if (botonAnterior) {
+            botonAnterior.addEventListener("click", () => {
+                if (paginaInforme > 1) {
+                    paginaInforme -= 1;
+                    mostrarInformes();
+                }
+            });
+        }
+
+        if (botonSiguiente) {
+            botonSiguiente.addEventListener("click", () => {
+                if (paginaInforme < totalPaginasInforme) {
+                    paginaInforme += 1;
+                    mostrarInformes();
+                }
+            });
+        }
+
+        const inputPagina = paginador.querySelector("[data-pagina-input]");
+        if (inputPagina) {
+            const irAPagina = () => {
+                const destino = Math.min(Math.max(Math.trunc(Number(inputPagina.value)) || 1, 1), totalPaginasInforme);
+                if (destino !== paginaInforme) {
+                    paginaInforme = destino;
+                    mostrarInformes();
+                } else {
+                    inputPagina.value = paginaInforme;
+                }
+            };
+
+            inputPagina.addEventListener("keydown", (evento) => {
+                if (evento.key === "Enter") {
+                    evento.preventDefault();
+                    irAPagina();
+                }
+            });
+            inputPagina.addEventListener("blur", irAPagina);
+        }
+    }
 }
 
 function engancharControlesInforme() {
@@ -221,26 +286,37 @@ function engancharControlesInforme() {
 
     contenedor.querySelector("[data-informe-desde]").addEventListener("change", (evento) => {
         filtrosInforme.desde = evento.target.value;
+        paginaInforme = 1;
         mostrarInformes();
     });
 
     contenedor.querySelector("[data-informe-hasta]").addEventListener("change", (evento) => {
         filtrosInforme.hasta = evento.target.value;
+        paginaInforme = 1;
         mostrarInformes();
     });
 
     contenedor.querySelector("[data-informe-zona]").addEventListener("change", (evento) => {
         filtrosInforme.zona = evento.target.value;
+        paginaInforme = 1;
         mostrarInformes();
     });
 
     contenedor.querySelector("[data-informe-tipo]").addEventListener("change", (evento) => {
         filtrosInforme.tipo = evento.target.value;
+        paginaInforme = 1;
+        mostrarInformes();
+    });
+
+    contenedor.querySelector("[data-informe-tamano-pagina]").addEventListener("change", (evento) => {
+        registrosPorPaginaInforme = Number(evento.target.value) || 10;
+        paginaInforme = 1;
         mostrarInformes();
     });
 
     contenedor.querySelector("[data-informe-limpiar]").addEventListener("click", () => {
         filtrosInforme = { desde: "", hasta: "", zona: "", tipo: "" };
+        paginaInforme = 1;
         mostrarInformes();
     });
 
@@ -413,6 +489,20 @@ async function manejarCambiarEstadoIncidencia(id) {
         if (detalle === null) return;
 
         await Model.cambiarEstadoIncidencia(id, "resuelta", detalle);
+    } else if (incidencia.estado === "resuelta") {
+        // Punto 36 de la Fase 6: reabrir una incidencia ya resuelta (resuelta
+        // -> abierta/en curso) también pide un motivo, igual que resolverla
+        // pide qué se hizo -- Model.cambiarEstadoIncidencia lo agrega al
+        // final de la resolución original en vez de borrarla.
+        const motivo = await AsignarUI.pedirTexto(
+            `Cambiar estado — ${incidencia.id}`,
+            "Por qué se reabre",
+            { placeholder: "Contá brevemente por qué se reabre esta incidencia", requerido: true }
+        );
+
+        if (motivo === null) return;
+
+        await Model.cambiarEstadoIncidencia(id, nuevoEstado, "", motivo);
     } else {
         await Model.cambiarEstadoIncidencia(id, nuevoEstado);
     }
