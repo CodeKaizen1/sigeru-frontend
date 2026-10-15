@@ -2,41 +2,89 @@
 COMPONENTES GENERALES
 */
 
-.btn-principal,
-.btn-secundario {
+/*
+   BOTONES
+   Sistema de botones de la landing rediseñada (ver auditoria del mock en
+   claude/ -- mantiene la paleta de siempre pero con variantes para fondo
+   claro/oscuro, igual que el resto de las pantallas que ya usan
+   btn-principal/btn-secundario si hiciera falta reutilizarlos ahí).
+*/
+
+.btn {
     display: inline-flex;
-    justify-content: center;
     align-items: center;
     gap: 8px;
     text-decoration: none;
-    font-weight: 700;
-    border-radius: 12px;
-    padding: 15px 20px;
-    font-size: 1rem;
-    transition: 0.2s ease;
+    font-weight: 600;
+    font-size: 0.96rem;
+    border-radius: 10px;
+    padding: 14px 24px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    background: none;
+    white-space: nowrap;
+    transition: transform 0.16s cubic-bezier(.23, 1, .32, 1), box-shadow 0.16s ease, background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
 }
 
-.btn-principal {
-    background-color: var(--primary);
+.btn:active {
+    transform: scale(0.97);
+}
+
+.btn-primary {
+    background: var(--primary);
     color: var(--white);
-    border: 1px solid var(--primary);
+    box-shadow: 0 14px 30px rgba(13, 61, 134, 0.28);
 }
 
-.btn-principal:hover {
-    background-color: #092f68;
+.btn-primary:hover {
+    background: #0f4799;
+    box-shadow: 0 18px 38px rgba(13, 61, 134, 0.36);
 }
 
-.btn-secundario {
-    background-color: var(--white);
+.btn-primary-onlight {
+    background: var(--white);
+    color: var(--primary-dark);
+}
+
+.btn-primary-onlight:hover {
+    background: #eef3fa;
+}
+
+.btn-secondary {
+    background: transparent;
+    border-color: var(--border-soft);
+    color: var(--text-dark);
+}
+
+.btn-secondary:hover {
+    border-color: var(--secondary);
     color: var(--primary);
-    border: 1.5px solid var(--primary);
+    background: var(--tint);
 }
 
-.btn-secundario:hover {
-    background-color: #edf5ff;
+.btn-secondary-ondark {
+    background: transparent;
+    border-color: rgba(255, 255, 255, 0.3);
+    color: var(--white);
 }
 
-/* Botón ancho para formularios de login y solicitud */
+.btn-secondary-ondark:hover {
+    border-color: rgba(255, 255, 255, 0.65);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.btn-nav {
+    padding: 11px 20px;
+    font-size: 0.9rem;
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Botón ancho para formularios de login y solicitud (se sigue usando en frontend-usuarios) */
 .btn-ancho {
     width: 100%;
     border: none;
@@ -122,8 +170,175 @@ FORMULARIOS (compartido entre auth y landing)
     color: #137a3a;
 }
 
+.aviso-formulario-error {
+    background: #fde8e6;
+    color: #b3261e;
+}
+
 @media (max-width: 720px) {
     .form-grid {
         grid-template-columns: 1fr;
     }
+}
+
+/*
+   Autocompletar de "Dirección del contenedor": con los ~11.130 contenedores
+   oficiales de la IMM cargados, un <select> con una <option> por cada uno
+   quedaba pesadísimo de abrir en el navegador del vecino. Se reemplazó por
+   un campo de texto que filtra en memoria (ver inicializarAutocompletarContenedor
+   en app.js) y muestra solo las coincidencias en esta lista flotante.
+*/
+
+.autocomplete-combo {
+    position: relative;
+}
+
+.autocomplete-resultados {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    z-index: 20;
+    margin: 0;
+    padding: 6px;
+    list-style: none;
+    background: var(--white);
+    border: 1px solid var(--border-soft);
+    border-radius: 10px;
+    box-shadow: var(--shadow-soft);
+    max-height: 260px;
+    overflow-y: auto;
+}
+
+.autocomplete-resultados[hidden] {
+    display: none;
+}
+
+.autocomplete-resultados li {
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    color: var(--text-dark);
+    cursor: pointer;
+}
+
+.autocomplete-resultados li:hover,
+.autocomplete-resultados li.autocomplete-activo {
+    background: var(--light-bg);
+}
+
+.autocomplete-resultados li.autocomplete-sin-resultados {
+    color: var(--text-muted);
+    cursor: default;
+}
+
+.autocomplete-resultados li.autocomplete-sin-resultados:hover {
+    background: none;
+}
+
+/*
+   CAPTCHA (verificación anti-spam del formulario de reporte)
+   Checkbox estilo "No soy un robot": el vecino tilda la casilla, se
+   simula una breve verificación (spinner) y queda confirmado. Es más
+   simple y robusto que un captcha de letras/imagen, y sigue sin
+   depender de ningún servicio externo (todo el sistema sigue siendo
+   una simulación sin backend conectado - ver app.js).
+*/
+
+.captcha-robot-caja {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 20px;
+    margin: 8px 0 4px;
+    background: var(--white);
+    border: 1.5px solid var(--border-soft);
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(7, 31, 61, 0.08);
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    max-width: 320px;
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.captcha-robot-caja:hover {
+    border-color: var(--primary);
+}
+
+.captcha-robot-check {
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    border-radius: 4px;
+    border: 2px solid var(--border-soft);
+    background: var(--white);
+    position: relative;
+    transition: 0.2s ease;
+}
+
+.captcha-robot-texto {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--primary-dark);
+}
+
+.captcha-robot-spinner {
+    display: none;
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 3px solid var(--light-bg);
+    border-top-color: var(--primary);
+}
+
+.captcha-robot-caja.verificando .captcha-robot-spinner {
+    display: block;
+    animation: captcha-girar 0.7s linear infinite;
+}
+
+.captcha-robot-caja.verificando .captcha-robot-check {
+    border-color: var(--primary);
+}
+
+@keyframes captcha-girar {
+    to { transform: rotate(360deg); }
+}
+
+.captcha-robot-caja.verificado {
+    border-color: #1e8e3e;
+    background: #f3faf5;
+}
+
+.captcha-robot-caja.verificado .captcha-robot-check {
+    border-color: #1e8e3e;
+    background: #1e8e3e;
+}
+
+.captcha-robot-caja.verificado .captcha-robot-check::after {
+    content: "";
+    position: absolute;
+    left: 8px;
+    top: 3px;
+    width: 6px;
+    height: 12px;
+    border: solid var(--white);
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.captcha-robot-caja.error {
+    border-color: #b3261e;
+}
+
+.captcha-error {
+    display: none;
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: #b3261e;
+}
+
+.captcha-error.visible {
+    display: block;
 }
