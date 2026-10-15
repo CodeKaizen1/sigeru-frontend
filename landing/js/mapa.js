@@ -98,15 +98,21 @@ function coordenadasValidas(lat, lng) {
 // Eachen y Bado y el mapa me muestre esa esquina aunque no haya un
 // contenedor, y pueda ver los contenedores más próximos a esa esquina".
 // buscarContenedoresMapa() (más abajo) solo encuentra contenedores YA
-// registrados por un LIKE de texto -- no sirve para una esquina que nunca
-// tuvo un contenedor ahí. Para eso hace falta un geocodificador real, y
-// Nominatim (el de OpenStreetMap) es la opción que encaja con el resto del
-// proyecto: gratuito, sin API key, mismo proveedor que ya da las tiles del
-// mapa. Se usa solo como RESPALDO (ver el submit del formulario) cuando la
-// búsqueda de contenedores no encontró nada -- nunca en cada tecla, para no
-// mandarle un pedido a Nominatim por cada letra que se escribe (su política
-// de uso pide un máximo de 1 solicitud por segundo, nada de uso automatizado
-// pesado -- ver https://operations.osmfoundation.org/policies/nominatim/).
+// registrados, y de forma bastante laxa: ContenedorController::buscar separa
+// "calle y esquina" en sus 2 partes y hace un OR de LIKE entre ellas, así que
+// "Mac Eachen y Bado" matchea cualquier contenedor de la calle Mac Eachen
+// aunque esté a varias cuadras de Bado -- no sirve para ubicar la esquina
+// puntual que se escribió. Por eso la geocodificación con Nominatim (el de
+// OpenStreetMap, gratuito y sin API key, mismo proveedor que ya da las tiles
+// del mapa) se intenta SIEMPRE que se escribió algo en "calle y esquina" (no
+// solo cuando buscarContenedoresMapa no encontró nada -- ver el submit del
+// formulario, 15/10/2026 2da vuelta: con el "solo si 0 resultados" de antes,
+// "Mac Eachen y Bado" nunca llegaba a geocodificarse porque el OR de arriba
+// sí encontraba contenedores, pero ninguno era la esquina buscada). Nunca se
+// geocodifica por tecla, sólo al enviar el formulario, para no mandarle un
+// pedido a Nominatim por cada letra que se escribe (su política de uso pide
+// un máximo de 1 solicitud por segundo, nada de uso automatizado pesado --
+// ver https://operations.osmfoundation.org/policies/nominatim/).
 const NOMINATIM_URL = "https://nominatim.openstreetmap.org/search";
 
 async function geocodificarDireccion(texto) {
@@ -141,14 +147,25 @@ function ocultarMarcadorEsquina(mapa) {
     marcadorBusquedaEsquina = null;
 }
 
+// Pin rojo clásico (gota + centro blanco), no el emoji de antes -- a pedido
+// de Matías ("marcar el punto que se busca con un ícono rojo como suele ser
+// en los mapas"), 15/10/2026 2da vuelta.
+const SVG_PIN_ESQUINA = `
+    <svg width="30" height="42" viewBox="0 0 30 42" xmlns="http://www.w3.org/2000/svg">
+        <path d="M15 0C6.7 0 0 6.7 0 15c0 11.25 15 27 15 27s15-15.75 15-27C30 6.7 23.3 0 15 0z" fill="#d32f2f" stroke="#7a1313" stroke-width="1.5"/>
+        <circle cx="15" cy="15" r="6" fill="white"/>
+    </svg>
+`;
+
 function mostrarMarcadorEsquina(mapa, lat, lng, etiqueta) {
     ocultarMarcadorEsquina(mapa);
 
     const icono = L.divIcon({
         className: "mapa-marcador-esquina",
-        html: "📍",
-        iconSize: [30, 30],
-        iconAnchor: [15, 28]
+        html: SVG_PIN_ESQUINA,
+        iconSize: [30, 42],
+        iconAnchor: [15, 42],
+        popupAnchor: [0, -38]
     });
 
     marcadorBusquedaEsquina = L.marker([lat, lng], { icon: icono, zIndexOffset: 1000 })
@@ -483,12 +500,49 @@ async function inicializarBuscadorMapa(mapa, capaCluster) {
         mostrarEstadoBuscadorMapa(elementoEstado, "Buscando...", false);
         ocultarMarcadorEsquina(mapa);
 
-        const resultados = await buscarContenedoresMapa({ direccion, barrio, municipio });
+        // Se pide a la vez el match de contenedores (por texto, lo de
+        // siempre) y la geocodificación de lo escrito -- en paralelo para no
+        // duplicar la espera. OJO: NO alcanza con geocodificar solo cuando
+        // buscarContenedoresMapa() no encuentra nada -- "Mac Eachen y Bado"
+        // SÍ encuentra contenedores (cualquiera de la calle Mac Eachen, por
+        // cómo arma el OR el backend, ver nota arriba de geocodificarDireccion),
+        // pero ninguno es la esquina puntual buscada. Por eso se geocodifica
+        // siempre que se escribió una calle, tenga o no matches de texto.
+        const [resultados, ubicacion] = await Promise.all([
+            buscarContenedoresMapa({ direccion, barrio, municipio }),
+            direccion ? geocodificarDireccion(direccion) : Promise.resolve(null)
+        ]);
         const marcadores = resultados.map((fila) => crearMarcadorContenedor(fila)).filter(Boolean);
 
+        if (ubicacion) {
+            // Se encontró una ubicación puntual para lo que se escribió: se
+            // la marca SIEMPRE con el pin rojo y se centra el mapa ahí con
+            // un zoom cómodo de esquina (17), en vez de fitBounds() sobre
+            // los matches de texto (que podían quedar lejos de la esquina
+            // real y forzar un zoom muy amplio -- el bug que reportó Matías
+            // el 15/10). A propósito NO se activa modoBusquedaMapaActivo:
+            // se deja que el recargo normal por bounding box (moveend)
+            // traiga los contenedores geográficamente más próximos al pin,
+            // un criterio más preciso que el match de texto suelto.
+            modoBusquedaMapaActivo = false;
+            capaCluster.clearLayers();
+            mostrarMarcadorEsquina(mapa, ubicacion.lat, ubicacion.lng, direccion);
+            mapa.setView([ubicacion.lat, ubicacion.lng], 17);
+
+            mostrarEstadoBuscadorMapa(
+                elementoEstado,
+                marcadores.length
+                    ? `Mostrando "${direccion}". También hay ${marcadores.length} contenedor${marcadores.length === 1 ? "" : "es"} con esa calle en su dirección (puede que no estén justo en esta esquina) -- los contenedores más próximos al pin deberían verse alrededor.`
+                    : `Mostrando "${direccion}". No hay ningún contenedor registrado exactamente ahí -- los contenedores más próximos al pin deberían verse alrededor.`,
+                false
+            );
+            return;
+        }
+
         if (marcadores.length > 0) {
-            // A partir de aquí el recargo por viewport queda pausado hasta que
-            // se limpie la búsqueda (ver recargarDebounced en cargarMapaIncidencias).
+            // No se pudo geocodificar lo escrito (o no se escribió calle,
+            // solo barrio/municipio), pero sí hay contenedores que matchean
+            // por texto -- mismo comportamiento de siempre.
             modoBusquedaMapaActivo = true;
             capaCluster.clearLayers();
             marcadores.forEach((marcador) => capaCluster.addLayer(marcador));
@@ -506,37 +560,13 @@ async function inicializarBuscadorMapa(mapa, capaCluster) {
             return;
         }
 
-        // Ningún contenedor matchea -- si se escribió una calle, puede ser
-        // una esquina real que simplemente no tiene ningún contenedor
-        // registrado ahí (Fase 6 punto 40). Se intenta geocodificarla con
-        // Nominatim como respaldo: si se encuentra, se centra el mapa ahí
-        // SIN activar modoBusquedaMapaActivo -- a propósito, para que el
-        // recargo normal por bounding box (moveend) traiga solo los
-        // contenedores más próximos a ese punto, que es justamente lo que
-        // se pidió ("ver los contenedores más próximos a esa esquina").
-        if (!direccion) {
-            capaCluster.clearLayers();
-            mostrarEstadoBuscadorMapa(elementoEstado, "No se encontraron contenedores con esos criterios.", true);
-            return;
-        }
-
-        mostrarEstadoBuscadorMapa(elementoEstado, "Buscando esa dirección en el mapa...", false);
-        const ubicacion = await geocodificarDireccion(direccion);
-
-        if (!ubicacion) {
-            capaCluster.clearLayers();
-            mostrarEstadoBuscadorMapa(elementoEstado, "No se encontraron contenedores ni una dirección reconocible con esos criterios.", true);
-            return;
-        }
-
-        modoBusquedaMapaActivo = false;
         capaCluster.clearLayers();
-        mostrarMarcadorEsquina(mapa, ubicacion.lat, ubicacion.lng, direccion);
-        mapa.setView([ubicacion.lat, ubicacion.lng], 17);
         mostrarEstadoBuscadorMapa(
             elementoEstado,
-            `Mostrando "${direccion}" en el mapa. No hay ningún contenedor registrado exactamente ahí -- los contenedores más próximos deberían verse alrededor.`,
-            false
+            direccion
+                ? "No se encontraron contenedores ni una dirección reconocible con esos criterios."
+                : "No se encontraron contenedores con esos criterios.",
+            true
         );
     });
 
