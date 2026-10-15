@@ -767,13 +767,15 @@ function contenedoresSeleccionadosRuta() {
 }
 
 // Vecino más cercano: aproximación por distancia en línea recta (latitud/
-// longitud), no por calles reales ni un servicio de ruteo externo -- mismo
-// tipo de criterio geométrico que ya usa 05_rutas_por_contenedor.sql para
-// repartir contenedores entre rutas. A propósito NO se usa un servicio de
-// ruteo real (Google Directions/OSRM/etc.): traería API key y/o costo, y
-// el resto del proyecto viene evitando eso (Leaflet + OpenStreetMap
-// self-hosteado sin API key, ver landing/js/mapa.js) -- conversación con
-// Matías, 14/10.
+// longitud), no por calles reales -- mismo tipo de criterio geométrico que
+// ya usa 05_rutas_por_contenedor.sql para repartir contenedores entre
+// rutas. Hasta el 15/10 era el ÚNICO criterio (a propósito no se usaba un
+// servicio de ruteo real: traía API key y/o costo -- conversación con
+// Matías, 14/10). Sigue existiendo y en uso: ahora es el respaldo si OSRM
+// no responde (ver ordenPorOSRM/ordenParaPersistir más abajo) y el criterio
+// del preview en vivo del campo "Recorrido" (ordenAproximadoLocal), que se
+// recalcula en cada click del checklist y no tiene sentido que pegue a un
+// servicio externo por cada tilde.
 function distanciaContenedores(a, b) {
     const dx = Number(a.latitudContenedor) - Number(b.latitudContenedor);
     const dy = Number(a.longitudContenedor) - Number(b.longitudContenedor);
@@ -803,6 +805,73 @@ function ordenVecinoMasCercano(contenedores) {
     return orden;
 }
 
+// Orden LOCAL, sin red: vecino más cercano para los que tienen coordenadas
+// + el resto (sin coordenadas) al final. Es lo que ordenParaPersistir hacía
+// entero hasta el 15/10 -- ahora solo se usa para el preview en vivo de
+// "Recorrido" (actualizarRecorridoAutocompletado) y como respaldo dentro de
+// ordenParaPersistir si OSRM falla.
+function ordenAproximadoLocal(seleccionados) {
+    const conCoordenadas = seleccionados.filter((c) => c.latitudContenedor != null && c.longitudContenedor != null);
+    const sinCoordenadas = seleccionados.filter((c) => !(c.latitudContenedor != null && c.longitudContenedor != null));
+
+    if (conCoordenadas.length < 2) return seleccionados;
+
+    return ordenVecinoMasCercano(conCoordenadas).concat(sinCoordenadas);
+}
+
+// Fase 6 (pedido de Matías, 15/10): el vecino más cercano en línea recta no
+// sabe nada de calles -- 2 contenedores a 50 m en línea recta pero en
+// veredas opuestas de una avenida ancha (sin cruce cerca) podían quedar
+// seguidos en el orden, forzando al chofer a cruzar y volver. Para que el
+// orden real respete la red vial (sentido de las calles, cruces reales) se
+// usa OSRM (igual que Nominatim/Leaflet ya en uso: gratis, sin API key) --
+// su servicio público de demo (router.project-osrm.org) expone /trip, que
+// resuelve un TSP aproximado sobre el grafo vial real de OpenStreetMap.
+//
+// Se llama SOLO al confirmar la ruta (ordenParaPersistir), nunca en cada
+// click del checklist -- es un servidor público de uso liviano, no para
+// automatizar un pedido por cada tilde (esto último sigue usando
+// ordenAproximadoLocal, sin red, arriba).
+const OSRM_TRIP_URL = "https://router.project-osrm.org/trip/v1/driving";
+const OSRM_TIMEOUT_MS = 6000;
+
+// null si OSRM no está disponible, tarda más de OSRM_TIMEOUT_MS, o devuelve
+// algo inesperado -- ordenParaPersistir cae al heurístico local en ese caso,
+// nunca se bloquea la creación de una ruta por un servicio externo caído.
+async function ordenPorOSRM(conCoordenadas) {
+    if (conCoordenadas.length < 2) return null;
+
+    const coordenadas = conCoordenadas
+        .map((c) => `${Number(c.longitudContenedor)},${Number(c.latitudContenedor)}`)
+        .join(";");
+
+    const controlador = new AbortController();
+    const temporizador = setTimeout(() => controlador.abort(), OSRM_TIMEOUT_MS);
+
+    try {
+        const parametros = new URLSearchParams({ roundtrip: "false", source: "first", overview: "false" });
+        const respuesta = await fetch(`${OSRM_TRIP_URL}/${coordenadas}?${parametros.toString()}`, {
+            signal: controlador.signal
+        });
+        const datos = await respuesta.json().catch(() => null);
+
+        if (!respuesta.ok || !datos || datos.code !== "Ok" || !Array.isArray(datos.waypoints)) return null;
+        if (datos.waypoints.length !== conCoordenadas.length) return null;
+
+        // waypoints[i].waypoint_index: posición del punto de ENTRADA i (en
+        // el mismo orden en que se mandaron las coordenadas) dentro del
+        // recorrido ya optimizado -- se reordena el array original según eso.
+        return conCoordenadas
+            .map((contenedor, indice) => ({ contenedor, posicion: datos.waypoints[indice].waypoint_index }))
+            .sort((a, b) => a.posicion - b.posicion)
+            .map((par) => par.contenedor);
+    } catch (error) {
+        return null;
+    } finally {
+        clearTimeout(temporizador);
+    }
+}
+
 // "Av. Brasil 1220" -> "Av. Brasil" (saca el número de puerta final).
 function nombreCalleContenedor(direccion) {
     return (direccion || "").replace(/\s+\d+\s*$/, "").trim();
@@ -817,31 +886,41 @@ function calleDesdeOrdenRuta(orden) {
     return calles.join(" - ");
 }
 
-// Orden final a persistir en contenedor.ordenRutaContenedor: vecino más
-// cercano para los que tienen coordenadas, y el resto (si algún contenedor
-// no tiene lat/lng cargada) al final en el orden en que se habían tildado --
-// nunca se pierde un contenedor seleccionado por no tener coordenadas.
-function ordenParaPersistir(seleccionados) {
+// Orden final a persistir en contenedor.ordenRutaContenedor: se intenta
+// primero con OSRM (orden real sobre la red vial, ver ordenPorOSRM arriba);
+// si no responde a tiempo, está caído, o devuelve algo inesperado, se cae
+// al heurístico local de vecino más cercano. El resto (si algún contenedor
+// no tiene lat/lng cargada) va al final en el orden en que se habían
+// tildado -- nunca se pierde un contenedor seleccionado por no tener
+// coordenadas, con ningún criterio.
+async function ordenParaPersistir(seleccionados) {
     const conCoordenadas = seleccionados.filter((c) => c.latitudContenedor != null && c.longitudContenedor != null);
     const sinCoordenadas = seleccionados.filter((c) => !(c.latitudContenedor != null && c.longitudContenedor != null));
 
     if (conCoordenadas.length < 2) return seleccionados;
 
-    return ordenVecinoMasCercano(conCoordenadas).concat(sinCoordenadas);
+    const ordenReal = (await ordenPorOSRM(conCoordenadas)) || ordenVecinoMasCercano(conCoordenadas);
+    return ordenReal.concat(sinCoordenadas);
 }
 
 // Autocompleta "Recorrido" con las calles del orden de recolección calculado
 // -- en silencio, sin mostrarle el orden a quien arma la ruta (no le
 // interesa, solo elegir barrio y contenedores -- Matías, 14/10, 2da vuelta).
 // Se recalcula cada vez que cambia la selección, mientras el admin no haya
-// escrito nada a mano en ese campo todavía.
+// escrito nada a mano en ese campo todavía. A propósito usa el heurístico
+// LOCAL (ordenAproximadoLocal), no ordenParaPersistir/OSRM -- se dispara en
+// cada click del checklist y no tiene sentido pegarle a un servicio externo
+// por cada tilde, para un campo que es solo un texto orientativo. El orden
+// real (con OSRM) se calcula una sola vez, al confirmar, en
+// manejarFormularioSubmit -- puede no coincidir exactamente con este
+// preview, pero el preview nunca pretendió ser el orden final.
 function actualizarRecorridoAutocompletado() {
     if (recorridoEditadoManualmente) return;
 
     const seleccionados = contenedoresSeleccionadosRuta();
     if (seleccionados.length < 2) return;
 
-    document.getElementById("campoRutaRecorrido").value = calleDesdeOrdenRuta(ordenParaPersistir(seleccionados));
+    document.getElementById("campoRutaRecorrido").value = calleDesdeOrdenRuta(ordenAproximadoLocal(seleccionados));
 }
 
 function activarFormularioRuta() {
@@ -971,8 +1050,23 @@ async function manejarFormularioSubmit(evento) {
         // a quedar guardado en contenedor.ordenRutaContenedor: a quien arma
         // la ruta no le interesa verlo, solo elegir barrio y contenedores
         // (Matías, 14/10, 2da vuelta); el chofer/jefe/operario lo ven
-        // reflejado como el orden de las paradas en su propio panel.
-        const contenedoresFinal = ordenParaPersistir(seleccionados);
+        // reflejado como el orden de las paradas en su propio panel. Desde
+        // el 15/10 esto pega a OSRM (ver ordenParaPersistir) y puede tardar
+        // hasta unos segundos -- se avisa en el botón para que no parezca
+        // que el clic no hizo nada.
+        const btnGuardarRuta = botonGuardarRuta();
+        const textoOriginalBtnGuardar = btnGuardarRuta ? btnGuardarRuta.textContent : null;
+        if (btnGuardarRuta) {
+            btnGuardarRuta.disabled = true;
+            btnGuardarRuta.textContent = "Calculando orden de recolección...";
+        }
+
+        const contenedoresFinal = await ordenParaPersistir(seleccionados);
+
+        if (btnGuardarRuta) {
+            btnGuardarRuta.disabled = false;
+            btnGuardarRuta.textContent = textoOriginalBtnGuardar;
+        }
 
         View.cerrarModal();
 

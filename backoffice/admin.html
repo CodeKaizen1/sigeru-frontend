@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- CSP: incluye cdnjs (solo SheetJS; Chart.js quedó vendorizado localmente, ver vendor/chartjs/); sin scripts/estilos inline. -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+    <!-- CSP: incluye cdnjs (solo SheetJS; Chart.js quedó vendorizado localmente, ver vendor/chartjs/); sin scripts/estilos inline. connect-src agrega OSRM (router.project-osrm.org, gratis y sin API key, igual criterio que Nominatim en landing/) para el orden real de las rutas -- ver controller.js, ordenPorOSRM, 15/10. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self'; img-src 'self'; connect-src 'self' https://router.project-osrm.org; object-src 'none'; base-uri 'self'; form-action 'self'">
     <title>Panel administrador - SiGeRU</title>
 
     <link rel="stylesheet" href="css/base.css">
@@ -136,7 +136,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <!-- Chart.js vendorizado localmente (vendor/chartjs/), para los gráficos de la pantalla de Resumen. Cdnjs estaba bloqueado en la red de Matías (ERR: "Chart is not defined"). -->
     <script src="vendor/chartjs/chart.umd.js"></script>
-    <script type="module" src="js/admin/main.js?v=52"></script>
+    <script type="module" src="js/admin/main.js?v=53"></script>
     <script type="module" src="js/salir.js?v=4"></script>
 </body>
 </html>
