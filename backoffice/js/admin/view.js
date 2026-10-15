@@ -375,7 +375,7 @@ export function renderInformeIncidencias({ filtros, zonas, tipos, informe, filas
                 <td>${escapeHtml(incidencia.fecha)}</td>
                 <td>${escapeHtml(incidencia.tipo)}</td>
                 <td>${escapeHtml(incidencia.zona)}</td>
-                <td><span class="estado estado-${claseEstado(incidencia.estado)}">${escapeHtml(incidencia.estado)}</span></td>
+                <td><span class="estado estado-${claseEstado(incidencia._estadoEfectivo)}">${escapeHtml(incidencia._estadoEfectivo)}</span></td>
                 <td>${escapeHtml(incidencia.contenedor)}</td>
                 <td>${escapeHtml(incidencia.resolucion || "Sin resolver todavía")}</td>
             </tr>

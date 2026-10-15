@@ -571,8 +571,23 @@ export function obtenerUltimasIncidencias(cantidad = 5) {
     return [...datos.incidencias].sort((a, b) => Number(b.id) - Number(a.id)).slice(0, cantidad);
 }
 
+// Pedido de Matías (15/10): una incidencia "abierta" con una cuadrilla ya
+// asignada no debería seguir contando como "abierta" en los números/gráficos
+// de Resumen ni en el Informe -- ya la están trabajando, aunque el campo real
+// estadoIncidencia (el que se ve/filtra en el listado de Incidencias y se
+// cambia con "Cambiar estado") todavía no se haya tocado a mano. No hay un
+// estado "asignada" en la base (solo estadoIncidencia + idCuadrilla) -- en vez
+// de inventar uno nuevo y tocar el esquema, este helper calcula el estado
+// EFECTIVO solo para estos 2 lugares (Resumen e Informe), sin cambiar el
+// estado real ni lo que se ve en el listado/filtro de Incidencias (eso se
+// deja como está a propósito, ver plan_pasos_correccion_auditoria_08_10_2026.md).
+function estadoEfectivoIncidencia(incidencia) {
+    if (incidencia.estado === "abierta" && incidencia.cuadrillaId) return "en curso";
+    return incidencia.estado;
+}
+
 export function contarIncidenciasAbiertas() {
-    return datos.incidencias.filter((incidencia) => incidencia.estado === "abierta").length;
+    return datos.incidencias.filter((incidencia) => estadoEfectivoIncidencia(incidencia) === "abierta").length;
 }
 
 // Misma lista fija que valida api-gestion/index.php (tipoIncidencia) y usa
@@ -599,7 +614,13 @@ function contarPorCategoria(lista, campo, categorias) {
 }
 
 export function distribucionIncidenciasPorEstado() {
-    return contarPorCategoria(datos.incidencias, "estado", configuracionModulos.incidencias.estados);
+    // No se usa contarPorCategoria() genérico acá (a diferencia de
+    // distribucionContenedoresPorEstado, que sigue igual) porque necesita el
+    // estado EFECTIVO (ver estadoEfectivoIncidencia arriba), no el literal.
+    return configuracionModulos.incidencias.estados.map((categoria) => ({
+        categoria,
+        cantidad: datos.incidencias.filter((incidencia) => estadoEfectivoIncidencia(incidencia) === categoria).length
+    }));
 }
 
 export function distribucionIncidenciasPorTipo() {
@@ -647,13 +668,24 @@ export function generarInformeIncidencias({ desde = "", hasta = "", zona = "", t
         return true;
     });
 
+    // Mismo criterio de estado EFECTIVO que distribucionIncidenciasPorEstado/
+    // contarIncidenciasAbiertas: una "abierta" con cuadrilla ya asignada
+    // cuenta como "en curso" acá (pedido de Matías, 15/10) -- el filtro de
+    // zona/tipo/fecha de arriba no cambia, solo cómo se bucketiza el estado.
     return {
         total: filas.length,
-        abiertas: filas.filter((f) => f.estado === "abierta").length,
-        enCurso: filas.filter((f) => f.estado === "en curso").length,
-        resueltas: filas.filter((f) => f.estado === "resuelta").length,
-        porEstado: contarPorCategoria(filas, "estado", configuracionModulos.incidencias.estados),
-        filas: [...filas].sort((a, b) => Number(b.id) - Number(a.id))
+        abiertas: filas.filter((f) => estadoEfectivoIncidencia(f) === "abierta").length,
+        enCurso: filas.filter((f) => estadoEfectivoIncidencia(f) === "en curso").length,
+        resueltas: filas.filter((f) => estadoEfectivoIncidencia(f) === "resuelta").length,
+        porEstado: configuracionModulos.incidencias.estados.map((categoria) => ({
+            categoria,
+            cantidad: filas.filter((f) => estadoEfectivoIncidencia(f) === categoria).length
+        })),
+        // Copia (no se muta el objeto original de datos.incidencias, que
+        // también usa el módulo Incidencias) con el estado efectivo aparte,
+        // para que la columna "Estado" de la tabla del Informe sea coherente
+        // con las tarjetas/gráfico de arriba (ambos ya usan el efectivo).
+        filas: [...filas].sort((a, b) => Number(b.id) - Number(a.id)).map((f) => ({ ...f, _estadoEfectivo: estadoEfectivoIncidencia(f) }))
     };
 }
 
@@ -664,7 +696,10 @@ const COLUMNAS_INFORME_INCIDENCIAS = [
     { campo: "fecha", etiqueta: "Fecha" },
     { campo: "tipo", etiqueta: "Tipo" },
     { campo: "zona", etiqueta: "Zona" },
-    { campo: "estado", etiqueta: "Estado" },
+    // _estadoEfectivo (no el "estado" literal) para que el Excel exportado
+    // coincida con lo que se ve en pantalla (tarjetas/gráfico/tabla del
+    // Informe, que ya usan el efectivo -- ver estadoEfectivoIncidencia).
+    { campo: "_estadoEfectivo", etiqueta: "Estado" },
     { campo: "contenedor", etiqueta: "Contenedor asociado" },
     { campo: "resolucion", etiqueta: "Qué se hizo para resolverla", valorVacio: "Sin resolver todavía" }
 ];
