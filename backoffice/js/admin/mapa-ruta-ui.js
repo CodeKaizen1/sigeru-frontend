@@ -11,11 +11,21 @@
 // porque landing/ y backoffice/ son apps separadas (paths relativos propios,
 // no comparten build).
 //
-// No hace ruteo real por calles -- las paradas vienen del mismo orden
-// aproximado por cercanía en línea recta que ya arma el admin al crear la
-// ruta (ver panel-chofer.js y js/admin/controller.js, ordenParaPersistir).
-// Esto solo las pinta todas juntas en un mapa para que el chofer tenga una
-// vista de conjunto, no reemplaza abrir una parada puntual en Google Maps.
+// El ORDEN de las paradas (el número de cada marcador) es el que ya viene
+// persistido en ordenRutaContenedor -- este archivo nunca lo recalcula ni
+// lo cambia, solo lo pinta (ver js/admin/controller.js, ordenParaPersistir,
+// que desde el 15/10 usa OSRM para calcular ese orden al crear la ruta).
+//
+// 15/10/2026, 2da vuelta (pedido de Matías: "actualizar lo de ver ruta
+// porque está bueno para visualizar cómo es la ruta"): la línea que une las
+// paradas SÍ se actualizó para seguir las calles de verdad -- se le pide a
+// OSRM (mismo servicio gratuito sin API key que ya usa controller.js para
+// el orden, ver OSRM_ROUTE_URL más abajo) la geometría real del camino
+// entre las paradas, EN EL ORDEN YA DADO (servicio /route, no /trip -- acá
+// no se reordena nada, solo se dibuja el trayecto real entre los puntos tal
+// como están). Si OSRM no responde (caído, timeout, sin red), se cae a la
+// línea punteada recta de antes -- nunca se deja de mostrar la ruta por un
+// servicio externo gratuito caído.
 
 function escapeHtmlMapaRuta(valor) {
     return String(valor ?? "")
@@ -29,6 +39,41 @@ function escapeHtmlMapaRuta(valor) {
 function tieneCoordenadas(contenedor) {
     return contenedor.latitudContenedor !== null && contenedor.latitudContenedor !== undefined && contenedor.latitudContenedor !== ""
         && contenedor.longitudContenedor !== null && contenedor.longitudContenedor !== undefined && contenedor.longitudContenedor !== "";
+}
+
+const OSRM_ROUTE_URL = "https://router.project-osrm.org/route/v1/driving";
+const OSRM_ROUTE_TIMEOUT_MS = 6000;
+
+// Geometría real del camino entre `puntos` ([lat,lng], YA en el orden de la
+// ruta) -- null si OSRM no está disponible, tarda más de la cuenta, o
+// devuelve algo inesperado (ver nota arriba del archivo: nunca bloquea
+// mostrar el mapa, solo hace que se use el respaldo de línea recta).
+async function geometriaRealDelCamino(puntos) {
+    if (puntos.length < 2) return null;
+
+    const coordenadas = puntos.map(([lat, lng]) => `${lng},${lat}`).join(";");
+    const controlador = new AbortController();
+    const temporizador = setTimeout(() => controlador.abort(), OSRM_ROUTE_TIMEOUT_MS);
+
+    try {
+        const parametros = new URLSearchParams({ overview: "full", geometries: "geojson" });
+        const respuesta = await fetch(`${OSRM_ROUTE_URL}/${coordenadas}?${parametros.toString()}`, {
+            signal: controlador.signal
+        });
+        const datos = await respuesta.json().catch(() => null);
+
+        if (!respuesta.ok || !datos || datos.code !== "Ok" || !Array.isArray(datos.routes) || !datos.routes[0]) return null;
+
+        const geometria = datos.routes[0].geometry;
+        if (!geometria || geometria.type !== "LineString" || !Array.isArray(geometria.coordinates)) return null;
+
+        // GeoJSON viene como [lon,lat] -- Leaflet quiere [lat,lon].
+        return geometria.coordinates.map(([lon, lat]) => [lat, lon]);
+    } catch (error) {
+        return null;
+    } finally {
+        clearTimeout(temporizador);
+    }
 }
 
 let overlay;
@@ -92,7 +137,7 @@ export function mostrarMapaRuta(paradas, recolectados) {
     // div todavía oculto (display:none del frame anterior) mide 0×0 y el
     // mapa queda roto. Se espera un frame a que el navegador ya haya
     // pintado el modal antes de crear el mapa.
-    requestAnimationFrame(() => {
+    requestAnimationFrame(async () => {
         const conCoordenadas = paradas.filter(({ contenedor }) => tieneCoordenadas(contenedor));
 
         if (!conCoordenadas.length) {
@@ -102,6 +147,7 @@ export function mostrarMapaRuta(paradas, recolectados) {
 
         mapaDiv.innerHTML = "";
         mapa = L.map(mapaDiv);
+        const mapaDeEstaApertura = mapa; // ver guarda más abajo, tras el await a OSRM.
 
         L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
             attribution: "&copy; colaboradores de OpenStreetMap",
@@ -129,11 +175,23 @@ export function mostrarMapaRuta(paradas, recolectados) {
             return [lat, lng];
         });
 
-        // Línea punteada que une las paradas en el orden de la ruta -- solo
-        // de referencia visual, no es un ruteo real por calles (ver nota
-        // arriba de este archivo).
-        L.polyline(puntos, { color: "#082b4f", weight: 3, opacity: 0.6, dashArray: "6 8" }).addTo(mapa);
-
+        // Mientras se espera a OSRM, se muestra enseguida la línea recta de
+        // siempre -- así el mapa no queda en blanco esperando la red, y si
+        // OSRM falla esto mismo queda como resultado final (ver nota arriba
+        // del archivo).
+        const lineaRecta = L.polyline(puntos, { color: "#082b4f", weight: 3, opacity: 0.6, dashArray: "6 8" }).addTo(mapa);
         mapa.fitBounds(puntos, { padding: [30, 30] });
+
+        const caminoReal = await geometriaRealDelCamino(puntos);
+
+        // Si mientras se esperaba la respuesta el chofer cerró el modal (o
+        // lo volvió a abrir, creando OTRA instancia de mapa), esta respuesta
+        // ya quedó vieja -- no hay que dibujar nada sobre un mapa destruido
+        // o que ya no es el que el chofer está mirando.
+        if (!caminoReal || mapa !== mapaDeEstaApertura) return;
+
+        lineaRecta.remove();
+        L.polyline(caminoReal, { color: "#1a73c7", weight: 5, opacity: 0.85 }).addTo(mapa);
+        mapa.fitBounds(caminoReal, { padding: [30, 30] });
     });
 }

@@ -5,8 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- CSP: sin scripts/estilos inline, todo del propio origen (salvo las
          tiles del mapa de ruta -- ver Fase 6 punto 39 -- que vienen de
-         tile.openstreetmap.org, mismo dominio que ya permite landing/index.html). -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' https://tile.openstreetmap.org; object-src 'none'; base-uri 'self'; form-action 'self'">
+         tile.openstreetmap.org, mismo dominio que ya permite landing/index.html,
+         y connect-src para OSRM -- ver Fase 6 punto 44, 2da vuelta -- que dibuja
+         el camino real entre paradas en mapa-ruta-ui.js). -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' https://tile.openstreetmap.org; connect-src 'self' https://router.project-osrm.org; object-src 'none'; base-uri 'self'; form-action 'self'">
     <title>Panel del chofer - SiGeRU</title>
 
     <link rel="stylesheet" href="css/base.css">
@@ -48,6 +50,6 @@
 
     <script src="js/almacenamiento-simulado.js?v=11"></script>
     <script src="vendor/leaflet/leaflet.js"></script>
-    <script type="module" src="js/panel-chofer.js?v=42"></script>
+    <script type="module" src="js/panel-chofer.js?v=43"></script>
 </body>
 </html>
