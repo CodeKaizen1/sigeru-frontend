@@ -372,6 +372,17 @@ export async function obtenerContenedoresDeRutaDeCuadrilla(idCuadrilla) {
     const idRuta = cuadrilla && cuadrilla.ruta ? cuadrilla.ruta.id : null;
     if (!idRuta) return [];
 
+    return obtenerContenedoresDeRuta(idRuta);
+}
+
+// Igual que obtenerContenedoresDeRutaDeCuadrilla, pero directo por idRuta --
+// sin resolver primero una cuadrilla. Pensado para el botón "Recalcular
+// orden con OSRM" del detalle de Rutas (15/10/2026, 3ra vuelta -- ver
+// controller.js, manejarRecalcularOrdenRuta): ahí se tiene el id de la ruta
+// de una, no el de una cuadrilla. Devuelve las filas crudas tal cual las
+// manda el backend (mismo shape que obtenerContenedoresDeBarrio), listas
+// para volver a mandarse en asignarContenedorARuta() sin remapear nada.
+export async function obtenerContenedoresDeRuta(idRuta) {
     const { ok, datos: respuesta } = await llamarGestion("contenedor", "GET", undefined, null, { idRuta });
     return ok && Array.isArray(respuesta) ? respuesta : [];
 }
@@ -485,6 +496,29 @@ export async function crearRutaConContenedores(valoresCampos, contenedoresOrdena
     recomputarResumenIncidenciasEnContenedores();
 
     return nueva;
+}
+
+// Vuelve a persistir el orden de los contenedores que una ruta YA TENÍA
+// asignados -- a diferencia de crearRutaConContenedores (que asigna
+// contenedores a una ruta recién creada), esto reordena una ruta existente,
+// uno por uno con un ordenRutaContenedor nuevo (mismo PUT de
+// asignarContenedorARuta, reenviando el mismo idRuta sin cambios).
+// `contenedoresEnOrden` ya viene en el orden final a guardar (ver
+// controller.js, manejarRecalcularOrdenRuta, que es quien lo calcula con
+// ordenParaPersistir/OSRM antes de llamar acá). Pensado para que el propio
+// admin, ya logueado, pueda reorganizar una ruta que quedó con un orden
+// viejo o cargado a mano -- sin tener que recrearla ni compartir su sesión
+// con nadie más (15/10/2026, 3ra vuelta, pedido de Matías "cómo la
+// reorganizo yo").
+export async function reordenarContenedoresDeRuta(idRuta, contenedoresEnOrden) {
+    let indice = 1;
+    for (const contenedor of contenedoresEnOrden) {
+        await asignarContenedorARuta(contenedor, Number(idRuta), indice);
+        indice += 1;
+    }
+
+    await cargarContenedores();
+    recomputarResumenIncidenciasEnContenedores();
 }
 
 // Crea una incidencia reportada por el Jefe de Cuadrilla para su propia cuadrilla.
