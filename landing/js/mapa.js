@@ -108,32 +108,121 @@ function coordenadasValidas(lat, lng) {
 // solo cuando buscarContenedoresMapa no encontró nada -- ver el submit del
 // formulario, 15/10/2026 2da vuelta: con el "solo si 0 resultados" de antes,
 // "Mac Eachen y Bado" nunca llegaba a geocodificarse porque el OR de arriba
-// sí encontraba contenedores, pero ninguno era la esquina buscada). Nunca se
-// geocodifica por tecla, sólo al enviar el formulario, para no mandarle un
-// pedido a Nominatim por cada letra que se escribe (su política de uso pide
-// un máximo de 1 solicitud por segundo, nada de uso automatizado pesado --
-// ver https://operations.osmfoundation.org/policies/nominatim/).
+// sí encontraba contenedores, pero ninguno era la esquina buscada).
+//
+// 3ra vuelta (15/10/2026, probado contra el Nominatim real): pedirle a
+// Nominatim el texto completo "Mac Eachen y Bado" (o cualquier "calle1 y
+// calle2") devuelve SIEMPRE una lista vacía -- su buscador de texto libre no
+// entiende intersecciones, y la sintaxis estructurada de otros geocodificadores
+// para cruces ("calle1 & calle2") tampoco funciona con los datos de
+// Montevideo (se probó en vivo, ver consola). Nominatim SÍ geocodifica bien
+// cada calle por separado ("Eduardo Mac Eachen" y "Bado" devuelven resultados
+// reales). Entonces: se separa el texto en sus 2 partes con los mismos
+// separadores que ya usa el backend (separarCalleYEsquina), se geocodifica
+// cada una por separado (puede haber varios tramos con el mismo nombre en
+// distintos barrios) y se toma el PAR de tramos más cercano entre ambas
+// listas como aproximación de dónde se cruzan (el punto medio entre los 2).
+// No es un cálculo exacto de intersección de calles, pero alcanza para
+// ubicar la zona -- mismo criterio de "aproximado, no es ruteo real" que ya
+// se usa en el resto del mapa.
+//
+// Nunca se geocodifica por tecla, sólo al enviar el formulario, y entre las
+// 2 solicitudes (una por calle) se espera un poco más de 1 segundo, para no
+// pasarse del límite de uso de Nominatim (máx. 1 solicitud/segundo, nada de
+// uso automatizado pesado -- ver
+// https://operations.osmfoundation.org/policies/nominatim/).
 const NOMINATIM_URL = "https://nominatim.openstreetmap.org/search";
+const ESPERA_ENTRE_PEDIDOS_NOMINATIM_MS = 1100;
 
-async function geocodificarDireccion(texto) {
+// Mismos separadores que ContenedorController::separarCalleYEsquina en el
+// backend (api-gestion) -- se prueban en este orden y se corta en el primero
+// que aparezca.
+const SEPARADORES_ESQUINA = [" esquina ", " esq. ", " esq ", " y ", " con ", "/"];
+
+function separarCalleYEsquina(texto) {
+    const conEspacios = ` ${texto} `;
+    const enMinusculas = conEspacios.toLowerCase();
+
+    for (const separador of SEPARADORES_ESQUINA) {
+        const indice = enMinusculas.indexOf(separador);
+        if (indice === -1) continue;
+
+        const parte1 = conEspacios.slice(0, indice).trim();
+        const parte2 = conEspacios.slice(indice + separador.length).trim();
+        if (parte1 && parte2) return [parte1, parte2];
+    }
+
+    return [texto.trim()];
+}
+
+// Distancia euclídea simple en grados -- solo para COMPARAR qué tan cerca
+// está un candidato de otro (elegir el par más cercano), no para medir
+// metros reales -- alcanza para eso a esta escala (una ciudad).
+function distanciaEntrePuntos(a, b) {
+    const dLat = a.lat - b.lat;
+    const dLng = a.lng - b.lng;
+    return Math.sqrt(dLat * dLat + dLng * dLng);
+}
+
+async function buscarEnNominatim(texto, limite) {
     try {
         const parametros = new URLSearchParams({
             q: `${texto}, Montevideo, Uruguay`,
             format: "json",
-            limit: "1",
+            limit: String(limite),
             countrycodes: "uy"
         });
 
         const respuesta = await fetch(`${NOMINATIM_URL}?${parametros.toString()}`);
         const datos = await respuesta.json().catch(() => null);
-        if (!respuesta.ok || !Array.isArray(datos) || !datos.length) return null;
+        if (!respuesta.ok || !Array.isArray(datos)) return [];
 
-        const lat = Number(datos[0].lat);
-        const lng = Number(datos[0].lon);
-        return coordenadasValidas(lat, lng) ? { lat, lng } : null;
+        return datos
+            .map((fila) => ({ lat: Number(fila.lat), lng: Number(fila.lon) }))
+            .filter((punto) => coordenadasValidas(punto.lat, punto.lng));
     } catch (error) {
-        return null;
+        return [];
     }
+}
+
+function esperar(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function geocodificarDireccion(texto) {
+    const partes = separarCalleYEsquina(texto);
+
+    if (partes.length === 1) {
+        const candidatos = await buscarEnNominatim(partes[0], 1);
+        return candidatos[0] || null;
+    }
+
+    // "Calle1 y calle2": se geocodifica cada una por separado (secuencial,
+    // con espera entre medio -- ver ESPERA_ENTRE_PEDIDOS_NOMINATIM_MS) y se
+    // busca el par de tramos más cercano entre ambas listas de candidatos.
+    const candidatos1 = await buscarEnNominatim(partes[0], 8);
+    await esperar(ESPERA_ENTRE_PEDIDOS_NOMINATIM_MS);
+    const candidatos2 = await buscarEnNominatim(partes[1], 8);
+
+    if (!candidatos1.length && !candidatos2.length) return null;
+    if (!candidatos1.length) return candidatos2[0];
+    if (!candidatos2.length) return candidatos1[0];
+
+    let mejorPar = null;
+    let mejorDistancia = Infinity;
+
+    for (const puntoA of candidatos1) {
+        for (const puntoB of candidatos2) {
+            const distancia = distanciaEntrePuntos(puntoA, puntoB);
+            if (distancia < mejorDistancia) {
+                mejorDistancia = distancia;
+                mejorPar = [puntoA, puntoB];
+            }
+        }
+    }
+
+    const [puntoA, puntoB] = mejorPar;
+    return { lat: (puntoA.lat + puntoB.lat) / 2, lng: (puntoA.lng + puntoB.lng) / 2 };
 }
 
 // Marcador de la esquina buscada -- aparte de capaCluster (no es un
