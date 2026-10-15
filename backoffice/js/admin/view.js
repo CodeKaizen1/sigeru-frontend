@@ -678,19 +678,6 @@ function crearAccionesHtml(modulo, registro) {
         </button>
     `;
 
-    // Botón extra solo para Rutas: recalcular el orden de recolección con
-    // OSRM sin tener que recrear la ruta entera (15/10/2026, 3ra vuelta --
-    // pedido de Matías "cómo la reorganizo yo", para que el admin ya
-    // logueado lo pueda disparar él mismo, sin compartir su sesión con
-    // nadie más). Ver controller.js, manejarRecalcularOrdenRuta.
-    if (modulo === "rutas") {
-        botones += `
-            <button type="button" class="btn-secundario btn-ancho" data-recalcular-orden="${registro.id}">
-                Recalcular orden con OSRM
-            </button>
-        `;
-    }
-
     // Rutas usa "estadoAdmin" para esto, no "estado".
     const campoEstado = modulo === "rutas" ? "estadoAdmin" : "estado";
     const esBaja = registro[campoEstado] === "baja";

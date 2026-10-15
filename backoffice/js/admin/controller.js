@@ -1,8 +1,8 @@
 // CONTROLADOR: escucha clicks/submits del panel, pide datos al Modelo y actualiza la Vista.
 // También guarda el estado propio de la pantalla (módulo abierto, registro en edición).
 
-import * as Model from "./model.js?v=36";
-import * as View from "./view.js?v=39";
+import * as Model from "./model.js?v=37";
+import * as View from "./view.js?v=40";
 import * as NotificacionesUI from "./notificaciones-ui.js?v=2";
 import * as CuentaUI from "./cuenta-ui.js?v=4";
 import * as ExportarExcel from "./exportar-excel.js?v=1";
@@ -592,13 +592,6 @@ async function mostrarDetalle(id) {
         });
     }
 
-    const botonRecalcularOrden = detalle.querySelector("[data-recalcular-orden]");
-    if (botonRecalcularOrden) {
-        botonRecalcularOrden.addEventListener("click", () => {
-            manejarRecalcularOrdenRuta(botonRecalcularOrden.dataset.recalcularOrden);
-        });
-    }
-
     const botonAccion = detalle.querySelector("[data-accion]");
     if (botonAccion) {
         botonAccion.addEventListener("click", async () => {
@@ -900,7 +893,14 @@ function calleDesdeOrdenRuta(orden) {
 // no tiene lat/lng cargada) va al final en el orden en que se habían
 // tildado -- nunca se pierde un contenedor seleccionado por no tener
 // coordenadas, con ningún criterio.
-async function ordenParaPersistir(seleccionados) {
+//
+// Se llama acá (al confirmar "Nueva ruta") y también, reusada tal cual, desde
+// recalcular-rutas-existentes.js -- el script de una sola vez para las rutas
+// que ya existían antes del 15/10 y quedaron con el orden viejo (ver ese
+// archivo). Export a propósito: Matías pidió NO tener un botón por ruta para
+// esto (15/10, 3ra vuelta del punto 44) -- "recalculalas todas y ya", una
+// sola vez, no una acción que quede permanente en la UI.
+export async function ordenParaPersistir(seleccionados) {
     const conCoordenadas = seleccionados.filter((c) => c.latitudContenedor != null && c.longitudContenedor != null);
     const sinCoordenadas = seleccionados.filter((c) => !(c.latitudContenedor != null && c.longitudContenedor != null));
 
@@ -908,41 +908,6 @@ async function ordenParaPersistir(seleccionados) {
 
     const ordenReal = (await ordenPorOSRM(conCoordenadas)) || ordenVecinoMasCercano(conCoordenadas);
     return ordenReal.concat(sinCoordenadas);
-}
-
-// Botón "Recalcular orden con OSRM" del detalle de Rutas (15/10/2026, 3ra
-// vuelta -- pedido de Matías: una ruta ya creada (ej. la de prueba de
-// Martín Silva) se arma a mano o quedó con el orden viejo de antes de que
-// existiera ordenParaPersistir/OSRM, y no hay forma de recalcularla sin
-// recrearla entera. En vez de que alguien más tenga que iniciar sesión como
-// admin para forzar el guardado, el propio admin (ya logueado en su sesión)
-// lo dispara él mismo desde acá. Reusa la MISMA lógica de ordenParaPersistir
-// que ya corre al crear una ruta nueva (OSRM sobre la red vial, con
-// respaldo al heurístico local si OSRM no responde) -- no hay un criterio
-// "para recalcular" distinto del de "al crear".
-async function manejarRecalcularOrdenRuta(id) {
-    const boton = document.querySelector(`[data-recalcular-orden="${id}"]`);
-    const textoOriginal = boton ? boton.textContent : null;
-    if (boton) {
-        boton.disabled = true;
-        boton.textContent = "Calculando orden de recolección...";
-    }
-
-    const contenedoresRuta = await Model.obtenerContenedoresDeRuta(id);
-    if (!contenedoresRuta.length) {
-        alert("Esta ruta todavía no tiene contenedores asignados.");
-        if (boton) {
-            boton.disabled = false;
-            boton.textContent = textoOriginal;
-        }
-        return;
-    }
-
-    const contenedoresFinal = await ordenParaPersistir(contenedoresRuta);
-    await Model.reordenarContenedoresDeRuta(id, contenedoresFinal);
-
-    await mostrarModulo();
-    await mostrarDetalle(id);
 }
 
 // Autocompleta "Recorrido" con las calles del orden de recolección calculado
