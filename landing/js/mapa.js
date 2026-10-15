@@ -170,7 +170,11 @@ async function buscarEnNominatim(texto, limite, caja) {
             q: `${texto}, Montevideo, Uruguay`,
             format: "json",
             limit: String(limite),
-            countrycodes: "uy"
+            countrycodes: "uy",
+            // `polygon_geojson=1`: además del punto central, pedimos la
+            // geometría real del tramo (LineString) cuando Nominatim la
+            // tiene -- ver masCercanosEntreLineas más abajo (5ta vuelta).
+            polygon_geojson: "1"
         });
 
         // `caja` (opcional): [minLon, maxLat, maxLon, minLat] -- acota la
@@ -188,8 +192,22 @@ async function buscarEnNominatim(texto, limite, caja) {
         if (!respuesta.ok || !Array.isArray(datos)) return [];
 
         return datos
-            .map((fila) => ({ lat: Number(fila.lat), lng: Number(fila.lon) }))
-            .filter((punto) => coordenadasValidas(punto.lat, punto.lng));
+            .map((fila) => {
+                const lat = Number(fila.lat);
+                const lng = Number(fila.lon);
+                if (!coordenadasValidas(lat, lng)) return null;
+
+                const esLinea = fila.geojson && fila.geojson.type === "LineString";
+                return {
+                    lat,
+                    lng,
+                    // Coordenadas del tramo real (si Nominatim la tiene),
+                    // en el mismo formato {lat,lng} que usa el resto del
+                    // código -- GeoJSON viene como [lon,lat].
+                    linea: esLinea ? fila.geojson.coordinates.map(([lon, latitud]) => ({ lng: lon, lat: latitud })) : null
+                };
+            })
+            .filter(Boolean);
     } catch (error) {
         return [];
     }
@@ -224,12 +242,78 @@ function masCercanoA(ancla, candidatos) {
 // aparece nada ahí adentro se prueba una vez más con el doble.
 const RADIO_CAJA_ESQUINA_GRADOS = 0.01;
 
+// Si el punto más cercano entre las 2 geometrías de calle da una distancia
+// menor a esto (en grados -- a la latitud de Montevideo, ~0.0007° son unos
+// 60-65 m), lo tomamos como un cruce real y no una simple cercanía (ver
+// masCercanosEntreLineas, 5ta vuelta).
+const UMBRAL_CRUCE_REAL_GRADOS = 0.0007;
+
+// Los 2 puntos más cercanos entre el segmento a1-a2 y el segmento b1-b2
+// (algoritmo estándar de distancia mínima segmento-segmento, aplicado acá
+// en lat/lng en vez de en 3D). Si los segmentos se cruzan de verdad, da
+// distancia 0 y puntoA === puntoB -- la intersección real.
+function puntosMasCercanosEntreSegmentos(a1, a2, b1, b2) {
+    const d1 = { lng: a2.lng - a1.lng, lat: a2.lat - a1.lat };
+    const d2 = { lng: b2.lng - b1.lng, lat: b2.lat - b1.lat };
+    const r = { lng: a1.lng - b1.lng, lat: a1.lat - b1.lat };
+    const a = d1.lng * d1.lng + d1.lat * d1.lat;
+    const e = d2.lng * d2.lng + d2.lat * d2.lat;
+    const f = d2.lng * r.lng + d2.lat * r.lat;
+    let s;
+    let t;
+
+    if (a <= 1e-12 && e <= 1e-12) {
+        s = 0;
+        t = 0;
+    } else if (a <= 1e-12) {
+        s = 0;
+        t = Math.min(1, Math.max(0, f / e));
+    } else {
+        const c = d1.lng * r.lng + d1.lat * r.lat;
+        if (e <= 1e-12) {
+            t = 0;
+            s = Math.min(1, Math.max(0, -c / a));
+        } else {
+            const b = d1.lng * d2.lng + d1.lat * d2.lat;
+            const denom = a * e - b * b;
+            s = denom !== 0 ? Math.min(1, Math.max(0, (b * f - c * e) / denom)) : 0;
+            t = (b * s + f) / e;
+            if (t < 0) {
+                t = 0;
+                s = Math.min(1, Math.max(0, -c / a));
+            } else if (t > 1) {
+                t = 1;
+                s = Math.min(1, Math.max(0, (b - c) / a));
+            }
+        }
+    }
+
+    const puntoA = { lng: a1.lng + d1.lng * s, lat: a1.lat + d1.lat * s };
+    const puntoB = { lng: b1.lng + d2.lng * t, lat: b1.lat + d2.lat * t };
+    return { distancia: distanciaEntrePuntos(puntoA, puntoB), puntoA, puntoB };
+}
+
+// Distancia mínima entre 2 líneas (listas de puntos consecutivos), probando
+// cada tramo de una contra cada tramo de la otra -- cuando las 2 calles
+// realmente se cruzan en los datos de OpenStreetMap, esto encuentra el
+// cruce exacto (distancia 0), no una aproximación por promedio de puntos.
+function masCercanosEntreLineas(lineaA, lineaB) {
+    let mejor = null;
+    for (let i = 0; i < lineaA.length - 1; i++) {
+        for (let j = 0; j < lineaB.length - 1; j++) {
+            const resultado = puntosMasCercanosEntreSegmentos(lineaA[i], lineaA[i + 1], lineaB[j], lineaB[j + 1]);
+            if (!mejor || resultado.distancia < mejor.distancia) mejor = resultado;
+        }
+    }
+    return mejor;
+}
+
 async function geocodificarDireccion(texto) {
     const partes = separarCalleYEsquina(texto);
 
     if (partes.length === 1) {
         const candidatos = await buscarEnNominatim(partes[0], 1);
-        return candidatos[0] || null;
+        return candidatos[0] ? { lat: candidatos[0].lat, lng: candidatos[0].lng } : null;
     }
 
     // "Calle1 y calle2": geocodificar cada calle por separado SIN acotar y
@@ -254,8 +338,8 @@ async function geocodificarDireccion(texto) {
     const candidatos2 = await buscarEnNominatim(partes[1], 10);
 
     if (!candidatos1.length && !candidatos2.length) return null;
-    if (!candidatos1.length) return candidatos2[0];
-    if (!candidatos2.length) return candidatos1[0];
+    if (!candidatos1.length) return { lat: candidatos2[0].lat, lng: candidatos2[0].lng };
+    if (!candidatos2.length) return { lat: candidatos1[0].lat, lng: candidatos1[0].lng };
 
     const calle1EsAncla = candidatos1.length <= candidatos2.length;
     const ancla = calle1EsAncla ? candidatos1[0] : candidatos2[0];
@@ -290,6 +374,31 @@ async function geocodificarDireccion(texto) {
 
         const [puntoA, puntoB] = mejorPar;
         return { lat: (puntoA.lat + puntoB.lat) / 2, lng: (puntoA.lng + puntoB.lng) / 2 };
+    }
+
+    // 5ta vuelta (15/10/2026): promediar el ancla con "el tramo cercano más
+    // cercano al ancla" (lo que hacía la 4ta vuelta) sigue siendo solo una
+    // aproximación -- Matías probó de nuevo "rivera y rocafuerte" y el pin
+    // quedó corrido hacia el otro lado de la esquina real, porque promediar
+    // 2 puntos (cada uno el CENTRO de su propio tramo) no da el cruce real
+    // cuando esos tramos son largos. Como ahora pedimos la geometría real
+    // de cada tramo (polygon_geojson), si tanto el ancla como alguno de los
+    // tramos cercanos tienen esa geometría, calculamos dónde se cruzan (o
+    // casi se cruzan) las 2 líneas de verdad -- en vez de promediar 2
+    // puntos aproximados. Si el cruce da una distancia chica (ver
+    // UMBRAL_CRUCE_REAL_GRADOS), es la esquina real; si no, seguimos con el
+    // promedio de antes como respaldo.
+    if (ancla.linea) {
+        let mejorCruce = null;
+        for (const candidato of cercanos) {
+            if (!candidato.linea) continue;
+            const resultado = masCercanosEntreLineas(ancla.linea, candidato.linea);
+            if (!mejorCruce || resultado.distancia < mejorCruce.distancia) mejorCruce = resultado;
+        }
+
+        if (mejorCruce && mejorCruce.distancia < UMBRAL_CRUCE_REAL_GRADOS) {
+            return { lat: mejorCruce.puntoA.lat, lng: mejorCruce.puntoA.lng };
+        }
     }
 
     const masCercano = masCercanoA(ancla, cercanos);
