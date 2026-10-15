@@ -92,6 +92,71 @@ function coordenadasValidas(lat, lng) {
     return Number.isFinite(lat) && Number.isFinite(lng);
 }
 
+// ---------------------------------------------------------------------------
+// Geocodificación de esquinas sin contenedor (Fase 6 punto 40, pedido de
+// Matías 15/10/2026): "que en el mapa de la landing se pueda buscar ej. Mac
+// Eachen y Bado y el mapa me muestre esa esquina aunque no haya un
+// contenedor, y pueda ver los contenedores más próximos a esa esquina".
+// buscarContenedoresMapa() (más abajo) solo encuentra contenedores YA
+// registrados por un LIKE de texto -- no sirve para una esquina que nunca
+// tuvo un contenedor ahí. Para eso hace falta un geocodificador real, y
+// Nominatim (el de OpenStreetMap) es la opción que encaja con el resto del
+// proyecto: gratuito, sin API key, mismo proveedor que ya da las tiles del
+// mapa. Se usa solo como RESPALDO (ver el submit del formulario) cuando la
+// búsqueda de contenedores no encontró nada -- nunca en cada tecla, para no
+// mandarle un pedido a Nominatim por cada letra que se escribe (su política
+// de uso pide un máximo de 1 solicitud por segundo, nada de uso automatizado
+// pesado -- ver https://operations.osmfoundation.org/policies/nominatim/).
+const NOMINATIM_URL = "https://nominatim.openstreetmap.org/search";
+
+async function geocodificarDireccion(texto) {
+    try {
+        const parametros = new URLSearchParams({
+            q: `${texto}, Montevideo, Uruguay`,
+            format: "json",
+            limit: "1",
+            countrycodes: "uy"
+        });
+
+        const respuesta = await fetch(`${NOMINATIM_URL}?${parametros.toString()}`);
+        const datos = await respuesta.json().catch(() => null);
+        if (!respuesta.ok || !Array.isArray(datos) || !datos.length) return null;
+
+        const lat = Number(datos[0].lat);
+        const lng = Number(datos[0].lon);
+        return coordenadasValidas(lat, lng) ? { lat, lng } : null;
+    } catch (error) {
+        return null;
+    }
+}
+
+// Marcador de la esquina buscada -- aparte de capaCluster (no es un
+// contenedor, no se agrupa con ellos) para que se note que es un resultado
+// distinto. Uno solo a la vez: una búsqueda nueva saca el anterior.
+let marcadorBusquedaEsquina = null;
+
+function ocultarMarcadorEsquina(mapa) {
+    if (!marcadorBusquedaEsquina) return;
+    mapa.removeLayer(marcadorBusquedaEsquina);
+    marcadorBusquedaEsquina = null;
+}
+
+function mostrarMarcadorEsquina(mapa, lat, lng, etiqueta) {
+    ocultarMarcadorEsquina(mapa);
+
+    const icono = L.divIcon({
+        className: "mapa-marcador-esquina",
+        html: "📍",
+        iconSize: [30, 30],
+        iconAnchor: [15, 28]
+    });
+
+    marcadorBusquedaEsquina = L.marker([lat, lng], { icon: icono, zIndexOffset: 1000 })
+        .addTo(mapa)
+        .bindPopup(`<strong>${escapeHtmlMapa(etiqueta)}</strong><br>Esquina buscada -- no hay un contenedor registrado exactamente acá.`)
+        .openPopup();
+}
+
 // Extraído de crearMarcadorContenedor() para reusarlo también en el popup
 // que abre irAContenedorEnMapa() al elegir una coincidencia del autocompletar
 // (no siempre hay todavía un marker de cluster en ese punto -- ver más abajo).
@@ -302,6 +367,7 @@ async function inicializarBuscadorMapa(mapa, capaCluster) {
 
         function elegirContenedorMapa(contenedor) {
             ocultarResultadosCalle();
+            ocultarMarcadorEsquina(mapa);
             campoCalle.value = contenedor.ubicacionContenedor;
             irAContenedorEnMapa(mapa, contenedor);
             mostrarEstadoBuscadorMapa(elementoEstado, `Mostrando: ${contenedor.ubicacionContenedor}`, false);
@@ -415,32 +481,63 @@ async function inicializarBuscadorMapa(mapa, capaCluster) {
         }
 
         mostrarEstadoBuscadorMapa(elementoEstado, "Buscando...", false);
+        ocultarMarcadorEsquina(mapa);
 
         const resultados = await buscarContenedoresMapa({ direccion, barrio, municipio });
-
-        // A partir de aquí el recargo por viewport queda pausado hasta que
-        // se limpie la búsqueda (ver recargarDebounced en cargarMapaIncidencias).
-        modoBusquedaMapaActivo = true;
-        capaCluster.clearLayers();
-
         const marcadores = resultados.map((fila) => crearMarcadorContenedor(fila)).filter(Boolean);
-        marcadores.forEach((marcador) => capaCluster.addLayer(marcador));
 
-        if (marcadores.length === 0) {
+        if (marcadores.length > 0) {
+            // A partir de aquí el recargo por viewport queda pausado hasta que
+            // se limpie la búsqueda (ver recargarDebounced en cargarMapaIncidencias).
+            modoBusquedaMapaActivo = true;
+            capaCluster.clearLayers();
+            marcadores.forEach((marcador) => capaCluster.addLayer(marcador));
+
+            mostrarEstadoBuscadorMapa(
+                elementoEstado,
+                marcadores.length === 1 ? "Se encontró 1 contenedor." : `Se encontraron ${marcadores.length} contenedores.`,
+                false
+            );
+
+            const grupoResultados = L.featureGroup(marcadores);
+            mapa.fitBounds(grupoResultados.getBounds(), { padding: [40, 40], maxZoom: 18 });
+
+            if (marcadores.length === 1) marcadores[0].openPopup();
+            return;
+        }
+
+        // Ningún contenedor matchea -- si se escribió una calle, puede ser
+        // una esquina real que simplemente no tiene ningún contenedor
+        // registrado ahí (Fase 6 punto 40). Se intenta geocodificarla con
+        // Nominatim como respaldo: si se encuentra, se centra el mapa ahí
+        // SIN activar modoBusquedaMapaActivo -- a propósito, para que el
+        // recargo normal por bounding box (moveend) traiga solo los
+        // contenedores más próximos a ese punto, que es justamente lo que
+        // se pidió ("ver los contenedores más próximos a esa esquina").
+        if (!direccion) {
+            capaCluster.clearLayers();
             mostrarEstadoBuscadorMapa(elementoEstado, "No se encontraron contenedores con esos criterios.", true);
             return;
         }
 
+        mostrarEstadoBuscadorMapa(elementoEstado, "Buscando esa dirección en el mapa...", false);
+        const ubicacion = await geocodificarDireccion(direccion);
+
+        if (!ubicacion) {
+            capaCluster.clearLayers();
+            mostrarEstadoBuscadorMapa(elementoEstado, "No se encontraron contenedores ni una dirección reconocible con esos criterios.", true);
+            return;
+        }
+
+        modoBusquedaMapaActivo = false;
+        capaCluster.clearLayers();
+        mostrarMarcadorEsquina(mapa, ubicacion.lat, ubicacion.lng, direccion);
+        mapa.setView([ubicacion.lat, ubicacion.lng], 17);
         mostrarEstadoBuscadorMapa(
             elementoEstado,
-            marcadores.length === 1 ? "Se encontró 1 contenedor." : `Se encontraron ${marcadores.length} contenedores.`,
+            `Mostrando "${direccion}" en el mapa. No hay ningún contenedor registrado exactamente ahí -- los contenedores más próximos deberían verse alrededor.`,
             false
         );
-
-        const grupoResultados = L.featureGroup(marcadores);
-        mapa.fitBounds(grupoResultados.getBounds(), { padding: [40, 40], maxZoom: 18 });
-
-        if (marcadores.length === 1) marcadores[0].openPopup();
     });
 
     if (botonLimpiar) {
@@ -450,6 +547,7 @@ async function inicializarBuscadorMapa(mapa, capaCluster) {
                 listaResultadosCalle.hidden = true;
                 listaResultadosCalle.innerHTML = "";
             }
+            ocultarMarcadorEsquina(mapa);
             mostrarEstadoBuscadorMapa(elementoEstado, "", false);
             modoBusquedaMapaActivo = false;
             recargarContenedoresVisibles(mapa, capaCluster);

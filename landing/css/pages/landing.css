@@ -922,6 +922,19 @@
     cursor: default;
 }
 
+/* Marcador de "esquina buscada" sin contenedor registrado ahí (Fase 6 punto
+   40, 15/10/2026) -- ver mostrarMarcadorEsquina() en js/mapa.js. Es un
+   divIcon con el emoji de pin nomás, así que esto solo le saca el fondo
+   cuadrado blanco que Leaflet le pone por defecto a cualquier divIcon. */
+.mapa-marcador-esquina {
+    background: transparent;
+    border: none;
+    font-size: 26px;
+    line-height: 1;
+    text-align: center;
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.35));
+}
+
 .autocomplete-resultados li.autocomplete-sin-resultados:hover {
     background: none;
 }
