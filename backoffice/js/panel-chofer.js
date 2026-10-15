@@ -9,6 +9,7 @@ import * as Model from "./admin/model.js?v=35";
 import * as NotificacionesUI from "./admin/notificaciones-ui.js?v=2";
 import * as CuentaUI from "./admin/cuenta-ui.js?v=4";
 import { confirmar, avisar } from "./admin/confirmar-ui.js?v=3";
+import { mostrarMapaRuta } from "./admin/mapa-ruta-ui.js?v=1";
 
 // El chofer no administra incidencias (eso es del Jefe de Cuadrilla y el
 // Administrador -- ver el permiso del lado del servidor en api-gestion/index.php,
@@ -238,6 +239,14 @@ async function render() {
     const hechas = paradasConNumero.filter(({ contenedor }) => recolectados.has(String(contenedor.idContenedor)));
     const [proxima, ...restoPendientes] = pendientes;
 
+    // "Ver ruta en el mapa" (Fase 6 punto 39) solo se muestra si hay al
+    // menos un contenedor con coordenadas cargadas -- si no, no hay nada
+    // que pintar en el mapa.
+    const hayParadasConCoordenadas = paradasConNumero.some(({ contenedor }) =>
+        contenedor.latitudContenedor !== null && contenedor.latitudContenedor !== undefined && contenedor.latitudContenedor !== ""
+        && contenedor.longitudContenedor !== null && contenedor.longitudContenedor !== undefined && contenedor.longitudContenedor !== ""
+    );
+
     let paradasRutaHtml;
     if (!paradasRuta.length) {
         paradasRutaHtml = `<p class="detail-empty">No hay contenedores cargados todavía en tu ruta.</p>`;
@@ -337,10 +346,13 @@ async function render() {
                 <section class="detail-panel">
                     <div class="detail-panel-encabezado">
                         <h3>Direcciones de mi ruta</h3>
-                        ${paradasRuta.length ? `<button type="button" class="btn-secundario" id="btnCopiarTodasDirecciones">Copiar todas</button>` : ""}
+                        <div class="detail-panel-encabezado-acciones">
+                            ${hayParadasConCoordenadas ? `<button type="button" class="btn-secundario" id="btnVerRutaEnMapa">🗺️ Ver ruta en el mapa</button>` : ""}
+                            ${paradasRuta.length ? `<button type="button" class="btn-secundario" id="btnCopiarTodasDirecciones">Copiar todas</button>` : ""}
+                        </div>
                     </div>
                     <p class="detail-nota">
-                        Direcciones de los contenedores de tu ruta, ordenadas alfabéticamente. Marcá la próxima parada como recolectada a medida que la levantás -- la que sigue va a aparecer arriba sola. Podés abrirlas en Maps o copiarlas para pasarlas a un GPS externo.
+                        Direcciones de los contenedores de tu ruta, en el orden armado para la ruta. Marcá la próxima parada como recolectada a medida que la levantás -- la que sigue va a aparecer arriba sola. Podés abrirlas en Maps, copiarlas para pasarlas a un GPS externo, o ver la ruta completa de un vistazo con "Ver ruta en el mapa".
                     </p>
                     <div class="paradas-ruta-contenido">${paradasRutaHtml}</div>
                 </section>
@@ -432,6 +444,13 @@ async function render() {
 
             const copiado = await copiarAlPortapapeles(texto);
             await avisar(copiado ? "Direcciones copiadas al portapapeles." : "No se pudieron copiar las direcciones.");
+        });
+    }
+
+    const botonVerMapa = document.getElementById("btnVerRutaEnMapa");
+    if (botonVerMapa) {
+        botonVerMapa.addEventListener("click", () => {
+            mostrarMapaRuta(paradasConNumero, recolectados);
         });
     }
 

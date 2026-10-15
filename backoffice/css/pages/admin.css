@@ -1350,6 +1350,57 @@
 }
 
 /*
+   MAPA DE RUTA DEL CHOFER (Fase 6 punto 39, 15/10/2026): mismo
+   .modal-overlay/.modal-card de arriba, pero bien ancho porque adentro va
+   un mapa de Leaflet (ver js/admin/mapa-ruta-ui.js), no texto ni un
+   formulario. Se abre desde panel-chofer.js (botón "Ver ruta en el mapa").
+*/
+.modal-mapa-ruta {
+    max-width: 900px;
+    width: 95vw;
+}
+
+.mapa-ruta-contenedor {
+    height: 70vh;
+    min-height: 320px;
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+/* Marcador numerado (divIcon de Leaflet): el número es el de la parada,
+   igual al que ya se ve en la lista de direcciones de abajo. Verde cuando
+   ya se levantó esa parada hoy (mismo criterio que recolectados-ruta en
+   panel-chofer.js), azul mientras sigue pendiente. */
+.mapa-ruta-marcador {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #0a5ea8;
+    color: white;
+    font-weight: 700;
+    font-size: 13px;
+    border: 2px solid white;
+    box-shadow: 0 2px 6px rgba(8, 43, 79, 0.4);
+}
+
+.mapa-ruta-marcador--hecha {
+    background: #2e7d32;
+}
+
+/* Envoltorio de los botones del encabezado de "Direcciones de mi ruta"
+   ("Ver ruta en el mapa" + "Copiar todas") - .detail-panel-encabezado ya es
+   flex con space-between, esto solo agrupa los botones entre sí cuando hay
+   más de uno. */
+.detail-panel-encabezado-acciones {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/*
    NOTIFICACIONES (ítem 13 del backlog): campanita + desplegable + banner.
    Las usa tanto admin.html (dentro de .module-header) como los paneles de
    Chofer/Jefe/Operario (dentro de .panel-funcionario-header-acciones, ver
