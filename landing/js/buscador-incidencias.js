@@ -112,13 +112,32 @@ function actualizarBotonVerTodas(boton, total, verTodas) {
 // Copia en memoria de la última lista pedida al servidor.
 let incidenciasCache = [];
 
+// Punto 17 de la Fase 2 (auditoría 08/10/2026): "en curso" se ordena por más
+// ANTIGUA primero (la que lleva más tiempo sin resolver es probablemente la
+// que más le importa a quien reportó, y antes quedaba tapada detrás de "Ver
+// todas" por mostrarse siempre las más recientes). Las fechas faltantes o
+// rotas (-Infinity, ver marcaDeTiempo) igual van al final, no al principio.
+function compararPorAntiguedad(a, b) {
+    const ta = marcaDeTiempo(a.fechaReporte);
+    const tb = marcaDeTiempo(b.fechaReporte);
+    if (ta === -Infinity && tb === -Infinity) return 0;
+    if (ta === -Infinity) return 1;
+    if (tb === -Infinity) return -1;
+    return ta - tb;
+}
+
 function pintarResultados() {
     const texto = normalizarBusquedaIncidencia(document.getElementById("buscarIncidencia")?.value || "");
 
-    const ordenadas = [...incidenciasCache].sort((a, b) => marcaDeTiempo(b.fechaReporte) - marcaDeTiempo(a.fechaReporte));
+    const coincidentes = incidenciasCache.filter((inc) => coincideBusqueda(inc, texto));
 
-    const enCursoTotal = ordenadas.filter((inc) => inc.estadoIncidencia !== "resuelta" && coincideBusqueda(inc, texto));
-    const resueltasTotal = ordenadas.filter((inc) => inc.estadoIncidencia === "resuelta" && coincideBusqueda(inc, texto));
+    // "Resueltas" sigue mostrando las más recientes primero (tiene sentido
+    // ahí, es un historial) -- solo "en curso" se invierte, ver
+    // compararPorAntiguedad arriba.
+    const enCursoTotal = coincidentes.filter((inc) => inc.estadoIncidencia !== "resuelta").sort(compararPorAntiguedad);
+    const resueltasTotal = coincidentes
+        .filter((inc) => inc.estadoIncidencia === "resuelta")
+        .sort((a, b) => marcaDeTiempo(b.fechaReporte) - marcaDeTiempo(a.fechaReporte));
 
     // Mientras se busca se muestran todas las coincidencias -- el límite por
     // defecto es solo para la vista inicial, sin texto escrito.
@@ -150,8 +169,29 @@ function pintarResultados() {
     }
 }
 
+// Punto 15 de la Fase 2 (auditoría 08/10/2026): pinta "Cargando..." en las 2
+// columnas mientras se espera la respuesta -- solo tiene sentido en la carga
+// inicial (ver esCargaInicial en actualizarBuscadorIncidencias), antes de
+// tener ningún dato en incidenciasCache.
+function pintarCargandoBuscador() {
+    const enCurso = document.getElementById("resultadosIncidenciasEnCurso");
+    const resueltas = document.getElementById("resultadosIncidenciasResueltas");
+    if (enCurso) enCurso.innerHTML = `<p class="empty-state">Cargando...</p>`;
+    if (resueltas) resueltas.innerHTML = `<p class="empty-state">Cargando...</p>`;
+}
+
 // Global a propósito: la llama app.js al guardar un aviso nuevo, sin recargar la página.
 async function actualizarBuscadorIncidencias() {
+    // Antes, mientras llegaba esta respuesta, las 2 columnas quedaban vacías
+    // sin ningún aviso -- podía leerse como que no había incidencias
+    // todavía. En refrescos posteriores (ej. tras reportar una nueva, ver
+    // app.js) ya hay algo en incidenciasCache para seguir mostrando, así que
+    // no hace falta tapar la lista con "Cargando..." de nuevo.
+    const esCargaInicial = incidenciasCache.length === 0;
+    if (esCargaInicial) {
+        pintarCargandoBuscador();
+    }
+
     try {
         const respuesta = await fetch(`${API_GESTION_BUSCADOR}?recurso=incidencia`, {
             credentials: "same-origin"

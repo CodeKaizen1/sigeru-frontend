@@ -1,8 +1,8 @@
 // CONTROLADOR: escucha clicks/submits del panel, pide datos al Modelo y actualiza la Vista.
 // También guarda el estado propio de la pantalla (módulo abierto, registro en edición).
 
-import * as Model from "./model.js?v=38";
-import * as View from "./view.js?v=41";
+import * as Model from "./model.js?v=39";
+import * as View from "./view.js?v=42";
 import * as NotificacionesUI from "./notificaciones-ui.js?v=2";
 import * as CuentaUI from "./cuenta-ui.js?v=4";
 import * as ExportarExcel from "./exportar-excel.js?v=1";
@@ -20,6 +20,15 @@ let idEnEdicion = null;
 // imponer un único tamaño de página en listados grandes; arranca en 10.
 let registrosPorPagina = 10;
 let paginaActual = 1;
+
+// Punto 16 de la Fase 2 (auditoría 08/10/2026): ordenamiento por columna en
+// los listados. null = sin orden aplicado (orden "natural" que ya devuelve
+// Model.filtrarRegistros). Se resetea al cambiar de módulo (cambiarModulo),
+// igual que paginaActual -- pero NO al cambiar de filtro
+// (mostrarModuloDesdeFiltro), porque un orden elegido por el usuario
+// debería sobrevivir a que toque otro filtro del mismo listado.
+let columnaOrdenActual = null;
+let direccionOrdenActual = "asc";
 
 // Punto 9 de la Fase 2 (auditoría 08/10/2026): escribir en el buscador
 // refiltraba los ~11.130 contenedores en cada tecla. Mismo patrón de
@@ -99,6 +108,8 @@ async function iniciarCuenta() {
 async function cambiarModulo(nombreModulo) {
     moduloActual = nombreModulo;
     paginaActual = 1;
+    columnaOrdenActual = null;
+    direccionOrdenActual = "asc";
 
     document.querySelectorAll(".admin-menu-link").forEach((boton) => {
         boton.classList.toggle("active", boton.dataset.module === nombreModulo);
@@ -358,7 +369,11 @@ async function mostrarModulo() {
     View.ocultarTarjetasResumen();
     View.cerrarDetailModal();
 
-    const registrosFiltrados = await registrosDelModuloActual();
+    const registrosFiltradosSinOrden = await registrosDelModuloActual();
+    // Punto 16 de la Fase 2: el orden por columna se aplica sobre TODO lo
+    // filtrado, antes de recortar por página -- si no, cada página se
+    // ordenaría por separado y el resultado general no tendría sentido.
+    const registrosFiltrados = Model.ordenarRegistros(moduloActual, registrosFiltradosSinOrden, columnaOrdenActual, direccionOrdenActual);
 
     const totalPaginas = Math.max(1, Math.ceil(registrosFiltrados.length / registrosPorPagina));
     // Si el filtro cambió el total y paginaActual quedó apuntando a una
@@ -369,7 +384,9 @@ async function mostrarModulo() {
     const inicio = (paginaActual - 1) * registrosPorPagina;
     const registros = registrosFiltrados.slice(inicio, inicio + registrosPorPagina);
 
-    const lista = View.renderListaRegistros(moduloActual, registros);
+    const columnasListado = Model.configuracionModulos[moduloActual]?.columnasListado;
+    const ordenActual = columnaOrdenActual ? { campo: columnaOrdenActual, direccion: direccionOrdenActual } : null;
+    const lista = View.renderListaRegistros(moduloActual, registros, columnasListado, ordenActual);
     const paginador = View.renderPaginador(paginaActual, totalPaginas);
 
     if (paginador) {
@@ -421,6 +438,23 @@ async function mostrarModulo() {
     lista.querySelectorAll(".data-row").forEach((fila) => {
         fila.addEventListener("click", () => {
             mostrarDetalle(fila.dataset.id);
+        });
+    });
+
+    // Punto 16 de la Fase 2: click en un encabezado de columna ordenable.
+    // Mismo campo ya activo -> invierte la dirección; campo distinto ->
+    // lo activa en ascendente. Vuelve a página 1, igual que un cambio de filtro.
+    lista.querySelectorAll("[data-ordenar-campo]").forEach((boton) => {
+        boton.addEventListener("click", () => {
+            const campo = boton.dataset.ordenarCampo;
+            if (columnaOrdenActual === campo) {
+                direccionOrdenActual = direccionOrdenActual === "asc" ? "desc" : "asc";
+            } else {
+                columnaOrdenActual = campo;
+                direccionOrdenActual = "asc";
+            }
+            paginaActual = 1;
+            mostrarModulo();
         });
     });
 

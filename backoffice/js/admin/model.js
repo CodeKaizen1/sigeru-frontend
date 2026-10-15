@@ -1355,6 +1355,12 @@ async function cargarSolicitudes() {
         direccion: fila.direccionCompletaUsuario || "",
         email: fila.emailUsuario || "",
         rolSolicitado: fila.rolSolicitado ? (ROLES_CUENTA_A_LABEL[fila.rolSolicitado] || fila.rolSolicitado) : null,
+        // Bug latente (punto 16, Fase 2, auditoría 08/10/2026): crearFila()
+        // en view.js pinta "registro.fecha" para la columna Fecha de este
+        // módulo, pero antes nunca se seteaba -- quedaba siempre en blanco.
+        // Se agrega acá, formateada para mostrar, sin tocar fechaSolicitud
+        // (que sigue cruda, para poder ordenar por ella).
+        fecha: formatearFechaCorta(fila.fechaSolicitud),
         fechaSolicitud: fila.fechaSolicitud || null,
         fechaRechazo: fila.fechaRechazo || null,
         motivoRechazo: fila.motivoRechazo || null,
@@ -1600,6 +1606,17 @@ export const configuracionModulos = {
             { campo: "cuadrillaId", etiqueta: "Cuadrilla asignada", valorVacio: "Sin asignar" },
             { campo: "resolucion", etiqueta: "Qué se hizo para resolverla", valorVacio: "Sin resolver todavía" },
             { campo: "fechaResolucion", etiqueta: "Resuelta el", valorVacio: "Sin resolver todavía" }
+        ],
+        // Punto 16 (Fase 2, auditoría 08/10/2026): una entrada por cada una de
+        // las 4 columnas que crearFila() pinta de verdad en el listado (ver
+        // view.js). El campo de fecha es el crudo (_fechaReporteCruda), no el
+        // ya formateado ("fecha"), porque como texto "15/10/2026" no ordena
+        // bien contra "01/10/2026".
+        columnasListado: [
+            { etiqueta: "ID", campo: "id", tipo: "numero" },
+            { etiqueta: "Tipo", campo: "tipo", tipo: "texto" },
+            { etiqueta: "Estado", campo: "estado", tipo: "texto" },
+            { etiqueta: "Fecha", campo: "_fechaReporteCruda", tipo: "fecha" }
         ]
     },
     informes: {
@@ -1626,6 +1643,12 @@ export const configuracionModulos = {
             { campo: "capacidad", etiqueta: "Capacidad" },
             { campo: "tipoResiduo", etiqueta: "Tipo de residuo" },
             { campo: "incidencias", etiqueta: "Incidencias asociadas" }
+        ],
+        columnasListado: [
+            { etiqueta: "ID", campo: "id", tipo: "numero" },
+            { etiqueta: "Ubicación", campo: "ubicacion", tipo: "texto" },
+            { etiqueta: "Estado", campo: "estado", tipo: "texto" },
+            { etiqueta: "Tipo de residuo", campo: "tipoResiduo", tipo: "texto" }
         ]
     },
     camiones: {
@@ -1647,6 +1670,14 @@ export const configuracionModulos = {
             { campo: "capacidad", etiqueta: "Capacidad" },
             { campo: "_choferNombre", etiqueta: "Chofer asignado" },
             { campo: "_rutaResumen", etiqueta: "Ruta asignada" }
+        ],
+        // capacidad es texto libre con unidad (ej. "8 toneladas"), no un
+        // número puro -- se ordena como texto, no numéricamente.
+        columnasListado: [
+            { etiqueta: "ID", campo: "id", tipo: "numero" },
+            { etiqueta: "Marca", campo: "marca", tipo: "texto" },
+            { etiqueta: "Disponibilidad", campo: "estado", tipo: "texto" },
+            { etiqueta: "Capacidad", campo: "capacidad", tipo: "texto" }
         ]
     },
     cuadrillas: {
@@ -1661,6 +1692,15 @@ export const configuracionModulos = {
             { campo: "_operariosCantidad", etiqueta: "Cantidad de operarios" },
             { campo: "_rutaResumen", etiqueta: "Ruta asignada" },
             { campo: "estado", etiqueta: "Estado" }
+        ],
+        // Cuadrillas no muestra una columna de estado en el grid (ver
+        // crearFila en view.js): sus 4 columnas visibles son id, jefe,
+        // cantidad de operarios y ruta resumen.
+        columnasListado: [
+            { etiqueta: "ID", campo: "id", tipo: "numero" },
+            { etiqueta: "Jefe", campo: "_jefeNombre", tipo: "texto" },
+            { etiqueta: "Operarios", campo: "_operariosCantidad", tipo: "numero" },
+            { etiqueta: "Ruta", campo: "_rutaResumen", tipo: "texto" }
         ]
     },
     rutas: {
@@ -1685,19 +1725,40 @@ export const configuracionModulos = {
             { campo: "estadoAdmin", etiqueta: "Estado" },
             { campo: "estado", etiqueta: "Seguimiento del recorrido de hoy" },
             { campo: "_cuadrillaResumen", etiqueta: "Cuadrilla asignada" }
+        ],
+        // El texto principal de la fila usa "nombre" si existe, si no "zona"
+        // (ver crearFila); como columna sortable queda más simple usar
+        // "zona" sola, que siempre está poblada.
+        columnasListado: [
+            { etiqueta: "ID", campo: "id", tipo: "numero" },
+            { etiqueta: "Zona", campo: "zona", tipo: "texto" },
+            { etiqueta: "Estado", campo: "estadoAdmin", tipo: "texto" },
+            { etiqueta: "Frecuencia", campo: "frecuencia", tipo: "texto" }
         ]
     },
     centrosDeAcopio: {
         titulo: "Centros de acopio",
         descripcion: "Instalaciones de acopio de residuos reciclables.",
         placeholderBusqueda: "Buscar por ID, nombre, ubicación o estado...",
-        estados: ["operativo", "mantenimiento", "baja"]
+        estados: ["operativo", "mantenimiento", "baja"],
+        columnasListado: [
+            { etiqueta: "ID", campo: "id", tipo: "numero" },
+            { etiqueta: "Nombre", campo: "nombre", tipo: "texto" },
+            { etiqueta: "Estado", campo: "estado", tipo: "texto" },
+            { etiqueta: "Capacidad", campo: "capacidad", tipo: "texto" }
+        ]
     },
     vertederos: {
         titulo: "Vertederos",
         descripcion: "Instalaciones de disposición final de residuos.",
         placeholderBusqueda: "Buscar por ID, nombre, ubicación o estado...",
-        estados: ["operativo", "mantenimiento", "baja"]
+        estados: ["operativo", "mantenimiento", "baja"],
+        columnasListado: [
+            { etiqueta: "ID", campo: "id", tipo: "numero" },
+            { etiqueta: "Nombre", campo: "nombre", tipo: "texto" },
+            { etiqueta: "Estado", campo: "estado", tipo: "texto" },
+            { etiqueta: "Capacidad", campo: "capacidad", tipo: "texto" }
+        ]
     },
     funcionarios: {
         titulo: "Funcionarios",
@@ -1718,15 +1779,92 @@ export const configuracionModulos = {
             { campo: "email", etiqueta: "Correo" },
             { campo: "rol", etiqueta: "Rol" },
             { campo: "estado", etiqueta: "Estado" }
+        ],
+        columnasListado: [
+            { etiqueta: "ID", campo: "id", tipo: "numero" },
+            { etiqueta: "Nombre", campo: "nombre", tipo: "texto" },
+            { etiqueta: "Estado", campo: "estado", tipo: "texto" },
+            { etiqueta: "Teléfono", campo: "telefono", tipo: "texto" }
         ]
     },
     solicitudes: {
         titulo: "Solicitudes de usuarios",
         descripcion: "Cuentas creadas desde el registro público, pendientes de aprobación.",
         placeholderBusqueda: "Buscar por nombre, apellido, cédula o email...",
-        estados: []
+        estados: [],
+        // El estado "pendiente" es fijo (todas las filas de este listado lo
+        // son) -- sin "campo" queda como texto plano, no clickeable (ver
+        // renderEncabezadoListado en view.js). "fechaSolicitud" es la cruda
+        // para ordenar; "fecha" (agregada arriba en cargarSolicitudes) es
+        // solo la versión formateada que se muestra.
+        columnasListado: [
+            { etiqueta: "ID", campo: "id", tipo: "numero" },
+            { etiqueta: "Nombre", campo: "nombre", tipo: "texto" },
+            { etiqueta: "Estado", campo: null },
+            { etiqueta: "Fecha", campo: "fechaSolicitud", tipo: "fecha" }
+        ]
     }
 };
+
+// Punto 16 de la Fase 2 (auditoría 08/10/2026): ordenamiento por columna en
+// los listados del admin. "tipo" viene de configuracionModulos[modulo]
+// .columnasListado (ver arriba) y decide cómo se compara cada valor:
+// - "numero": se compara como número (sirve también para id, que llega
+//   como string pero con contenido numérico, ej. "42").
+// - "fecha": se parsea como fecha (funciona tanto con fechas MySQL
+//   "2026-10-15 00:00:00" como con el separador "T" de un ISO).
+// - cualquier otro valor (incluido undefined, para columnas sin "tipo"
+//   explícito en columnasExport viejo): se compara como texto,
+//   sin distinguir mayúsculas/acentos via localeCompare("es").
+// En cualquier caso, un valor vacío/roto queda SIEMPRE al final, sea
+// ascendente o descendente -- no tiene sentido "un vacío es el más chico".
+function valorNormalizadoParaOrden(valor, tipo) {
+    if (valor === null || valor === undefined) return null;
+
+    if (tipo === "numero") {
+        const numero = Number(valor);
+        return Number.isFinite(numero) ? numero : null;
+    }
+
+    if (tipo === "fecha") {
+        if (valor === "") return null;
+        const fecha = new Date(String(valor).replace(" ", "T"));
+        return isNaN(fecha.getTime()) ? null : fecha.getTime();
+    }
+
+    const texto = String(valor).trim();
+    return texto === "" ? null : texto.toLowerCase();
+}
+
+function compararValoresParaOrden(valorA, valorB, tipo, direccion) {
+    const a = valorNormalizadoParaOrden(valorA, tipo);
+    const b = valorNormalizadoParaOrden(valorB, tipo);
+
+    const aEsVacio = a === null;
+    const bEsVacio = b === null;
+    if (aEsVacio && bEsVacio) return 0;
+    if (aEsVacio) return 1;
+    if (bEsVacio) return -1;
+
+    const resultado = tipo === "numero" || tipo === "fecha"
+        ? a - b
+        : a.localeCompare(b, "es");
+
+    return direccion === "desc" ? -resultado : resultado;
+}
+
+// Devuelve una copia ordenada de "registros" según la columna "campo" del
+// módulo (según configuracionModulos[modulo].columnasListado). Si "campo"
+// es null/vacío (sin orden aplicado todavía) devuelve el array tal cual.
+export function ordenarRegistros(modulo, registros, campo, direccion) {
+    if (!campo) return registros;
+
+    const columnas = configuracionModulos[modulo]?.columnasListado;
+    const columna = columnas?.find((c) => c.campo === campo);
+    const tipo = columna?.tipo || "texto";
+
+    return [...registros].sort((a, b) => compararValoresParaOrden(a[campo], b[campo], tipo, direccion));
+}
 
 // Config de los formularios de alta (qué campos pedir por módulo).
 export const formulariosAlta = {

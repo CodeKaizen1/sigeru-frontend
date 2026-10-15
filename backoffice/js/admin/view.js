@@ -618,12 +618,45 @@ function crearFila(modulo, registro) {
     }
 }
 
+// Punto 16 de la Fase 2 (auditoría 08/10/2026) + punto 21 de la Fase 3
+// (encabezado de columnas, que como efecto secundario también resuelve):
+// encabezado clickeable arriba del listado, con el mismo grid de 4 columnas
+// que .data-row (ver admin.css) para que quede alineado con las filas de
+// abajo. "columnas" viene de configuracionModulos[modulo].columnasListado
+// (controller.js la pasa -- esta vista no decide reglas de negocio, solo
+// pinta) y es un array de hasta 4 {etiqueta, campo, tipo}; una columna sin
+// "campo" se pinta como texto plano, no clickeable (ej. el "pendiente" fijo
+// de Solicitudes, que no tiene sentido ordenar). "ordenActual" es
+// {campo, direccion} o null si no hay ningún orden aplicado todavía.
+function renderEncabezadoListado(columnas, ordenActual) {
+    if (!columnas || !columnas.length) return "";
+
+    const celdas = columnas.map(({ etiqueta, campo }) => {
+        if (!campo) {
+            return `<span class="col-encabezado">${escapeHtml(etiqueta)}</span>`;
+        }
+
+        const esActiva = ordenActual && ordenActual.campo === campo;
+        const flecha = esActiva ? (ordenActual.direccion === "desc" ? "▼" : "▲") : "";
+
+        return `
+            <button type="button" class="col-encabezado col-ordenable${esActiva ? " col-ordenable-activa" : ""}" data-ordenar-campo="${escapeHtml(campo)}">
+                ${escapeHtml(etiqueta)}${flecha ? ` <span class="col-orden-flecha">${flecha}</span>` : ""}
+            </button>
+        `;
+    }).join("");
+
+    return `<div class="data-row-header">${celdas}</div>`;
+}
+
 // Pinta la lista y devuelve el elemento contenedor (el controlador escucha los clicks sobre las filas).
-export function renderListaRegistros(modulo, registros) {
+export function renderListaRegistros(modulo, registros, columnas, ordenActual) {
     const lista = document.getElementById("moduleList");
+    const encabezado = renderEncabezadoListado(columnas, ordenActual);
 
     if (registros.length === 0) {
         lista.innerHTML = `
+            ${encabezado}
             <div class="empty-state">
                 No se encontraron registros con los filtros aplicados.
             </div>
@@ -631,7 +664,7 @@ export function renderListaRegistros(modulo, registros) {
         return lista;
     }
 
-    lista.innerHTML = registros.map((registro) => crearFila(modulo, registro)).join("");
+    lista.innerHTML = encabezado + registros.map((registro) => crearFila(modulo, registro)).join("");
     return lista;
 }
 

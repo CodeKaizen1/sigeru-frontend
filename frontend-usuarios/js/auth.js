@@ -52,9 +52,22 @@ async function manejarLogin(evento) {
     const password = document.getElementById("password").value;
 
     const boton = evento.target.querySelector("button[type=submit]");
+    const textoOriginalBoton = boton ? boton.textContent : "";
     if (boton) boton.disabled = true;
 
-    const { ok, datos } = await llamarApiUsuarios("login", "POST", { email, password });
+    const { ok, status, datos } = await llamarApiUsuarios("login", "POST", { email, password });
+
+    // Punto 14 de la Fase 2 (auditoría 08/10/2026): el 429 (rate limit de
+    // login) tenía el mismo cartel genérico que cualquier otro error, sin la
+    // cuenta regresiva prolija que ya existe en "Recuperar contraseña". Ahora
+    // usa el mismo patrón (ver iniciarCuentaRegresivaBoton), con el tiempo
+    // REAL que manda el servidor (segundosRestantes, calculado contra los
+    // intentos fallidos reales de ese email) en vez de un número fijo.
+    if (status === 429) {
+        mostrarAviso(aviso, datos.error || "Demasiados intentos fallidos. Esperá un momento y volvé a intentar.");
+        iniciarCuentaRegresivaBoton(boton, textoOriginalBoton, Math.max(1, Number(datos.segundosRestantes) || 60), "Reintentar en");
+        return;
+    }
 
     if (boton) boton.disabled = false;
 
@@ -135,6 +148,32 @@ function obtenerTokenDeURL() {
     return new URLSearchParams(window.location.search).get("token");
 }
 
+// Cuenta regresiva genérica en un botón: lo deja deshabilitado mostrando
+// "<prefijo> Xs" y, al llegar a 0, lo vuelve a habilitar con su texto
+// original. La usa tanto "Recuperar contraseña" (cooldown fijo propio, ver
+// SEGUNDOS_ESPERA_REENVIO_RECUPERAR) como el 429 de login (punto 14 de la
+// Fase 2, con el tiempo real que manda el servidor).
+function iniciarCuentaRegresivaBoton(boton, textoOriginal, segundosIniciales, prefijo) {
+    if (!boton) return;
+
+    boton.disabled = true;
+    let segundosRestantes = segundosIniciales;
+    boton.textContent = `${prefijo} ${segundosRestantes}s`;
+
+    const intervalo = setInterval(() => {
+        segundosRestantes--;
+
+        if (segundosRestantes <= 0) {
+            clearInterval(intervalo);
+            boton.disabled = false;
+            boton.textContent = textoOriginal;
+            return;
+        }
+
+        boton.textContent = `${prefijo} ${segundosRestantes}s`;
+    }, 1000);
+}
+
 // Segundos que el botón queda deshabilitado después de enviar, antes de
 // dejar pedir el link de nuevo (evita que alguien lo reenvíe en loop
 // mientras el mail todavía puede estar en camino).
@@ -173,23 +212,7 @@ async function manejarRecuperar(evento) {
     // Cuenta regresiva en el botón: mientras tanto queda deshabilitado, y al
     // llegar a 0 vuelve a su texto original por si el correo no llegó y hay
     // que pedirlo de nuevo.
-    if (boton) {
-        let segundosRestantes = SEGUNDOS_ESPERA_REENVIO_RECUPERAR;
-        boton.textContent = `Reenviar en ${segundosRestantes}s`;
-
-        const intervalo = setInterval(() => {
-            segundosRestantes--;
-
-            if (segundosRestantes <= 0) {
-                clearInterval(intervalo);
-                boton.disabled = false;
-                boton.textContent = textoOriginalBoton;
-                return;
-            }
-
-            boton.textContent = `Reenviar en ${segundosRestantes}s`;
-        }, 1000);
-    }
+    iniciarCuentaRegresivaBoton(boton, textoOriginalBoton, SEGUNDOS_ESPERA_REENVIO_RECUPERAR, "Reenviar en");
 }
 
 // Valida el token apenas carga restablecer.html (punto 12 de la Fase 2):
@@ -261,12 +284,46 @@ async function manejarRestablecer(evento) {
     mostrarAviso(aviso, "¡Listo! Tu contraseña fue actualizada. Ya podés iniciar sesión.", "exito");
 }
 
+// Punto 13 de la Fase 2 (auditoría 08/10/2026): valida mientras se escribe
+// que "password" y "confirmar-password" coincidan, en vez de enterarse recién
+// al enviar el formulario (en registro, con 8 campos, eso implicaba rehacer
+// el envío completo por un solo campo mal). No reemplaza el chequeo al
+// enviar en manejarRegistro()/manejarRestablecer() -- sigue ahí como red de
+// seguridad, esto solo adelanta el aviso.
+function engancharValidacionVivaDeContrasenias(formulario, idAviso) {
+    if (!formulario) return;
+
+    const campoPassword = formulario.elements["password"];
+    const campoConfirmar = formulario.elements["confirmar-password"];
+    const aviso = document.getElementById(idAviso);
+    if (!campoPassword || !campoConfirmar || !aviso) return;
+
+    const revisar = () => {
+        if (campoConfirmar.value === "") {
+            aviso.classList.add("oculto");
+            return;
+        }
+
+        if (campoPassword.value !== campoConfirmar.value) {
+            mostrarAviso(aviso, "Las contraseñas no coinciden.");
+        } else {
+            aviso.classList.add("oculto");
+        }
+    };
+
+    campoPassword.addEventListener("input", revisar);
+    campoConfirmar.addEventListener("input", revisar);
+}
+
 document.addEventListener("DOMContentLoaded", () => {
     const formLogin = document.getElementById("formLogin");
     if (formLogin) formLogin.addEventListener("submit", manejarLogin);
 
     const formRegistro = document.getElementById("formRegistro");
-    if (formRegistro) formRegistro.addEventListener("submit", manejarRegistro);
+    if (formRegistro) {
+        formRegistro.addEventListener("submit", manejarRegistro);
+        engancharValidacionVivaDeContrasenias(formRegistro, "avisoCoincidenPasswordRegistro");
+    }
 
     const formRecuperar = document.getElementById("formRecuperar");
     if (formRecuperar) formRecuperar.addEventListener("submit", manejarRecuperar);
@@ -274,6 +331,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const formRestablecer = document.getElementById("formRestablecer");
     if (formRestablecer) {
         formRestablecer.addEventListener("submit", manejarRestablecer);
+        engancharValidacionVivaDeContrasenias(formRestablecer, "avisoCoincidenPasswordRestablecer");
         validarTokenRestablecer();
     }
 });

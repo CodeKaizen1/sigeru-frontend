@@ -683,6 +683,48 @@
     border-bottom: none;
 }
 
+/* Punto 16 de la Fase 2 (auditoría 08/10/2026): encabezado de columnas
+   arriba del listado, con el mismo grid que .data-row para quedar
+   alineado con las filas de abajo (ver renderListaRegistros() en view.js). */
+.data-row-header {
+    display: grid;
+    grid-template-columns: 140px 1fr 150px 130px;
+    gap: 16px;
+    align-items: center;
+    padding: 10px 20px;
+    background: #f3f7fb;
+    border-bottom: 1px solid #d6dde3;
+}
+
+.col-encabezado {
+    font-size: 13px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #5d6b7a;
+    text-align: left;
+}
+
+.col-ordenable {
+    border: none;
+    background: none;
+    padding: 0;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.col-ordenable:hover {
+    color: #0d5ea6;
+}
+
+.col-ordenable-activa {
+    color: #0d5ea6;
+}
+
+.col-orden-flecha {
+    font-size: 11px;
+}
+
 /* Fila de Incidencias con botón "Asignar" al lado (ver crearFila() en
    view.js) - un <button> no puede ir dentro de otro <button>, así que acá
    el borde entre filas pasa del .data-row (que ya no lo necesita, queda
