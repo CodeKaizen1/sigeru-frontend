@@ -405,16 +405,15 @@
                         <!-- Captcha real (Fase 2/pedido 16/10): Cloudflare Turnstile, sin
                              backend propio para verificar -- challenges.cloudflare.com valida
                              el token y api-gestion/index.php lo re-valida server-side antes de
-                             crear la incidencia. data-sitekey de abajo es la clave de PRUEBA
-                             pública de Cloudflare (siempre aprueba, documentada en
-                             developers.cloudflare.com/turnstile/troubleshooting/testing) --
-                             Matías: reemplazala por tu Site Key real de dash.cloudflare.com
-                             antes de dejar esto en producción. -->
+                             crear la incidencia. data-sitekey de abajo es la Site Key real de
+                             Matías (widget "SiGeRU" en dash.cloudflare.com, hostname
+                             localhost), dada de alta el 16/10/2026 -- la Site Key es pública,
+                             no hay problema en que esté en el HTML. -->
                         <div class="grupo-formulario captcha-grupo">
                             <div
                                 class="cf-turnstile"
                                 id="captchaTurnstile"
-                                data-sitekey="1x00000000000000000000AA"
+                                data-sitekey="0x4AAAAAAFYfmkJrClPRZ26U"
                                 data-callback="alConfirmarCaptcha"
                                 data-expired-callback="alExpirarCaptcha"
                                 data-error-callback="alFallarCaptcha"
