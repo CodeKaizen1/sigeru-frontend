@@ -5,7 +5,7 @@
 // No usa el patrón de lista + detalle del panel administrador: el contenido es siempre "lo mío",
 // no un listado a filtrar.
 
-import * as Model from "./admin/model.js?v=40";
+import * as Model from "./admin/model.js?v=41";
 import * as NotificacionesUI from "./admin/notificaciones-ui.js?v=2";
 import * as CuentaUI from "./admin/cuenta-ui.js?v=4";
 import { confirmar, avisar } from "./admin/confirmar-ui.js?v=3";
