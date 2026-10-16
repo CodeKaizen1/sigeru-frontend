@@ -246,50 +246,41 @@ async function inicializarAutocompletarContenedor() {
     }
 }
 
-// Captcha anti-spam: simulación puramente del lado del cliente, sin backend.
-let captchaVerificado = false;
-let captchaVerificando = false;
+// Captcha real (pedido de Matías, 16/10): Cloudflare Turnstile. El widget
+// se pinta solo (renderizado implícito, ver el div .cf-turnstile en
+// index.html) -- este archivo solo guarda el token que Turnstile manda a
+// sus propios callbacks (data-callback/data-expired-callback/
+// data-error-callback) para poder mandarlo en el POST, y lo valida
+// server-side de verdad api-gestion/index.php (lo que el cliente diga
+// nunca es suficiente, igual que con cualquier otro dato de este
+// formulario público sin sesión).
+let turnstileToken = null;
 
-function inicializarCaptcha() {
-    const caja = document.getElementById("captchaRobotCaja");
-    if (!caja) return;
+// Llamado por Turnstile (ver data-callback en index.html) cuando el
+// usuario pasa la verificación -- nunca a mano.
+function alConfirmarCaptcha(token) {
+    turnstileToken = token;
+    const error = document.getElementById("captchaError");
+    if (error) error.classList.remove("visible");
+}
 
-    const alternar = () => {
-        if (captchaVerificando || captchaVerificado) return;
+// El token de Turnstile vence solo a los pocos minutos -- si tarda en
+// enviar el formulario, hay que pedirle que lo confirme de nuevo en vez
+// de mandar un token vencido que el servidor va a rechazar.
+function alExpirarCaptcha() {
+    turnstileToken = null;
+}
 
-        captchaVerificando = true;
-        caja.classList.remove("error");
-        caja.classList.add("verificando");
-
-        setTimeout(() => {
-            captchaVerificando = false;
-            captchaVerificado = true;
-            caja.classList.remove("verificando");
-            caja.classList.add("verificado");
-            caja.setAttribute("aria-checked", "true");
-
-            const error = document.getElementById("captchaError");
-            if (error) error.classList.remove("visible");
-        }, 600 + Math.random() * 400);
-    };
-
-    caja.addEventListener("click", alternar);
-    caja.addEventListener("keydown", (evento) => {
-        if (evento.key === "Enter" || evento.key === " ") {
-            evento.preventDefault();
-            alternar();
-        }
-    });
+function alFallarCaptcha() {
+    turnstileToken = null;
 }
 
 function reiniciarCaptcha() {
-    captchaVerificado = false;
-    captchaVerificando = false;
+    turnstileToken = null;
 
-    const caja = document.getElementById("captchaRobotCaja");
-    if (caja) {
-        caja.classList.remove("verificado", "verificando", "error");
-        caja.setAttribute("aria-checked", "false");
+    const caja = document.getElementById("captchaTurnstile");
+    if (caja && typeof turnstile !== "undefined") {
+        turnstile.reset(caja);
     }
 }
 
@@ -306,7 +297,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (!formulario) return;
 
-    inicializarCaptcha();
     inicializarAutocompletarContenedor();
 
     const aviso = document.getElementById("avisoIncidencia");
@@ -315,12 +305,10 @@ document.addEventListener("DOMContentLoaded", () => {
     formulario.addEventListener("submit", async (evento) => {
         evento.preventDefault();
 
-        const cajaCaptcha = document.getElementById("captchaRobotCaja");
         const errorCaptcha = document.getElementById("captchaError");
 
-        if (!captchaVerificado) {
+        if (!turnstileToken) {
             if (errorCaptcha) errorCaptcha.classList.add("visible");
-            if (cajaCaptcha) cajaCaptcha.classList.add("error");
             return;
         }
 
@@ -335,12 +323,19 @@ document.addEventListener("DOMContentLoaded", () => {
         const boton = formulario.querySelector("button[type=submit]");
         if (boton) boton.disabled = true;
 
+        // emailConfirmacion es opcional (ver el campo en index.html) -- el
+        // backend lo usa una sola vez para mandar la confirmación y lo
+        // descarta, nunca lo guarda junto con la incidencia (ver
+        // api-gestion/index.php). turnstileToken lo vuelve a verificar el
+        // servidor contra Cloudflare -- lo que mande el cliente nunca alcanza solo.
         const { ok, datos } = await llamarApiGestion("incidencia", "POST", {
             descripcionIncidencia: formulario.elements["descripcion"].value.trim() || "Sin descripción adicional.",
             tipoIncidencia: TIPOS_INCIDENCIA[formulario.elements["tipo"].value] || "Otra situación",
             zonaIncidencia: contenedor.ubicacionContenedor,
             fechaReporte: fechaHoraParaMySQL(new Date()),
-            idContenedor: contenedor.idContenedor
+            idContenedor: contenedor.idContenedor,
+            turnstileToken: turnstileToken,
+            emailConfirmacion: formulario.elements["emailConfirmacion"].value.trim() || null
         });
 
         if (boton) boton.disabled = false;
@@ -351,6 +346,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 aviso.classList.remove("aviso-formulario-exito");
                 aviso.classList.add("aviso-formulario-error");
             }
+            // El token de Turnstile es de un solo uso -- ya se consumió en
+            // este intento (haya salido bien o mal del lado del servidor),
+            // así que hace falta uno nuevo para el próximo submit.
+            reiniciarCaptcha();
             return;
         }
 

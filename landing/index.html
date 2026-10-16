@@ -4,18 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- CSP: sin scripts/estilos inline, todo del propio origen, salvo las
-         tiles del mapa (tile.openstreetmap.org) y, desde el 15/10/2026, el
-         geocodificador de respaldo para buscar una esquina sin contenedor
+         tiles del mapa (tile.openstreetmap.org), el geocodificador de
+         respaldo para buscar una esquina sin contenedor
          (nominatim.openstreetmap.org -- ver geocodificarDireccion() en
-         js/mapa.js, Fase 6 punto 40). -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' https://tile.openstreetmap.org; connect-src 'self' https://nominatim.openstreetmap.org; object-src 'none'; base-uri 'self'; form-action 'self'">
+         js/mapa.js, Fase 6 punto 40, 15/10/2026) y, desde el 16/10/2026,
+         el captcha real del formulario de incidencia (Cloudflare
+         Turnstile -- ver captcha-grupo más abajo y app.js). Turnstile
+         necesita permiso para cargar su script, para las llamadas que
+         ese script hace solo, y para el iframe donde pinta el widget. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self'; img-src 'self' https://tile.openstreetmap.org; connect-src 'self' https://nominatim.openstreetmap.org https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; object-src 'none'; base-uri 'self'; form-action 'self'">
     <title>SiGeRU - Portal ciudadano</title>
 
     <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
     <link rel="stylesheet" href="vendor/leaflet.markercluster/MarkerCluster.css">
     <link rel="stylesheet" href="vendor/leaflet.markercluster/MarkerCluster.Default.css">
-    <link rel="stylesheet" href="css/base.css?v=1">
-    <link rel="stylesheet" href="css/components.css?v=1">
+    <link rel="stylesheet" href="css/base.css?v=2">
+    <link rel="stylesheet" href="css/components.css?v=2">
     <link rel="stylesheet" href="css/pages/landing.css?v=18">
 </head>
 <body>
@@ -386,16 +390,37 @@
                                 <label for="descripcion-incidencia">Descripción adicional</label>
                                 <textarea id="descripcion-incidencia" name="descripcion" rows="4" placeholder="Agregue detalles que puedan ayudar a identificar la situación"></textarea>
                             </div>
+
+                            <!-- Pedido de Matías (16/10): correo OPCIONAL solo para mandar la
+                                 confirmación con el número de seguimiento -- el backend lo usa
+                                 una sola vez para el mail y lo descarta, nunca queda guardado
+                                 en la incidencia ni en ningún otro lado (ver api-gestion/index.php). -->
+                            <div class="grupo-formulario grupo-formulario-completo">
+                                <label for="email-incidencia">Correo electrónico (opcional)</label>
+                                <input type="email" id="email-incidencia" name="emailConfirmacion" placeholder="Para recibir la confirmación por mail (opcional)">
+                                <span class="ayuda-campo">Si lo completás, te mandamos un mail con el número de seguimiento. No lo guardamos en ningún lado -- se usa una sola vez para mandar ese mail y se descarta.</span>
+                            </div>
                         </div>
 
+                        <!-- Captcha real (Fase 2/pedido 16/10): Cloudflare Turnstile, sin
+                             backend propio para verificar -- challenges.cloudflare.com valida
+                             el token y api-gestion/index.php lo re-valida server-side antes de
+                             crear la incidencia. data-sitekey de abajo es la clave de PRUEBA
+                             pública de Cloudflare (siempre aprueba, documentada en
+                             developers.cloudflare.com/turnstile/troubleshooting/testing) --
+                             Matías: reemplazala por tu Site Key real de dash.cloudflare.com
+                             antes de dejar esto en producción. -->
                         <div class="grupo-formulario captcha-grupo">
-                            <div class="captcha-robot-caja" id="captchaRobotCaja" role="checkbox" aria-checked="false" tabindex="0">
-                                <span class="captcha-robot-check" id="captchaRobotCheck"></span>
-                                <span class="captcha-robot-texto">No soy un robot</span>
-                                <span class="captcha-robot-spinner" id="captchaRobotSpinner" aria-hidden="true"></span>
-                            </div>
+                            <div
+                                class="cf-turnstile"
+                                id="captchaTurnstile"
+                                data-sitekey="1x00000000000000000000AA"
+                                data-callback="alConfirmarCaptcha"
+                                data-expired-callback="alExpirarCaptcha"
+                                data-error-callback="alFallarCaptcha"
+                            ></div>
 
-                            <span class="captcha-error" id="captchaError">Confirmá que no sos un robot antes de enviar el aviso.</span>
+                            <span class="captcha-error" id="captchaError">No se pudo verificar el captcha. Esperá un segundo y probá de nuevo.</span>
                         </div>
 
                         <p class="aviso-formulario" id="avisoIncidencia">
@@ -595,7 +620,13 @@
 
     <script src="vendor/leaflet/leaflet.js"></script>
     <script src="vendor/leaflet.markercluster/leaflet.markercluster.js"></script>
-    <script src="js/app.js?v=8"></script>
+    <!-- Captcha real del formulario de incidencia (Fase 2/pedido 16/10) --
+         Cloudflare Turnstile, cargado async/defer (no bloquea el resto de
+         la página). Renderizado implícito: escanea el DOM solo por
+         ".cf-turnstile" (ver el div dentro de #formIncidencia más arriba),
+         no hace falta llamar turnstile.render() a mano. -->
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <script src="js/app.js?v=9"></script>
     <script src="js/buscador-incidencias.js?v=5"></script>
     <script src="js/mapa.js?v=10"></script>
     <script src="js/faq.js?v=1"></script>

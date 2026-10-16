@@ -22,9 +22,14 @@
    la base acá escala TODO lo que ya está en rem en el resto del CSS (la
    mayoría de los títulos y textos largos); los tamaños puntuales que
    siguen en px (labels, botones, tablas de admin.css, etc.) se subieron
-   aparte, 1 a 1, en la misma pasada. */
+   aparte, 1 a 1, en la misma pasada.
+
+   Pedido de Matías (16/10): seguía sintiéndose chico para gente mayor --
+   otro empujón moderado, 17px → 18px (sobre el 16px default ya es +12.5%
+   en total). No pasa a "gigante" a propósito -- de paso se agrandaron las
+   6 etiquetas puntuales de 11-13px que quedaban en admin.css. */
 html {
-    font-size: 17px;
+    font-size: 18px;
 }
 
 body {

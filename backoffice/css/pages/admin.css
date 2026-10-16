@@ -430,7 +430,7 @@
     display: block;
     background: #082b4f;
     color: white;
-    font-size: 12px;
+    font-size: 14px; /* 12px -> 14px, pedido de Matías 16/10 (letra más grande) */
     font-weight: bold;
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -722,7 +722,7 @@
 }
 
 .col-orden-flecha {
-    font-size: 11px;
+    font-size: 13px; /* 11px -> 13px, pedido de Matías 16/10 (letra más grande) */
 }
 
 /* Fila de Incidencias con botón "Asignar" al lado (ver crearFila() en
@@ -1149,7 +1149,7 @@
     border-radius: 999px;
     background: #fdf0da;
     color: #946200;
-    font-size: 12px;
+    font-size: 14px; /* 12px -> 14px, pedido de Matías 16/10 (letra más grande) */
     font-weight: 700;
     vertical-align: middle;
 }
@@ -1483,7 +1483,7 @@
     border-radius: 999px;
     background: #d0342c;
     color: white;
-    font-size: 12px;
+    font-size: 14px; /* 12px -> 14px, pedido de Matías 16/10 (letra más grande) */
     font-weight: bold;
     display: grid;
     place-items: center;
@@ -1542,7 +1542,7 @@
 
 .notificacion-item span {
     color: #8393a3;
-    font-size: 13px;
+    font-size: 15px; /* 13px -> 15px, pedido de Matías 16/10 (letra más grande) */
 }
 
 .notificaciones-vacio {
@@ -1687,7 +1687,7 @@
 }
 
 .cuenta-seccion-etiqueta {
-    font-size: 13px;
+    font-size: 15px; /* 13px -> 15px, pedido de Matías 16/10 (letra más grande) */
     color: #8393a3;
 }
 

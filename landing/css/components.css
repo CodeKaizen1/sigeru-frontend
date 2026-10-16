@@ -238,98 +238,19 @@ FORMULARIOS (compartido entre auth y landing)
 
 /*
    CAPTCHA (verificación anti-spam del formulario de reporte)
-   Checkbox estilo "No soy un robot": el vecino tilda la casilla, se
-   simula una breve verificación (spinner) y queda confirmado. Es más
-   simple y robusto que un captcha de letras/imagen, y sigue sin
-   depender de ningún servicio externo (todo el sistema sigue siendo
-   una simulación sin backend conectado - ver app.js).
+   Pedido de Matías (16/10): hasta ahora esto era un checkbox "No soy un
+   robot" 100% decorativo (simulación con setTimeout, sin backend real).
+   Se reemplazó por el widget real de Cloudflare Turnstile (gratis, sin
+   verificación de celular, casi siempre invisible para el usuario) --
+   el widget en sí lo pinta el script de Cloudflare dentro de
+   #captchaTurnstile (ver <script src="https://challenges.cloudflare.com/
+   turnstile/v0/api.js"> y data-sitekey en index.html), así que acá solo
+   queda el espaciado del contenedor. .captcha-error se mantiene, ahora
+   para el caso real de verificación fallida (ver app.js).
 */
 
-.captcha-robot-caja {
-    display: inline-flex;
-    align-items: center;
-    gap: 14px;
-    padding: 14px 20px;
+.captcha-grupo {
     margin: 8px 0 4px;
-    background: var(--white);
-    border: 1.5px solid var(--border-soft);
-    border-radius: 10px;
-    box-shadow: 0 1px 3px rgba(7, 31, 61, 0.08);
-    cursor: pointer;
-    user-select: none;
-    -webkit-user-select: none;
-    max-width: 320px;
-    transition: border-color 0.2s ease, background 0.2s ease;
-}
-
-.captcha-robot-caja:hover {
-    border-color: var(--primary);
-}
-
-.captcha-robot-check {
-    flex-shrink: 0;
-    width: 26px;
-    height: 26px;
-    border-radius: 4px;
-    border: 2px solid var(--border-soft);
-    background: var(--white);
-    position: relative;
-    transition: 0.2s ease;
-}
-
-.captcha-robot-texto {
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: var(--primary-dark);
-}
-
-.captcha-robot-spinner {
-    display: none;
-    flex-shrink: 0;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    border: 3px solid var(--light-bg);
-    border-top-color: var(--primary);
-}
-
-.captcha-robot-caja.verificando .captcha-robot-spinner {
-    display: block;
-    animation: captcha-girar 0.7s linear infinite;
-}
-
-.captcha-robot-caja.verificando .captcha-robot-check {
-    border-color: var(--primary);
-}
-
-@keyframes captcha-girar {
-    to { transform: rotate(360deg); }
-}
-
-.captcha-robot-caja.verificado {
-    border-color: #1e8e3e;
-    background: #f3faf5;
-}
-
-.captcha-robot-caja.verificado .captcha-robot-check {
-    border-color: #1e8e3e;
-    background: #1e8e3e;
-}
-
-.captcha-robot-caja.verificado .captcha-robot-check::after {
-    content: "";
-    position: absolute;
-    left: 8px;
-    top: 3px;
-    width: 6px;
-    height: 12px;
-    border: solid var(--white);
-    border-width: 0 2px 2px 0;
-    transform: rotate(45deg);
-}
-
-.captcha-robot-caja.error {
-    border-color: #b3261e;
 }
 
 .captcha-error {
