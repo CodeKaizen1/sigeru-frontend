@@ -8,9 +8,9 @@
     <title>Panel administrador - SiGeRU</title>
 
     <link rel="stylesheet" href="css/base.css?v=2">
-    <link rel="stylesheet" href="css/layout.css?v=1">
+    <link rel="stylesheet" href="css/layout.css?v=2">
     <link rel="stylesheet" href="css/components.css?v=1">
-    <link rel="stylesheet" href="css/pages/admin.css?v=44">
+    <link rel="stylesheet" href="css/pages/admin.css?v=46">
 </head>
 <body>
 
@@ -25,9 +25,13 @@
                         <h1>SiGeRU</h1>
                         <p>Panel administrador</p>
                     </div>
+
+                    <button type="button" id="sidebarToggle" class="admin-sidebar-toggle" aria-label="Abrir menú" aria-expanded="false" aria-controls="adminMenu">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+                    </button>
                 </div>
 
-                <nav class="admin-menu">
+                <nav class="admin-menu" id="adminMenu">
                     <button class="admin-menu-link active" data-module="resumen">Resumen</button>
                     <button class="admin-menu-link" data-module="incidencias">Incidencias</button>
                     <button class="admin-menu-link" data-module="informes">Informes</button>
@@ -105,7 +109,7 @@
     <div id="detailModal" class="modal-overlay oculto">
         <div class="modal-card">
             <div class="modal-header modal-header-detalle">
-                <button type="button" id="detailModalCerrar" class="modal-cerrar" aria-label="Cerrar">✕</button>
+                <button type="button" id="detailModalCerrar" class="modal-cerrar" aria-label="Cerrar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg></button>
             </div>
 
             <div id="detailModalBody"></div>
@@ -116,7 +120,7 @@
         <div class="modal-card">
             <div class="modal-header">
                 <h3 id="modalTitulo">Nuevo registro</h3>
-                <button type="button" id="modalCerrar" class="modal-cerrar" aria-label="Cerrar">✕</button>
+                <button type="button" id="modalCerrar" class="modal-cerrar" aria-label="Cerrar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg></button>
             </div>
 
             <form id="formAlta">
@@ -134,7 +138,7 @@
     <script src="vendor/sheetjs/xlsx.full.min.js"></script>
     <!-- Chart.js vendorizado localmente (vendor/chartjs/), para los gráficos de la pantalla de Resumen. Cdnjs estaba bloqueado en la red de Matías (ERR: "Chart is not defined"). -->
     <script src="vendor/chartjs/chart.umd.js"></script>
-    <script type="module" src="js/admin/main.js?v=59"></script>
-    <script type="module" src="js/salir.js?v=4"></script>
+    <script type="module" src="js/admin/main.js?v=62"></script>
+    <script type="module" src="js/salir.js?v=5"></script>
 </body>
 </html>

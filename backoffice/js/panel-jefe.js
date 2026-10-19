@@ -4,10 +4,10 @@
 // y reportar o resolver incidencias.
 
 import * as Model from "./admin/model.js?v=41";
-import * as NotificacionesUI from "./admin/notificaciones-ui.js?v=2";
+import * as NotificacionesUI from "./admin/notificaciones-ui.js?v=3";
 import * as CuentaUI from "./admin/cuenta-ui.js?v=4";
-import { confirmar, avisar } from "./admin/confirmar-ui.js?v=3";
-import { pedirTexto } from "./admin/asignar-ui.js?v=1";
+import { confirmar, avisar } from "./admin/confirmar-ui.js?v=4";
+import { pedirTexto } from "./admin/asignar-ui.js?v=2";
 
 // "let", no "const": iniciarPanel() la resuelve de verdad con
 // Model.recuperarUsuarioActual() antes del primer render().

@@ -6,10 +6,10 @@
 // no un listado a filtrar.
 
 import * as Model from "./admin/model.js?v=41";
-import * as NotificacionesUI from "./admin/notificaciones-ui.js?v=2";
+import * as NotificacionesUI from "./admin/notificaciones-ui.js?v=3";
 import * as CuentaUI from "./admin/cuenta-ui.js?v=4";
-import { confirmar, avisar } from "./admin/confirmar-ui.js?v=3";
-import { mostrarMapaRuta } from "./admin/mapa-ruta-ui.js?v=2";
+import { confirmar, avisar } from "./admin/confirmar-ui.js?v=4";
+import { mostrarMapaRuta } from "./admin/mapa-ruta-ui.js?v=3";
 
 // El chofer no administra incidencias (eso es del Jefe de Cuadrilla y el
 // Administrador -- ver el permiso del lado del servidor en api-gestion/index.php,

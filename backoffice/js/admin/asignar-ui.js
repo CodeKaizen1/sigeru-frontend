@@ -77,6 +77,7 @@ function abrir({ titulo, etiqueta, modo, opciones = [], valorActual = "", placeh
             botonCancelar.removeEventListener("click", alCancelar);
             overlay.removeEventListener("click", alClickAfuera);
             campoTexto.removeEventListener("keydown", alTecleoTextoArea);
+            document.removeEventListener("keydown", alTeclado);
             resolve(resultado);
         }
 
@@ -108,10 +109,19 @@ function abrir({ titulo, etiqueta, modo, opciones = [], valorActual = "", placeh
             }
         }
 
+        // Punto 24 de la Fase 3 (auditoria 08/10/2026): mismo criterio que
+        // confirmar-ui.js (del que este popup ya es una variante, ver
+        // comentario del archivo) -- Escape cancela, igual que el click
+        // afuera.
+        function alTeclado(evento) {
+            if (evento.key === "Escape") cerrar(null);
+        }
+
         botonGuardar.addEventListener("click", alGuardar);
         botonCancelar.addEventListener("click", alCancelar);
         overlay.addEventListener("click", alClickAfuera);
         campoTexto.addEventListener("keydown", alTecleoTextoArea);
+        document.addEventListener("keydown", alTeclado);
     });
 }
 

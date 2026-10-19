@@ -3,11 +3,11 @@
 
 import * as Model from "./model.js?v=41";
 import * as View from "./view.js?v=44";
-import * as NotificacionesUI from "./notificaciones-ui.js?v=2";
+import * as NotificacionesUI from "./notificaciones-ui.js?v=3";
 import * as CuentaUI from "./cuenta-ui.js?v=4";
 import * as ExportarExcel from "./exportar-excel.js?v=1";
-import * as AsignarUI from "./asignar-ui.js?v=1";
-import * as ConfirmarUI from "./confirmar-ui.js?v=3";
+import * as AsignarUI from "./asignar-ui.js?v=2";
+import * as ConfirmarUI from "./confirmar-ui.js?v=4";
 
 let moduloActual = "resumen";
 let idEnEdicion = null;
@@ -1383,9 +1383,31 @@ function cerrarModalYRefrescar() {
 }
 
 function iniciarEventos() {
+    // Punto 22 de la Fase 3 (auditoria 08/10/2026): boton hamburguesa que
+    // colapsa/expande el menu del sidebar en mobile (ver admin-sidebar-
+    // toggle en admin.css, solo visible por debajo de 1100px). En desktop
+    // el boton esta oculto y esto no tiene ningun efecto visual.
+    const sidebarToggle = document.getElementById("sidebarToggle");
+    const sidebar = document.querySelector(".admin-sidebar");
+
+    if (sidebarToggle && sidebar) {
+        sidebarToggle.addEventListener("click", () => {
+            const abierto = sidebar.classList.toggle("menu-abierto");
+            sidebarToggle.setAttribute("aria-expanded", String(abierto));
+        });
+    }
+
     document.querySelectorAll(".admin-menu-link").forEach((boton) => {
         boton.addEventListener("click", () => {
             cambiarModulo(boton.dataset.module);
+
+            // Al elegir un modulo desde el menu mobile, se cierra solo para
+            // dejar ver el contenido de una (si no, el usuario tendria que
+            // scrollear para bajar del menu recien elegido).
+            if (sidebar && sidebar.classList.contains("menu-abierto")) {
+                sidebar.classList.remove("menu-abierto");
+                if (sidebarToggle) sidebarToggle.setAttribute("aria-expanded", "false");
+            }
         });
     });
 
@@ -1421,6 +1443,24 @@ function iniciarEventos() {
 
     document.getElementById("detailModal").addEventListener("click", (evento) => {
         if (evento.target.id === "detailModal") {
+            View.cerrarDetailModal();
+        }
+    });
+
+    // Punto 24 de la Fase 3 (auditoria 08/10/2026): confirmar-ui.js ya
+    // cierra sus propios dialogos (confirmar/avisar) con Escape -- a este
+    // otro sistema de modal (el de alta/edicion y el de detalle del admin,
+    // mas abajo en este mismo archivo) le faltaba. Mismo criterio que ya
+    // tienen sus clicks afuera: Escape cierra, nunca guarda.
+    document.addEventListener("keydown", (evento) => {
+        if (evento.key !== "Escape") return;
+
+        const formModal = document.getElementById("formModal");
+        const detailModal = document.getElementById("detailModal");
+
+        if (formModal && !formModal.classList.contains("oculto")) {
+            cerrarModalYRefrescar();
+        } else if (detailModal && !detailModal.classList.contains("oculto")) {
             View.cerrarDetailModal();
         }
     });

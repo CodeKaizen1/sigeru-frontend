@@ -29,6 +29,29 @@
     margin-bottom: 36px;
 }
 
+/* Punto 22 de la Fase 3 (auditoria 08/10/2026): boton hamburguesa para
+   colapsar el menu del sidebar en mobile. Oculto en desktop a proposito
+   -- ahi el sidebar completo ya esta siempre visible (ver mas abajo, min-
+   width: 1100px) -- y se muestra solo dentro del media query donde el
+   grid pasa a 1 columna. */
+.admin-sidebar-toggle {
+    display: none;
+    border: none;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.admin-sidebar-toggle:hover {
+    background: rgba(255, 255, 255, 0.18);
+}
+
 .admin-logo {
     width: 54px;
     height: 54px;
@@ -1329,6 +1352,9 @@
     border-radius: 10px;
     font-size: 17px;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .modal-actions {
@@ -1806,6 +1832,28 @@
 
     .admin-sidebar {
         gap: 24px;
+    }
+
+    /* Punto 22: el menu de 11 botones queda colapsado por default en
+       mobile (antes se apilaba siempre completo arriba del contenido,
+       obligando a scrollear) y se abre con el boton hamburguesa de al
+       lado del logo. En desktop (fuera de este media query) nunca se
+       esconde, asi que ninguna de estas reglas aplica ahi. */
+    .admin-brand {
+        margin-bottom: 0;
+    }
+
+    .admin-sidebar-toggle {
+        display: flex;
+    }
+
+    .admin-menu {
+        display: none;
+    }
+
+    .admin-sidebar.menu-abierto .admin-menu {
+        display: grid;
+        margin-top: 24px;
     }
 
     .module-content {

@@ -6,9 +6,9 @@
 // no está expuesto todavía por Model.obtenerRegistroPorId("funcionarios", ...).
 
 import * as Model from "./admin/model.js?v=41";
-import * as NotificacionesUI from "./admin/notificaciones-ui.js?v=2";
+import * as NotificacionesUI from "./admin/notificaciones-ui.js?v=3";
 import * as CuentaUI from "./admin/cuenta-ui.js?v=4";
-import { confirmar } from "./admin/confirmar-ui.js?v=3";
+import { confirmar } from "./admin/confirmar-ui.js?v=4";
 
 // "let", no "const": iniciarPanel() la resuelve de verdad con
 // Model.recuperarUsuarioActual() antes del primer render().

@@ -38,7 +38,7 @@ export function renderCampanita(contenedor, notificaciones, alAbrir, alClickItem
 
     contenedor.innerHTML = `
         <button type="button" class="notificaciones-campanita" aria-label="Notificaciones">
-            🔔
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
             ${noLeidas > 0 ? `<span class="notificaciones-contador">${noLeidas > 9 ? "9+" : noLeidas}</span>` : ""}
         </button>
         <div class="notificaciones-desplegable oculto">
@@ -109,7 +109,7 @@ export function mostrarBanner(mensaje) {
         banner = document.createElement("div");
         banner.id = "notificacionBanner";
         banner.className = "notificacion-banner";
-        banner.innerHTML = `<span class="notificacion-banner-icono">🔔</span><p></p>`;
+        banner.innerHTML = `<span class="notificacion-banner-icono"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span><p></p>`;
         document.body.appendChild(banner);
     }
 

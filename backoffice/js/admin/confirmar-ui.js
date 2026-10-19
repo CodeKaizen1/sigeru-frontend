@@ -98,6 +98,7 @@ export function confirmar(mensaje) {
             botonAceptar.removeEventListener("click", alAceptar);
             botonCancelar.removeEventListener("click", alCancelar);
             overlay.removeEventListener("click", alClickAfuera);
+            document.removeEventListener("keydown", alTeclado);
             resolve(resultado);
         }
 
@@ -113,8 +114,17 @@ export function confirmar(mensaje) {
             if (evento.target === overlay) cerrar(false);
         }
 
+        // Punto 24 de la Fase 3 (auditoria 08/10/2026): avisar() ya cerraba
+        // con Escape (ver mas arriba) pero a confirmar() le faltaba -- se
+        // agrega acá con el mismo criterio que el click afuera (Escape =
+        // "No", no asume que el usuario quiso confirmar).
+        function alTeclado(evento) {
+            if (evento.key === "Escape") cerrar(false);
+        }
+
         botonAceptar.addEventListener("click", alAceptar);
         botonCancelar.addEventListener("click", alCancelar);
         overlay.addEventListener("click", alClickAfuera);
+        document.addEventListener("keydown", alTeclado);
     });
 }

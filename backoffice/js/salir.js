@@ -1,7 +1,7 @@
 // Manejador del botón "Cerrar sesión" del panel administrador: pide confirmación
 // con el popup propio (ConfirmarUI) en vez del confirm() nativo del navegador.
 
-import { confirmar } from "./admin/confirmar-ui.js?v=2";
+import { confirmar } from "./admin/confirmar-ui.js?v=4";
 
 document.getElementById("btnSalir").addEventListener("click", async (evento) => {
     evento.preventDefault();

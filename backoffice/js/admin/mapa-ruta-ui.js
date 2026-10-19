@@ -109,7 +109,7 @@ function asegurarModal() {
         <div class="modal-card modal-mapa-ruta">
             <div class="modal-header">
                 <h3>Mi ruta en el mapa</h3>
-                <button type="button" class="modal-cerrar" data-accion="cerrar" aria-label="Cerrar">✕</button>
+                <button type="button" class="modal-cerrar" data-accion="cerrar" aria-label="Cerrar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg></button>
             </div>
             <div class="mapa-ruta-contenedor"></div>
         </div>
