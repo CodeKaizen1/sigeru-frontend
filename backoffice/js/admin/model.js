@@ -87,9 +87,10 @@ export {
     rechazarSolicitud,
     usuarioActual,
     recuperarUsuarioActual,
+    cerrarSesion,
     obtenerPerfilPropio,
     actualizarCuentaPropia
-} from "./model/funcionarios.js?v=1";
+} from "./model/funcionarios.js?v=2";
 export {
     obtenerNotificacionesAdmin,
     obtenerNotificacionesCuadrilla,

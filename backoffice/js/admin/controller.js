@@ -1,12 +1,12 @@
 // CONTROLADOR: escucha clicks/submits del panel, pide datos al Modelo y actualiza la Vista.
 // También guarda el estado propio de la pantalla (módulo abierto, registro en edición).
 
-import * as Model from "./model.js?v=41";
+import * as Model from "./model.js?v=42";
 import * as View from "./view.js?v=44";
 import * as NotificacionesUI from "./notificaciones-ui.js?v=3";
-import * as CuentaUI from "./cuenta-ui.js?v=4";
+import * as CuentaUI from "./cuenta-ui.js?v=5";
 import * as ExportarExcel from "./exportar-excel.js?v=1";
-import * as AsignarUI from "./asignar-ui.js?v=2";
+import * as AsignarUI from "./asignar-ui.js?v=3";
 import * as ConfirmarUI from "./confirmar-ui.js?v=4";
 
 let moduloActual = "resumen";
@@ -90,7 +90,12 @@ async function alGuardarCuenta(cambios) {
 
     if (resultado && resultado !== "CONTRASENA_INCORRECTA" && resultado !== "EMAIL_DUPLICADO" && resultado !== "CONTRASENA_DEBIL" && resultado.cambioSesion) {
         alert("Tu correo o tu contraseña cambiaron: iniciá sesión de nuevo.");
-        sessionStorage.removeItem("sigeru_sesion_v1");
+        // Ítem alto de la auditoría de cierre (19/10/2026): antes esto solo
+        // borraba la copia local -- la sesión real del servidor seguía
+        // activa. Acá el cambio es justamente de contraseña (un evento de
+        // seguridad), así que invalidar la sesión del servidor importa más
+        // todavía que en el logout explícito.
+        await Model.cerrarSesion();
         window.location.href = "../frontend-usuarios/login.html";
     }
 

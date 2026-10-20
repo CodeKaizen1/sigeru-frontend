@@ -1,5 +1,5 @@
 // Punto de entrada del panel administrador: arranca el controlador.
 
-import { initAdmin } from "./controller.js?v=61";
+import { initAdmin } from "./controller.js?v=63";
 
 initAdmin();

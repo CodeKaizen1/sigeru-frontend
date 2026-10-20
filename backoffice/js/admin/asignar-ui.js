@@ -2,6 +2,8 @@
 // Mismo patrón que confirmar-ui.js, con un <select> (pedirSeleccion) o un <textarea> (pedirTexto)
 // adentro. Evita abrir el formulario largo de alta/edición solo para cambiar un dato puntual.
 
+import { escapeHtml } from "./view/helpers.js?v=1";
+
 let overlay;
 let tituloEl;
 let etiquetaEl;
@@ -57,8 +59,12 @@ function abrir({ titulo, etiqueta, modo, opciones = [], valorActual = "", placeh
     if (modo === "select") {
         campoSelect.classList.remove("oculto");
         campoTexto.classList.add("oculto");
+        // Ítem crítico de la auditoría de cierre (19/10/2026): "label" puede
+        // incluir nombre/apellido de funcionarios -- se escapa antes de
+        // insertarlo con innerHTML (este popup lo usa también la pantalla de
+        // asignación de incidencias del Administrador).
         campoSelect.innerHTML = opciones
-            .map((opcion) => `<option value="${opcion.value}" ${opcion.value === (valorActual || "") ? "selected" : ""}>${opcion.label}</option>`)
+            .map((opcion) => `<option value="${escapeHtml(opcion.value)}" ${opcion.value === (valorActual || "") ? "selected" : ""}>${escapeHtml(opcion.label)}</option>`)
             .join("");
     } else {
         campoTexto.classList.remove("oculto");

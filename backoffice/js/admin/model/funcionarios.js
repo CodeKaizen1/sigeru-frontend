@@ -189,6 +189,22 @@ export async function recuperarUsuarioActual() {
     return usuarioActual;
 }
 
+// Ítem alto de la auditoría de cierre (19/10/2026): los 4 "Cerrar sesión"
+// (salir.js del admin + el botón propio de cada panel de rol) y los 2
+// lugares que fuerzan un cierre de sesión tras cambiar email/contraseña
+// (ver alGuardarCuenta en cada panel) solo borraban la copia local en
+// sessionStorage y redirigían a login -- la sesión real del servidor
+// (cookie PHPSESSID, ver api-usuarios/index.php: recurso=logout hace
+// session_destroy()) seguía activa. Alguien con esa cookie (robada, o una
+// pestaña vieja que no se cerró) podía seguir usándola después de que la
+// víctima "cerrara sesión". Ahora todos esos lugares pasan por esta única
+// función, que avisa al servidor antes de limpiar lo local.
+export async function cerrarSesion() {
+    await llamarUsuarios("logout", "POST");
+    usuarioActual = null;
+    sessionStorage.removeItem("sigeru_sesion_v1");
+}
+
 export async function obtenerPerfilPropio() {
     if (!usuarioActual) return null;
 

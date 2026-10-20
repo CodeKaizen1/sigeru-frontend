@@ -1,6 +1,8 @@
 // MI CUENTA - UI compartida (cambiar correo, contraseña y teléfono propios).
 // Funciones puras de DOM, no importan Model. La usa el panel administrador y los paneles de rol.
 
+import { escapeHtml } from "./view/helpers.js?v=1";
+
 // El listener que cierra el desplegable al hacer click afuera se registra una sola vez por página.
 let listenerGlobalListo = false;
 
@@ -27,29 +29,34 @@ function inicialDe(nombre) {
 // `alGuardar(cambios)` llama a Model.actualizarCuentaPropia y devuelve "CONTRASENA_INCORRECTA",
 // "EMAIL_DUPLICADO" o el perfil actualizado.
 export function renderMenuCuenta(contenedor, perfil, alGuardar) {
+    // Ítem crítico de la auditoría de cierre (19/10/2026): nombre/apellido
+    // pueden venir de la solicitud de cuenta pública (sin login), así que se
+    // escapan antes de insertarlos con innerHTML -- este menú lo usan los 4
+    // roles, incluido el Administrador, así que sin esto el XSS podía llegar
+    // incluso a la sesión del admin.
     contenedor.innerHTML = `
         <button type="button" class="cuenta-boton" aria-label="Mi cuenta">
-            <span class="cuenta-avatar">${inicialDe(perfil.nombre)}</span>
-            <span class="cuenta-nombre">${perfil.nombre}</span>
+            <span class="cuenta-avatar">${escapeHtml(inicialDe(perfil.nombre))}</span>
+            <span class="cuenta-nombre">${escapeHtml(perfil.nombre)}</span>
         </button>
         <div class="cuenta-desplegable oculto">
             <div class="cuenta-desplegable-titulo">
-                <strong>${perfil.nombre} ${perfil.apellido}</strong>
-                <span>${perfil.rol}</span>
+                <strong>${escapeHtml(perfil.nombre)} ${escapeHtml(perfil.apellido)}</strong>
+                <span>${escapeHtml(perfil.rol)}</span>
             </div>
 
             <div class="cuenta-seccion" data-seccion="email">
                 <div class="cuenta-seccion-vista">
                     <div class="cuenta-seccion-info">
                         <span class="cuenta-seccion-etiqueta">Correo electrónico</span>
-                        <span class="cuenta-seccion-valor">${perfil.email}</span>
+                        <span class="cuenta-seccion-valor">${escapeHtml(perfil.email)}</span>
                     </div>
                     <button type="button" class="btn-secundario btn-chico cuenta-btn-cambiar">Cambiar mail</button>
                 </div>
                 <form class="cuenta-seccion-form oculto">
                     <div class="grupo-formulario">
                         <label for="cuentaEmailNuevo">Correo nuevo</label>
-                        <input type="email" id="cuentaEmailNuevo" value="${perfil.email}" required>
+                        <input type="email" id="cuentaEmailNuevo" value="${escapeHtml(perfil.email)}" required>
                     </div>
                     <div class="grupo-formulario">
                         <label for="cuentaEmailPasswordActual">Contraseña actual</label>
@@ -66,14 +73,14 @@ export function renderMenuCuenta(contenedor, perfil, alGuardar) {
                 <div class="cuenta-seccion-vista">
                     <div class="cuenta-seccion-info">
                         <span class="cuenta-seccion-etiqueta">Teléfono</span>
-                        <span class="cuenta-seccion-valor">${perfil.telefono || "Sin definir"}</span>
+                        <span class="cuenta-seccion-valor">${escapeHtml(perfil.telefono) || "Sin definir"}</span>
                     </div>
                     <button type="button" class="btn-secundario btn-chico cuenta-btn-cambiar">Cambiar teléfono</button>
                 </div>
                 <form class="cuenta-seccion-form oculto">
                     <div class="grupo-formulario">
                         <label for="cuentaTelefonoNuevo">Teléfono nuevo</label>
-                        <input type="tel" id="cuentaTelefonoNuevo" value="${perfil.telefono || ""}" placeholder="Ej: 099 123 456">
+                        <input type="tel" id="cuentaTelefonoNuevo" value="${escapeHtml(perfil.telefono)}" placeholder="Ej: 099 123 456">
                     </div>
                     <div class="cuenta-seccion-acciones">
                         <button type="button" class="btn-secundario cuenta-btn-cancelar">Cancelar</button>

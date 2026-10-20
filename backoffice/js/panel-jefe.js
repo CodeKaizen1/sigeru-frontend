@@ -3,11 +3,11 @@
 // ni asigna la ruta (eso es exclusivo del Administrador). Sí puede marcar inicio/fin de ruta
 // y reportar o resolver incidencias.
 
-import * as Model from "./admin/model.js?v=41";
+import * as Model from "./admin/model.js?v=42";
 import * as NotificacionesUI from "./admin/notificaciones-ui.js?v=3";
-import * as CuentaUI from "./admin/cuenta-ui.js?v=4";
+import * as CuentaUI from "./admin/cuenta-ui.js?v=5";
 import { confirmar, avisar } from "./admin/confirmar-ui.js?v=4";
-import { pedirTexto } from "./admin/asignar-ui.js?v=2";
+import { pedirTexto } from "./admin/asignar-ui.js?v=3";
 
 // "let", no "const": iniciarPanel() la resuelve de verdad con
 // Model.recuperarUsuarioActual() antes del primer render().
@@ -106,12 +106,16 @@ async function render() {
         .map(([valor, etiqueta]) => `<option value="${valor}">${etiqueta}</option>`)
         .join("");
 
+    // Ítem crítico de la auditoría de cierre (19/10/2026): tipo/zona/descripcion
+    // vienen de texto libre cargado por el público desde el formulario de
+    // reporte de la landing (sin login) -- escapeHtmlPanel() ya existía acá
+    // arriba pero no se estaba usando todavía.
     const incidenciasHtml = cuadrilla.incidencias.length
         ? cuadrilla.incidencias.map((inc) => `
             <div class="resumen-incidencia">
                 <div class="resumen-incidencia-info">
-                    <span class="resumen-incidencia-id">${inc.id} — ${inc.tipo}</span>
-                    <span class="data-sub">${inc.zona} · ${inc.descripcion}</span>
+                    <span class="resumen-incidencia-id">${inc.id} — ${escapeHtmlPanel(inc.tipo)}</span>
+                    <span class="data-sub">${escapeHtmlPanel(inc.zona)} · ${escapeHtmlPanel(inc.descripcion)}</span>
                 </div>
                 <button type="button" class="btn-secundario" data-resolver="${inc.id}">Marcar resuelta</button>
             </div>
@@ -441,7 +445,10 @@ document.getElementById("btnSalir").addEventListener("click", async (evento) => 
     const confirmado = await confirmar("¿Seguro que querés cerrar sesión?");
     if (!confirmado) return;
 
-    sessionStorage.removeItem("sigeru_sesion_v1");
+    // Ítem alto de la auditoría de cierre (19/10/2026): Model.cerrarSesion()
+    // avisa al servidor (recurso=logout, session_destroy()) antes de limpiar
+    // la copia local -- antes solo se borraba sessionStorage.
+    await Model.cerrarSesion();
     window.location.href = "../frontend-usuarios/login.html";
 });
 
@@ -479,7 +486,7 @@ async function alGuardarCuenta(cambios) {
 
     if (resultado && resultado !== "CONTRASENA_INCORRECTA" && resultado !== "EMAIL_DUPLICADO" && resultado !== "CONTRASENA_DEBIL" && resultado.cambioSesion) {
         alert("Tu correo o tu contraseña cambiaron: iniciá sesión de nuevo.");
-        sessionStorage.removeItem("sigeru_sesion_v1");
+        await Model.cerrarSesion();
         window.location.href = "../frontend-usuarios/login.html";
     }
 
