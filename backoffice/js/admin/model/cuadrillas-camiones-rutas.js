@@ -402,14 +402,17 @@ async function cargarRutas() {
             nombre: fila.nombreRuta || "",
             zona: fila.zonaRuta || "",
             recorrido: fila.recorridoRuta || "",
-            // Acá SÍ se puede caer de vuelta al derivado de recorridoRuta
-            // (a diferencia de nombre arriba): guardarRuta() ya reenvía este
-            // valor tal cual en cada PUT (ver más abajo), así que si una
-            // ruta vieja no tiene la columna todavía, el primer guardado
-            // (por ejemplo un jefe marcando inicio/fin) la completa sola con
-            // el mismo valor que ya se mostraba -- no hay "relleno" que se
-            // termine guardando como si fuera otra cosa.
+            // OJO (bug real, 26/10/2026): a diferencia de nombre arriba, este
+            // SÍ se mostró por años cayendo de vuelta al derivado de
+            // recorridoRuta cuando municipioRuta era NULL -- pero
+            // soloCambianCamposPermitidos (Utilidades.php) compara la fila
+            // ENTERA, así que si guardarRuta() reenviaba ese valor derivado
+            // (null -> "Municipio B") el backend lo veía como un cambio no
+            // permitido y rechazaba el guardado con 403. Por eso ahora se
+            // guarda el valor CRUDO aparte (municipioRaw) para reenviarlo
+            // tal cual en el PUT, y "municipio" queda solo para mostrar.
             municipio: fila.municipioRuta || (matchMunicipio ? `Municipio ${matchMunicipio[1]}` : ""),
+            municipioRaw: fila.municipioRuta ?? null,
             frecuencia: fila.frecuenciaDeRecoleccionRuta || "",
             horario: fila.horarioRuta || "",
             estado: fila.estadoRuta || "sin iniciar",
@@ -441,15 +444,17 @@ async function guardarRuta(ruta) {
         horaFinRealRuta: ruta.horaFinReal,
         estadoAdminRuta: ruta.estadoAdmin,
         // Importante: aunque esta funcion solo cambie estado/horaInicio/Fin
-        // (marcar inicio/fin de ruta desde el panel del jefe), hay que
+        // (marcar inicio/fin de ruta desde el panel del jefe/chofer), hay que
         // re-enviar nombreRuta/municipioRuta con su valor actual -- el
-        // backend valida que un jefe de cuadrilla SOLO pueda tocar esos 3
+        // backend valida que un jefe/chofer de cuadrilla SOLO pueda tocar esos 3
         // campos comparando TODA la fila (soloCambianCamposPermitidos en
         // Utilidades.php), y si cualquiera de estos faltara en el body lo
         // interpretaria como "lo querés borrar" y rechazaria el guardado
-        // con 403.
+        // con 403. OJO: municipioRuta tiene que ir con el valor CRUDO
+        // (ruta.municipioRaw), no con el derivado de display (ruta.municipio)
+        // -- ver el comentario en cargarRutas() más arriba.
         nombreRuta: ruta.nombre,
-        municipioRuta: ruta.municipio || null
+        municipioRuta: ruta.municipioRaw ?? null
     }, ruta.id);
 
     return ok;

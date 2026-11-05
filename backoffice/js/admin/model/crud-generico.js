@@ -6,7 +6,7 @@
 import { datos, llamarGestion, llamarRecoleccion, llamarUsuarios, aNumeroONull, aEnteroONull, idOperarioDesdeCedula, cargarOperariosCuadrilla, obtenerRegistroPorId, ROLES_LABEL_A_CUENTA } from "./estado.js";
 import { configuracionModulos, obtenerConfigEdicion } from "./config-modulos.js";
 import { cargarContenedores, recomputarResumenIncidenciasEnContenedores } from "./contenedores-incidencias.js";
-import { cargarCamiones, guardarCamion, cargarRutas, guardarCuadrilla, camionTieneRutaAsignada } from "./cuadrillas-camiones-rutas.js";
+import { cargarCamiones, guardarCamion, cargarRutas, guardarCuadrilla, camionTieneRutaAsignada } from "./cuadrillas-camiones-rutas.js?v=2";
 import { cargarCentrosDeAcopio, cargarVertederos, persistirInstalacion } from "./instalaciones.js";
 import { cargarFuncionarios, guardarUsuario, actualizarCargoSiCorresponde } from "./funcionarios.js";
 

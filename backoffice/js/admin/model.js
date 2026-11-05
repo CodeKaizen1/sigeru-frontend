@@ -19,7 +19,7 @@
 // línea sin tocar las demás.
 
 export { datos, normalizarTexto, obtenerRegistroPorId } from "./model/estado.js?v=1";
-export { recargarDatos, obtenerRegistros } from "./model/orquestacion-carga.js?v=1";
+export { recargarDatos, obtenerRegistros } from "./model/orquestacion-carga.js?v=2";
 export {
     distribucionContenedoresPorEstado,
     cambiarEstadoIncidencia,
@@ -72,7 +72,7 @@ export {
     iniciarRuta,
     finalizarRuta,
     camionTieneRutaAsignada
-} from "./model/cuadrillas-camiones-rutas.js?v=1";
+} from "./model/cuadrillas-camiones-rutas.js?v=2";
 export {
     obtenerMaquinariaDeInstalacion,
     agregarMaquinaria,

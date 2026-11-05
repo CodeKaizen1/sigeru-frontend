@@ -2,7 +2,7 @@
 // con el popup propio (ConfirmarUI) en vez del confirm() nativo del navegador.
 
 import { confirmar } from "./admin/confirmar-ui.js?v=4";
-import { cerrarSesion } from "./admin/model.js?v=42";
+import { cerrarSesion } from "./admin/model.js?v=44";
 
 document.getElementById("btnSalir").addEventListener("click", async (evento) => {
     evento.preventDefault();

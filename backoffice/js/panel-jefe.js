@@ -3,7 +3,7 @@
 // ni asigna la ruta (eso es exclusivo del Administrador). Sí puede marcar inicio/fin de ruta
 // y reportar o resolver incidencias.
 
-import * as Model from "./admin/model.js?v=42";
+import * as Model from "./admin/model.js?v=44";
 import * as NotificacionesUI from "./admin/notificaciones-ui.js?v=3";
 import * as CuentaUI from "./admin/cuenta-ui.js?v=5";
 import { confirmar, avisar } from "./admin/confirmar-ui.js?v=4";
@@ -273,7 +273,11 @@ async function render() {
     const botonIniciar = contenido.querySelector("[data-iniciar-ruta]");
     if (botonIniciar) {
         botonIniciar.addEventListener("click", async () => {
-            await Model.iniciarRuta(botonIniciar.dataset.iniciarRuta);
+            const resultado = await Model.iniciarRuta(botonIniciar.dataset.iniciarRuta);
+            if (!resultado) {
+                avisar("No se pudo marcar el inicio de la ruta. Probá de nuevo en unos segundos.");
+                return;
+            }
             await render();
         });
     }
@@ -281,7 +285,11 @@ async function render() {
     const botonFinalizar = contenido.querySelector("[data-finalizar-ruta]");
     if (botonFinalizar) {
         botonFinalizar.addEventListener("click", async () => {
-            await Model.finalizarRuta(botonFinalizar.dataset.finalizarRuta);
+            const resultado = await Model.finalizarRuta(botonFinalizar.dataset.finalizarRuta);
+            if (!resultado) {
+                avisar("No se pudo marcar el fin de la ruta. Probá de nuevo en unos segundos.");
+                return;
+            }
             await render();
         });
     }

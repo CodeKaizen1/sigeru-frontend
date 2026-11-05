@@ -5,7 +5,7 @@
 // No usa el patrón de lista + detalle del panel administrador: el contenido es siempre "lo mío",
 // no un listado a filtrar.
 
-import * as Model from "./admin/model.js?v=42";
+import * as Model from "./admin/model.js?v=44";
 import * as NotificacionesUI from "./admin/notificaciones-ui.js?v=3";
 import * as CuentaUI from "./admin/cuenta-ui.js?v=5";
 import { confirmar, avisar } from "./admin/confirmar-ui.js?v=4";
@@ -463,10 +463,16 @@ async function render() {
     const botonIniciar = contenido.querySelector("[data-iniciar-ruta]");
     if (botonIniciar) {
         botonIniciar.addEventListener("click", async () => {
+            const resultado = await Model.iniciarRuta(botonIniciar.dataset.iniciarRuta);
+            if (!resultado) {
+                avisar("No se pudo marcar el inicio de la ruta. Probá de nuevo en unos segundos.");
+                return;
+            }
             // Arranca el checklist de hoy en blanco -- si quedó algo marcado de
-            // una ruta anterior sin haber tocado "Fin", no se arrastra.
+            // una ruta anterior sin haber tocado "Fin", no se arrastra. Se hace
+            // solo si el guardado funcionó, para no perder el checklist si el
+            // backend rechaza el inicio de ruta.
             limpiarRecolectados(botonIniciar.dataset.iniciarRuta);
-            await Model.iniciarRuta(botonIniciar.dataset.iniciarRuta);
             await render();
         });
     }
@@ -474,7 +480,11 @@ async function render() {
     const botonFinalizar = contenido.querySelector("[data-finalizar-ruta]");
     if (botonFinalizar) {
         botonFinalizar.addEventListener("click", async () => {
-            await Model.finalizarRuta(botonFinalizar.dataset.finalizarRuta);
+            const resultado = await Model.finalizarRuta(botonFinalizar.dataset.finalizarRuta);
+            if (!resultado) {
+                avisar("No se pudo marcar el fin de la ruta. Probá de nuevo en unos segundos.");
+                return;
+            }
             limpiarRecolectados(botonFinalizar.dataset.finalizarRuta);
             await render();
         });

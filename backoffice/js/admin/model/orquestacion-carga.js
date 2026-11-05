@@ -6,7 +6,19 @@
 import { coleccion } from "./estado.js";
 import { cargarContenedores, cargarIncidencias, recomputarResumenIncidenciasEnContenedores } from "./contenedores-incidencias.js";
 import { cargarFuncionarios, cargarSolicitudes } from "./funcionarios.js";
-import { cargarCuadrillas, cargarCamiones, cargarRutas } from "./cuadrillas-camiones-rutas.js";
+// OJO (26/10/2026): este import SÍ lleva ?v= a diferencia de los demás de
+// esta lista -- un cambio real a cuadrillas-camiones-rutas.js (el fix del
+// bug de "marcar inicio/fin de ruta") no llegaba a navegadores que ya
+// habían visitado el panel antes, porque Apache no manda Cache-Control acá
+// y el navegador seguía sirviendo su copia en caché de la URL sin versión
+// (confirmado a mano: misma URL, mismo Last-Modified viejo, contenido
+// viejo). Si se vuelve a tocar este archivo, bumpear este ?v= (y el de
+// model.js que lo reexporta, y los otros 4 imports internos sin versionar
+// -- config-modulos.js, contenedores-incidencias.js, crud-generico.js,
+// lectura-filtrado.js -- para que las 6 referencias apunten siempre a la
+// MISMA url y no se terminen ejecutando 2 copias distintas del módulo a
+// la vez).
+import { cargarCuadrillas, cargarCamiones, cargarRutas } from "./cuadrillas-camiones-rutas.js?v=2";
 import { cargarCentrosDeAcopio, cargarVertederos, cargarMaquinaria } from "./instalaciones.js";
 import { cargarOperariosCuadrilla } from "./estado.js";
 

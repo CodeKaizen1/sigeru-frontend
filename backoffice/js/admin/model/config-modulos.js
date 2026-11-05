@@ -3,7 +3,7 @@
 // alta/edición + el ordenamiento por columna (punto 16, Fase 2) que lee esa
 // misma config -- mismo bloque que en el model.js original.
 import { ROLES_FUNCIONARIO_OPCIONES, obtenerRegistroPorId } from "./estado.js";
-import { opcionesChoferParaCamion } from "./cuadrillas-camiones-rutas.js";
+import { opcionesChoferParaCamion } from "./cuadrillas-camiones-rutas.js?v=2";
 import { valoresUnicos } from "./lectura-filtrado.js";
 
 export const configuracionModulos = {

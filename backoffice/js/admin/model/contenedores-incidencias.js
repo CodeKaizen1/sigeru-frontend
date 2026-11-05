@@ -7,7 +7,7 @@
 // crearRutaConContenedores cruza datos de las 3 cosas).
 import { datos, llamarGestion, llamarRecoleccion, obtenerRegistroPorId, formatearFechaCorta, fechaHoraParaMySQL, contarPorCategoria } from "./estado.js";
 import { configuracionModulos } from "./config-modulos.js";
-import { cargarRutas, detalleCuadrilla } from "./cuadrillas-camiones-rutas.js";
+import { cargarRutas, detalleCuadrilla } from "./cuadrillas-camiones-rutas.js?v=2";
 import { valoresUnicos } from "./lectura-filtrado.js";
 
 let _cacheContenedoresPorId = new Map();

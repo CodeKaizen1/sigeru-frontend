@@ -4,7 +4,7 @@
 import { datos, coleccion, normalizarTexto } from "./estado.js";
 import { configuracionModulos } from "./config-modulos.js";
 import { nombreFuncionario } from "./funcionarios.js";
-import { obtenerCuadrillaDeChofer, obtenerCuadrillaDeRuta } from "./cuadrillas-camiones-rutas.js";
+import { obtenerCuadrillaDeChofer, obtenerCuadrillaDeRuta } from "./cuadrillas-camiones-rutas.js?v=2";
 
 function filasCuadrillas() {
     return datos.cuadrillas.map((cuadrilla) => ({

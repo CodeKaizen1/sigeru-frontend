@@ -30,8 +30,8 @@
 // para cada ruta con 2 o más contenedores, sin tocar las que tengan menos
 // (esas no tienen nada que ordenar).
 
-import * as Model from "./model.js?v=42";
-import { ordenParaPersistir } from "./controller.js?v=63";
+import * as Model from "./model.js?v=44";
+import { ordenParaPersistir } from "./controller.js?v=65";
 
 export async function recalcularTodasLasRutas() {
     const respuesta = await fetch("/api-recoleccion/index.php?recurso=ruta", { credentials: "same-origin" });
