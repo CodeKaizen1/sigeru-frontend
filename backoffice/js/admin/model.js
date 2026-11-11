@@ -18,7 +18,7 @@
 // que un futuro cambio a un solo archivo de model/ pueda bumpear solo esa
 // línea sin tocar las demás.
 
-export { datos, normalizarTexto, obtenerRegistroPorId } from "./model/estado.js?v=1";
+export { datos, normalizarTexto, obtenerRegistroPorId } from "./model/estado.js";
 export { recargarDatos, obtenerRegistros } from "./model/orquestacion-carga.js?v=2";
 export {
     distribucionContenedoresPorEstado,
@@ -40,7 +40,7 @@ export {
     opcionesTipoInformeIncidencias,
     generarInformeIncidencias,
     filasInformeIncidenciasParaExportar
-} from "./model/contenedores-incidencias.js?v=1";
+} from "./model/contenedores-incidencias.js";
 export {
     asignarChoferACamion,
     obtenerCuadrillas,
@@ -78,7 +78,7 @@ export {
     agregarMaquinaria,
     cambiarEstadoMaquinaria,
     quitarMaquinaria
-} from "./model/instalaciones.js?v=1";
+} from "./model/instalaciones.js";
 export {
     nombreFuncionario,
     contarFuncionariosActivos,
@@ -90,12 +90,12 @@ export {
     cerrarSesion,
     obtenerPerfilPropio,
     actualizarCuentaPropia
-} from "./model/funcionarios.js?v=2";
+} from "./model/funcionarios.js";
 export {
     obtenerNotificacionesAdmin,
     obtenerNotificacionesCuadrilla,
     marcarNotificacionesLeidas
-} from "./model/notificaciones.js?v=1";
+} from "./model/notificaciones.js";
 export {
     configuracionModulos,
     ordenarRegistros,
@@ -103,11 +103,11 @@ export {
     configEdicionFuncionarios,
     obtenerConfigEdicion,
     obtenerConfigAlta
-} from "./model/config-modulos.js?v=1";
+} from "./model/config-modulos.js";
 export {
     filtrarRegistros,
     obtenerFiltrosExtra,
     obtenerColumnasExport,
     filasParaExportar
-} from "./model/lectura-filtrado.js?v=1";
-export { crearRegistro, editarRegistro, alternarBaja } from "./model/crud-generico.js?v=1";
+} from "./model/lectura-filtrado.js";
+export { crearRegistro, editarRegistro, alternarBaja } from "./model/crud-generico.js";

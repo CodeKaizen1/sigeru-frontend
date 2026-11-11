@@ -30,7 +30,7 @@ export {
     renderGraficosResumen,
     mostrarMensajeDetalleInicial,
     renderUltimasIncidencias
-} from "./view/resumen.js?v=1";
+} from "./view/resumen.js";
 export { renderInformeIncidencias } from "./view/informe.js?v=1";
 export { renderListaRegistros, renderPaginador } from "./view/listados.js?v=1";
 export { abrirDetailModal, cerrarDetailModal, renderDetalle } from "./view/detalle-modal.js?v=1";
@@ -44,4 +44,4 @@ export {
     abrirModal,
     cerrarModal,
     mostrarAccesoNoAutorizado
-} from "./view/formularios.js?v=1";
+} from "./view/formularios.js";
