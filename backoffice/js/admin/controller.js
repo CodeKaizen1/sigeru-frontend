@@ -378,7 +378,11 @@ async function mostrarModulo() {
     // Punto 16 de la Fase 2: el orden por columna se aplica sobre TODO lo
     // filtrado, antes de recortar por página -- si no, cada página se
     // ordenaría por separado y el resultado general no tendría sentido.
-    const registrosFiltrados = Model.ordenarRegistros(moduloActual, registrosFiltradosSinOrden, columnaOrdenActual, direccionOrdenActual);
+    // Sin columna elegida, Incidencias va de la más nueva a la más vieja (id
+    // autoincremental descendente) para que la última reportada quede arriba.
+    const registrosFiltrados = !columnaOrdenActual && moduloActual === "incidencias"
+        ? [...registrosFiltradosSinOrden].sort((x, y) => Number(y.id) - Number(x.id))
+        : Model.ordenarRegistros(moduloActual, registrosFiltradosSinOrden, columnaOrdenActual, direccionOrdenActual);
 
     const totalPaginas = Math.max(1, Math.ceil(registrosFiltrados.length / registrosPorPagina));
     // Si el filtro cambió el total y paginaActual quedó apuntando a una

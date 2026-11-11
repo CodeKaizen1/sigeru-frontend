@@ -31,7 +31,7 @@
 // (esas no tienen nada que ordenar).
 
 import * as Model from "./model.js?v=45";
-import { ordenParaPersistir } from "./controller.js?v=66";
+import { ordenParaPersistir } from "./controller.js?v=67";
 
 export async function recalcularTodasLasRutas() {
     const respuesta = await fetch("/api-recoleccion/index.php?recurso=ruta", { credentials: "same-origin" });
