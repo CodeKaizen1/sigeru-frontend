@@ -51,7 +51,8 @@ function marcaDeTiempo(fechaMysql) {
 }
 
 function claseEstadoIncidencia(estado) {
-    return escapeHtml((estado || "").toLowerCase().replaceAll(" ", "-"));
+    const visible = estado === "asignada" ? "en curso" : estado;
+    return escapeHtml((visible || "").toLowerCase().replaceAll(" ", "-"));
 }
 
 function crearTarjetaIncidencia(incidencia) {
@@ -59,7 +60,8 @@ function crearTarjetaIncidencia(incidencia) {
     const idTexto = escapeHtml(incidencia.idIncidencia);
     const tipoTexto = escapeHtml(incidencia.tipoIncidencia || "Otra situación");
     const zonaTexto = escapeHtml(incidencia.zonaIncidencia || "");
-    const estadoTexto = escapeHtml(incidencia.estadoIncidencia || "");
+    // "asignada" (así lo guarda la base) se muestra como "en curso": ya hay una cuadrilla trabajando en ella.
+    const estadoTexto = escapeHtml(incidencia.estadoIncidencia === "asignada" ? "en curso" : (incidencia.estadoIncidencia || ""));
 
     return `
         <div class="incidencia-publica-card">

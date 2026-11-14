@@ -4,7 +4,7 @@
 // por eso quedaron aparte, en vez de "ensuciar" estado.js con imports de
 // todos los dominios.
 import { coleccion } from "./estado.js";
-import { cargarContenedores, cargarIncidencias, recomputarResumenIncidenciasEnContenedores } from "./contenedores-incidencias.js?v=2";
+import { cargarContenedores, cargarIncidencias, recomputarResumenIncidenciasEnContenedores } from "./contenedores-incidencias.js?v=4";
 import { cargarFuncionarios, cargarSolicitudes } from "./funcionarios.js";
 // OJO (26/10/2026): este import SÍ lleva ?v= a diferencia de los demás de
 // esta lista -- un cambio real a cuadrillas-camiones-rutas.js (el fix del
@@ -39,6 +39,13 @@ async function asegurarCargado(modulo) {
         await cargarContenedores();
         await cargarIncidencias();
         recomputarResumenIncidenciasEnContenedores();
+        if (modulo === "incidencias") {
+            // El botón "Asignar" ofrece las cuadrillas que recorren la ruta del
+            // contenedor: sin esto dependía de que la carga inicial ya hubiera
+            // terminado, y si no, el selector aparecía vacío.
+            await cargarOperariosCuadrilla();
+            await Promise.all([cargarCuadrillas(), cargarRutas(), cargarFuncionarios()]);
+        }
         return;
     }
 

@@ -499,7 +499,7 @@ function pintarIncidenciaEnMapa(mapa, incidencia, contenedor) {
         <strong>Incidencia #${escapeHtmlMapa(incidencia.idIncidencia)}</strong><br>
         ${escapeHtmlMapa(incidencia.tipoIncidencia || "Otra situación")}<br>
         Zona: ${escapeHtmlMapa(incidencia.zonaIncidencia || "")}<br>
-        Estado: ${escapeHtmlMapa(incidencia.estadoIncidencia || "")}
+        Estado: ${escapeHtmlMapa(incidencia.estadoIncidencia === "asignada" ? "en curso" : (incidencia.estadoIncidencia || ""))}
     `);
 }
 

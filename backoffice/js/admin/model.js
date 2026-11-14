@@ -19,7 +19,7 @@
 // línea sin tocar las demás.
 
 export { datos, normalizarTexto, obtenerRegistroPorId } from "./model/estado.js";
-export { recargarDatos, obtenerRegistros } from "./model/orquestacion-carga.js?v=2";
+export { recargarDatos, obtenerRegistros } from "./model/orquestacion-carga.js?v=3";
 export {
     distribucionContenedoresPorEstado,
     cambiarEstadoIncidencia,
@@ -40,7 +40,7 @@ export {
     opcionesTipoInformeIncidencias,
     generarInformeIncidencias,
     filasInformeIncidenciasParaExportar
-} from "./model/contenedores-incidencias.js?v=2";
+} from "./model/contenedores-incidencias.js?v=4";
 export {
     asignarChoferACamion,
     obtenerCuadrillas,

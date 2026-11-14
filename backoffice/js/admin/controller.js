@@ -1,7 +1,7 @@
 // CONTROLADOR: escucha clicks/submits del panel, pide datos al Modelo y actualiza la Vista.
 // También guarda el estado propio de la pantalla (módulo abierto, registro en edición).
 
-import * as Model from "./model.js?v=46";
+import * as Model from "./model.js?v=49";
 import * as View from "./view.js?v=45";
 import * as NotificacionesUI from "./notificaciones-ui.js?v=3";
 import * as CuentaUI from "./cuenta-ui.js?v=5";
@@ -186,6 +186,7 @@ const mostrarModuloDesdeFiltroDebounced = debounce(mostrarModuloDesdeFiltro, ESP
 
 // Carga los módulos de los que depende el resumen y pinta las tarjetas + gráficos.
 async function mostrarResumen() {
+    const turno = ++turnoMostrarModulo;
     const [contenedores, camiones] = await Promise.all([
         Model.obtenerRegistros("contenedores"),
         Model.obtenerRegistros("camiones"),
@@ -194,6 +195,7 @@ async function mostrarResumen() {
         Model.obtenerRegistros("rutas")
     ]);
     const solicitudes = await Model.obtenerSolicitudesPendientes();
+    if (turno !== turnoMostrarModulo) return; // se pidió otra pantalla mientras cargaba
 
     View.mostrarTarjetasResumen({
         incidenciasAbiertas: Model.contarIncidenciasAbiertas(),
@@ -229,7 +231,9 @@ let paginaInforme = 1;
 let registrosPorPaginaInforme = 10;
 
 async function mostrarInformes() {
+    const turno = ++turnoMostrarModulo;
     await Model.obtenerRegistros("informes");
+    if (turno !== turnoMostrarModulo) return; // se pidió otra pantalla mientras cargaba
 
     const informe = Model.generarInformeIncidencias(filtrosInforme);
 
@@ -365,16 +369,26 @@ function leerFiltrosActuales() {
 
 // Asegura que la caché del módulo esté cargada y devuelve los registros ya filtrados.
 async function registrosDelModuloActual() {
-    const { textoBusqueda, estadoSeleccionado, filtrosExtraValores, fechaSeleccionada } = leerFiltrosActuales();
     await Model.obtenerRegistros(moduloActual);
+    // Los filtros se leen DESPUÉS de cargar: si se leían antes y el usuario
+    // cambiaba de módulo mientras cargaba, se aplicaban los filtros de la
+    // pantalla anterior y la lista quedaba vacía.
+    const { textoBusqueda, estadoSeleccionado, filtrosExtraValores, fechaSeleccionada } = leerFiltrosActuales();
     return Model.filtrarRegistros(moduloActual, textoBusqueda, estadoSeleccionado, filtrosExtraValores, fechaSeleccionada);
 }
 
+// Cada llamada a mostrarModulo() toma un turno; si mientras carga se pidió
+// otra pantalla, esta no dibuja nada (la carga inicial y un clic rápido en
+// otro módulo corrían a la vez y la que terminaba última pisaba a la otra).
+let turnoMostrarModulo = 0;
+
 async function mostrarModulo() {
+    const turno = ++turnoMostrarModulo;
     View.ocultarTarjetasResumen();
     View.cerrarDetailModal();
 
     const registrosFiltradosSinOrden = await registrosDelModuloActual();
+    if (turno !== turnoMostrarModulo) return;
     // Punto 16 de la Fase 2: el orden por columna se aplica sobre TODO lo
     // filtrado, antes de recortar por página -- si no, cada página se
     // ordenaría por separado y el resultado general no tendría sentido.
@@ -510,9 +524,20 @@ async function manejarAsignarCuadrillaAIncidencia(id) {
     );
 
     if (nuevaCuadrilla === null) return;
+    if (String(nuevaCuadrilla) === String(incidencia.cuadrillaId || "")) return; // no cambió nada
 
-    await Model.asignarCuadrillaAIncidencia(id, nuevaCuadrilla);
+    const actualizada = await Model.asignarCuadrillaAIncidencia(id, nuevaCuadrilla);
     await mostrarModulo();
+
+    if (!actualizada) {
+        await ConfirmarUI.avisar("No se pudo guardar la asignación. Volvé a intentarlo.");
+    } else if (nuevaCuadrilla) {
+        const cuadrilla = Model.obtenerRegistroPorId("cuadrillas", nuevaCuadrilla);
+        const nombre = cuadrilla && cuadrilla.nombre ? cuadrilla.nombre : `la cuadrilla ${nuevaCuadrilla}`;
+        await ConfirmarUI.avisar(`Incidencia ${id} asignada correctamente a ${nombre}. Estado: ${actualizada.estado}.`);
+    } else {
+        await ConfirmarUI.avisar(`Se quitó la cuadrilla de la incidencia ${id}. Estado: ${actualizada.estado}.`);
+    }
 }
 
 async function manejarCambiarEstadoIncidencia(id) {

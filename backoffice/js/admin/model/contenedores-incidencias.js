@@ -65,6 +65,15 @@ export function distribucionContenedoresPorEstado() {
     return contarPorCategoria(datos.contenedores, "estado", configuracionModulos.contenedores.estados);
 }
 
+// La base guarda "asignada" (CHECK chk_incidencia_estado: abierta/asignada/
+// resuelta) para lo que el panel muestra como "en curso": la incidencia ya
+// tiene cuadrilla y la está gestionando. Se traduce solo acá, al leer y al
+// escribir, así el resto del panel trabaja siempre con "en curso".
+const ESTADO_PANEL_A_BASE = { "en curso": "asignada" };
+const ESTADO_BASE_A_PANEL = { asignada: "en curso" };
+const estadoDesdeBase = (estado) => ESTADO_BASE_A_PANEL[estado] || estado || "";
+const estadoParaBase = (estado) => ESTADO_PANEL_A_BASE[estado] || estado;
+
 export async function cargarIncidencias() {
     const { ok, datos: filas } = await llamarGestion("incidencia", "GET");
     if (!ok || !Array.isArray(filas)) return;
@@ -75,7 +84,7 @@ export async function cargarIncidencias() {
         return {
             id: String(fila.idIncidencia),
             tipo: fila.tipoIncidencia || "",
-            estado: fila.estadoIncidencia || "",
+            estado: estadoDesdeBase(fila.estadoIncidencia),
             zona: fila.zonaIncidencia || "",
             fecha: formatearFechaCorta(fila.fechaReporte),
             descripcion: fila.descripcionIncidencia || "",
@@ -95,7 +104,7 @@ function cuerpoIncidencia(incidencia, cambios = {}) {
     return {
         idIncidencia: Number(incidencia.id),
         descripcionIncidencia: "descripcionIncidencia" in cambios ? cambios.descripcionIncidencia : incidencia._descripcionCruda,
-        estadoIncidencia: "estadoIncidencia" in cambios ? cambios.estadoIncidencia : incidencia.estado,
+        estadoIncidencia: estadoParaBase("estadoIncidencia" in cambios ? cambios.estadoIncidencia : incidencia.estado),
         emailResponsableIncidencia: null,
         tipoIncidencia: incidencia.tipo,
         zonaIncidencia: incidencia.zona,
@@ -170,10 +179,19 @@ export async function asignarCuadrillaAIncidencia(idIncidencia, idCuadrilla) {
 
     const cuadrillaIdNueva = idCuadrilla || null;
 
-    const { ok } = await llamarGestion("incidencia", "PUT", cuerpoIncidencia(incidencia, { idCuadrilla: cuadrillaIdNueva }), idIncidencia);
+    // Al asignarla, la incidencia pasa a "en curso": ya la está gestionando
+    // una cuadrilla. Si se le quita la cuadrilla, vuelve a "abierta". Una
+    // incidencia resuelta conserva su estado (reabrirla exige un motivo).
+    let estadoNuevo = incidencia.estado;
+    if (cuadrillaIdNueva && incidencia.estado === "abierta") estadoNuevo = "en curso";
+    if (!cuadrillaIdNueva && incidencia.estado === "en curso") estadoNuevo = "abierta";
+
+    const { ok } = await llamarGestion("incidencia", "PUT",
+        cuerpoIncidencia(incidencia, { idCuadrilla: cuadrillaIdNueva, estadoIncidencia: estadoNuevo }), idIncidencia);
     if (!ok) return null;
 
     incidencia.cuadrillaId = cuadrillaIdNueva;
+    incidencia.estado = estadoNuevo;
     return incidencia;
 }
 

@@ -5,7 +5,7 @@
 // el dispatcher genérico del CRUD, no un indicio de que esté mal separado.
 import { datos, llamarGestion, llamarRecoleccion, llamarUsuarios, aNumeroONull, aEnteroONull, idOperarioDesdeCedula, cargarOperariosCuadrilla, obtenerRegistroPorId, ROLES_LABEL_A_CUENTA } from "./estado.js";
 import { configuracionModulos, obtenerConfigEdicion } from "./config-modulos.js";
-import { cargarContenedores, recomputarResumenIncidenciasEnContenedores } from "./contenedores-incidencias.js?v=2";
+import { cargarContenedores, recomputarResumenIncidenciasEnContenedores } from "./contenedores-incidencias.js?v=4";
 import { cargarCamiones, guardarCamion, cargarRutas, guardarCuadrilla, camionTieneRutaAsignada } from "./cuadrillas-camiones-rutas.js?v=3";
 import { cargarCentrosDeAcopio, cargarVertederos, persistirInstalacion } from "./instalaciones.js";
 import { cargarFuncionarios, guardarUsuario, actualizarCargoSiCorresponde } from "./funcionarios.js";
