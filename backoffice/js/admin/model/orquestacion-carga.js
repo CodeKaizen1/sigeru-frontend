@@ -4,7 +4,7 @@
 // por eso quedaron aparte, en vez de "ensuciar" estado.js con imports de
 // todos los dominios.
 import { coleccion } from "./estado.js";
-import { cargarContenedores, cargarIncidencias, recomputarResumenIncidenciasEnContenedores } from "./contenedores-incidencias.js";
+import { cargarContenedores, cargarIncidencias, recomputarResumenIncidenciasEnContenedores } from "./contenedores-incidencias.js?v=2";
 import { cargarFuncionarios, cargarSolicitudes } from "./funcionarios.js";
 // OJO (26/10/2026): este import SÍ lleva ?v= a diferencia de los demás de
 // esta lista -- un cambio real a cuadrillas-camiones-rutas.js (el fix del
@@ -18,7 +18,7 @@ import { cargarFuncionarios, cargarSolicitudes } from "./funcionarios.js";
 // lectura-filtrado.js -- para que las 6 referencias apunten siempre a la
 // MISMA url y no se terminen ejecutando 2 copias distintas del módulo a
 // la vez).
-import { cargarCuadrillas, cargarCamiones, cargarRutas } from "./cuadrillas-camiones-rutas.js?v=2";
+import { cargarCuadrillas, cargarCamiones, cargarRutas } from "./cuadrillas-camiones-rutas.js?v=3";
 import { cargarCentrosDeAcopio, cargarVertederos, cargarMaquinaria } from "./instalaciones.js";
 import { cargarOperariosCuadrilla } from "./estado.js";
 

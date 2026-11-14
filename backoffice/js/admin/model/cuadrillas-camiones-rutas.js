@@ -250,7 +250,12 @@ export function obtenerRutas() {
 // asignar a una cuadrilla que recorre Pocitos). Sin zonaIncidencia (o si
 // ninguna cuadrilla coincide y así quedaría una lista vacía), se cae de
 // nuevo a la lista completa en vez de dejar el selector sin opciones.
-export function opcionesCuadrillaParaAsignar(zonaIncidencia) {
+// Cuadrillas a las que se puede asignar una incidencia: solo las que recorren
+// la ruta del contenedor de la incidencia (contenedor.idRuta). Si la incidencia
+// no tiene contenedor, o el contenedor no tiene ruta, se usa el barrio (zona).
+// Nunca se ofrecen cuadrillas de otra ruta: si ninguna coincide, la lista queda
+// solo con "Sin asignar" y el controlador avisa en vez de mostrar el selector.
+export function opcionesCuadrillaParaAsignar(rutaIdContenedor, zonaIncidencia) {
     const construirOpcion = (cuadrilla, ruta) => {
         const etiquetaZona = ruta ? ` — ${ruta.nombre || ruta.zona}` : "";
         const nombreJefe = cuadrilla.jefeId ? nombreFuncionario(cuadrilla.jefeId) : null;
@@ -264,14 +269,22 @@ export function opcionesCuadrillaParaAsignar(zonaIncidencia) {
     }));
 
     let candidatas = cuadrillasConRuta;
-    if (zonaIncidencia) {
-        const coincidentes = cuadrillasConRuta.filter(({ ruta }) => ruta && ruta.zona === zonaIncidencia);
-        if (coincidentes.length > 0) candidatas = coincidentes;
+    if (rutaIdContenedor) {
+        candidatas = cuadrillasConRuta.filter(({ cuadrilla }) => cuadrilla.rutaId === String(rutaIdContenedor));
+    } else if (zonaIncidencia) {
+        candidatas = cuadrillasConRuta.filter(({ ruta }) => ruta && ruta.zona === zonaIncidencia);
     }
 
     return [{ value: "", label: "Sin asignar" }].concat(
         candidatas.map(({ cuadrilla, ruta }) => construirOpcion(cuadrilla, ruta))
     );
+}
+
+// Texto para avisar qué ruta/barrio no tiene cuadrilla ("la ruta X (Barrio)").
+export function descripcionRutaOZona(rutaId, zona) {
+    const ruta = rutaId ? datos.rutas.find((item) => item.id === String(rutaId)) : null;
+    if (ruta) return `la ruta ${ruta.nombre || ruta.id}${ruta.zona && ruta.nombre !== ruta.zona ? ` (${ruta.zona})` : ""}`;
+    return zona ? `el barrio ${zona}` : "esta incidencia";
 }
 
 export function opcionesRutasParaAsignar() {

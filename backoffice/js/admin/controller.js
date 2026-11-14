@@ -1,7 +1,7 @@
 // CONTROLADOR: escucha clicks/submits del panel, pide datos al Modelo y actualiza la Vista.
 // También guarda el estado propio de la pantalla (módulo abierto, registro en edición).
 
-import * as Model from "./model.js?v=45";
+import * as Model from "./model.js?v=46";
 import * as View from "./view.js?v=45";
 import * as NotificacionesUI from "./notificaciones-ui.js?v=3";
 import * as CuentaUI from "./cuenta-ui.js?v=5";
@@ -494,10 +494,18 @@ async function manejarAsignarCuadrillaAIncidencia(id) {
     const incidencia = Model.obtenerRegistroPorId("incidencias", id);
     if (!incidencia) return;
 
+    // Solo las cuadrillas que recorren la ruta del contenedor de la incidencia:
+    // una incidencia de un barrio no se puede asignar a una cuadrilla de otro.
+    const opciones = Model.opcionesCuadrillaParaAsignar(incidencia._rutaContenedor, incidencia.zona);
+    if (opciones.length <= 1) {
+        await ConfirmarUI.avisar(`Ninguna cuadrilla recorre ${Model.descripcionRutaOZona(incidencia._rutaContenedor, incidencia.zona)}, donde está el contenedor de esta incidencia. Asigná primero una cuadrilla a esa ruta desde Cuadrillas.`);
+        return;
+    }
+
     const nuevaCuadrilla = await AsignarUI.pedirSeleccion(
         `Asignar cuadrilla — ${incidencia.id}`,
         "Cuadrilla",
-        Model.opcionesCuadrillaParaAsignar(incidencia.zona),
+        opciones,
         incidencia.cuadrillaId || ""
     );
 

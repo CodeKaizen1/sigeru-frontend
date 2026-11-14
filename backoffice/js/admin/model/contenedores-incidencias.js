@@ -7,7 +7,7 @@
 // crearRutaConContenedores cruza datos de las 3 cosas).
 import { datos, llamarGestion, llamarRecoleccion, obtenerRegistroPorId, formatearFechaCorta, fechaHoraParaMySQL, contarPorCategoria } from "./estado.js";
 import { configuracionModulos } from "./config-modulos.js";
-import { cargarRutas, detalleCuadrilla } from "./cuadrillas-camiones-rutas.js?v=2";
+import { cargarRutas, detalleCuadrilla } from "./cuadrillas-camiones-rutas.js?v=3";
 import { valoresUnicos } from "./lectura-filtrado.js";
 
 let _cacheContenedoresPorId = new Map();
@@ -35,6 +35,10 @@ export async function cargarContenedores() {
             // creados a mano desde el panel pueden no tenerlos).
             zona: fila.zonaContenedor || "",
             municipio: fila.municipioContenedor || "",
+            // Ruta de recolección a la que pertenece (contenedor.idRuta): con
+            // esto, al asignar una incidencia solo se ofrecen las cuadrillas
+            // que recorren la ruta de ESE contenedor (no las de otro barrio).
+            rutaId: fila.idRuta != null ? String(fila.idRuta) : null,
             incidencias: calcularResumenIncidenciasContenedor(fila.idContenedor)
         };
         _cacheContenedoresPorId.set(item.id, item);
@@ -81,6 +85,7 @@ export async function cargarIncidencias() {
             fechaResolucion: fila.fechaResolucionIncidencia || null,
             _descripcionCruda: fila.descripcionIncidencia,
             _idContenedorReal: fila.idContenedor != null ? String(fila.idContenedor) : null,
+            _rutaContenedor: contenedor ? contenedor.rutaId : null,
             _fechaReporteCruda: fila.fechaReporte
         };
     });

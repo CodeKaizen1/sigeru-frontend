@@ -40,7 +40,7 @@ export {
     opcionesTipoInformeIncidencias,
     generarInformeIncidencias,
     filasInformeIncidenciasParaExportar
-} from "./model/contenedores-incidencias.js";
+} from "./model/contenedores-incidencias.js?v=2";
 export {
     asignarChoferACamion,
     obtenerCuadrillas,
@@ -61,6 +61,7 @@ export {
     obtenerCamionesDisponibles,
     obtenerRutas,
     opcionesCuadrillaParaAsignar,
+    descripcionRutaOZona,
     opcionesRutasParaAsignar,
     opcionesChoferParaCamion,
     asignarJefeACuadrilla,
@@ -72,7 +73,7 @@ export {
     iniciarRuta,
     finalizarRuta,
     camionTieneRutaAsignada
-} from "./model/cuadrillas-camiones-rutas.js?v=2";
+} from "./model/cuadrillas-camiones-rutas.js?v=3";
 export {
     obtenerMaquinariaDeInstalacion,
     agregarMaquinaria,
