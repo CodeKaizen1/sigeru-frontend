@@ -265,8 +265,14 @@ async function render() {
 
             if (detalle === null) return;
 
-            await Model.marcarIncidenciaResuelta(boton.dataset.resolver, detalle);
+            const resultado = await Model.marcarIncidenciaResuelta(boton.dataset.resolver, detalle);
             await render();
+
+            if (resultado && typeof resultado === "object") {
+                await avisar(`Incidencia ${boton.dataset.resolver} resuelta exitosamente.`);
+            } else {
+                await avisar("No se pudo marcar la incidencia como resuelta. Probá de nuevo en unos segundos.");
+            }
         });
     });
 
