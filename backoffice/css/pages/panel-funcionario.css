@@ -87,9 +87,23 @@
 
 .panel-funcionario-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    /* minmax(0, 1fr): sin esto una columna se estira al ancho de su contenido
+       (una fila de botones larga) y la página termina más ancha que la pantalla. */
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 20px;
     align-items: start;
+}
+
+.panel-funcionario-grid > *,
+.panel-columna-apilada > * {
+    min-width: 0;
+}
+
+/* Botones de cada parada (Abrir en Maps / Copiar dirección / Marcar
+   recolectada): bajan a la línea siguiente cuando no entran. */
+.parada-ruta-acciones {
+    flex-wrap: wrap;
+    flex-shrink: 1;
 }
 
 .panel-funcionario-grid .detail-panel {
@@ -125,6 +139,69 @@
     }
 
     .panel-funcionario-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    /* Encabezado: nombre arriba y las acciones (campana, cuenta, cerrar
+       sesión) debajo, en una fila que baja de línea si no entra. */
+    .panel-funcionario-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+        padding: 22px;
+    }
+
+    .panel-funcionario-header-acciones {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    /* Tarjetas de resumen de a dos por fila, con números más chicos. */
+    .panel-funcionario-contenido .admin-resumen {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .panel-funcionario-contenido .resumen-card {
+        padding: 16px;
+        min-width: 0;
+    }
+
+    .panel-funcionario-contenido .resumen-card strong {
+        font-size: 20px;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+    }
+}
+
+@media (max-width: 600px) {
+    /* Cada parada: la información arriba y los botones abajo a lo ancho.
+       "Marcar recolectada" va primero y bien visible: es la acción
+       principal del chofer en la calle. */
+    .parada-ruta {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .parada-ruta-acciones {
+        width: 100%;
+    }
+
+    .parada-ruta-acciones > * {
+        flex: 1 1 0;
+        min-width: 0;
+        justify-content: center;
+        margin-left: 0;
+    }
+
+    .parada-ruta-acciones .checkbox-parada {
+        order: -1;
+        flex-basis: 100%;
+        padding: 12px;
+        border: 2px solid #1f7a3a;
+        border-radius: 12px;
+        background: #eaf7ee;
+        color: #14532d;
     }
 }
